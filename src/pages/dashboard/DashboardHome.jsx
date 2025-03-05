@@ -8,9 +8,9 @@ const DashboardHome = () => {
   
   // Mock data for dashboard
   const upcomingEvents = [
-    { id: 1, title: 'Calculus Study Session', date: '2023-06-15T14:00:00', group: 'Advanced Math' },
-    { id: 2, title: 'Physics Lab Prep', date: '2023-06-16T10:30:00', group: 'Physics 101' },
-    { id: 3, title: 'Group Project Meeting', date: '2023-06-17T15:00:00', group: 'Computer Science' }
+    { id: 1, title: 'Calculus Study Session', date: '2025-03-05T14:00:00', group: 'Advanced Math' },
+    { id: 2, title: 'Physics Lab Prep', date: '2025-03-05T10:30:00', group: 'Physics 101' },
+    { id: 3, title: 'Group Project Meeting', date: '2025-03-05T15:00:00', group: 'Computer Science' }
   ];
   
   const recentResources = [
