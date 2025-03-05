@@ -14,9 +14,9 @@ const DashboardHome = () => {
   ];
   
   const recentResources = [
-    { id: 1, title: 'Calculus Cheat Sheet', type: 'PDF', uploadedBy: 'Alex Johnson', date: '2023-06-10' },
-    { id: 2, title: 'Physics Formulas', type: 'Document', uploadedBy: 'Maria Garcia', date: '2023-06-09' },
-    { id: 3, title: 'Programming Basics', type: 'Link', uploadedBy: 'John Smith', date: '2023-06-08' }
+    { id: 1, title: 'Calculus Cheat Sheet', type: 'PDF', uploadedBy: 'Alex Johnson', date: '2025-03-05' },
+    { id: 2, title: 'Physics Formulas', type: 'Document', uploadedBy: 'Maria Garcia', date: '2025-03-05' },
+    { id: 3, title: 'Programming Basics', type: 'Link', uploadedBy: 'John Smith', date: '2025-03-05' }
   ];
   
   const notifications = [
