@@ -149,7 +149,7 @@ const AboutPage = () => {
         </section>
 
         {/* Developer Section */}
-        <section className="py-20 bg-secondary-50">
+        {/* <section className="py-20 bg-secondary-50">
           <div className="container-custom">
             <div className="text-center mb-16">
               <span className="text-primary-600 font-semibold text-sm uppercase tracking-wider">Developer</span>
@@ -161,7 +161,7 @@ const AboutPage = () => {
               </p>
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* Team Section */}
         <section className="py-20 bg-secondary-50">
