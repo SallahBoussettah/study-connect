@@ -111,13 +111,13 @@ const AboutPage = () => {
                   How StudyConnect Began
                 </h2>
                 <p className="text-lg text-secondary-600">
-                  StudyConnect was born out of a simple observation: students learn better together, but finding the right study partners and collaborating effectively can be challenging.
+                  StudyConnect was born from my personal experience as a student, recognizing that while learning together is powerful, finding and connecting with study partners isn't always easy.
                 </p>
                 <p className="text-lg text-secondary-600">
-                  Founded in 2022 by a team of education enthusiasts and technologists, we set out to create a platform that makes collaborative learning seamless, engaging, and productive.
+                  In 2025, I started developing StudyConnect with a vision to create a platform that breaks down the barriers to collaborative learning and makes it accessible to everyone.
                 </p>
                 <p className="text-lg text-secondary-600">
-                  What started as a simple tool for connecting study partners has evolved into a comprehensive platform that supports various aspects of collaborative learning, from resource sharing to real-time communication.
+                  As a solo developer, I'm committed to building and evolving StudyConnect into a tool that truly enhances the way students connect, collaborate, and learn together.
                 </p>
               </div>
             </div>
