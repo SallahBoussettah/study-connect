@@ -28,27 +28,15 @@ const ValueCard = ({ icon, title, description }) => (
 const AboutPage = () => {
   const teamMembers = [
     {
-      name: "Alex Johnson",
-      role: "Founder & CEO",
+      name: "****",
+      role: "Founder & Developer",
       image: "https://randomuser.me/api/portraits/men/32.jpg",
-      bio: "Former education technology researcher with a passion for improving collaborative learning experiences."
+      bio: "A passionate developer with a vision to make collaborative learning more accessible and effective for students worldwide."
     },
     {
-      name: "Sophia Chen",
-      role: "Chief Product Officer",
-      image: "https://randomuser.me/api/portraits/women/44.jpg",
-      bio: "Education specialist with 10+ years experience in developing digital learning tools for students."
-    },
-    {
-      name: "Marcus Williams",
-      role: "Head of Engineering",
-      image: "https://randomuser.me/api/portraits/men/86.jpg",
-      bio: "Full-stack developer who previously built collaboration tools for remote teams and educational institutions."
-    },
-    {
-      name: "Priya Patel",
+      name: "****",
       role: "UX/UI Designer",
-      image: "https://randomuser.me/api/portraits/women/24.jpg",
+      image: "https://randomuser.me/api/portraits/women/44.jpg",
       bio: "Designer focused on creating intuitive and accessible interfaces for educational platforms."
     }
   ];
@@ -184,11 +172,11 @@ const AboutPage = () => {
                 The People Behind StudyConnect
               </h2>
               <p className="mt-4 text-xl text-secondary-600 max-w-3xl mx-auto">
-                We're a team of educators, technologists, and designers passionate about improving education.
+                A small team passionate about improving education through technology.
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
               {teamMembers.map((member, index) => (
                 <TeamMember key={index} {...member} />
               ))}
