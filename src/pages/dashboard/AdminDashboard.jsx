@@ -22,11 +22,11 @@ const AdminDashboard = () => {
   };
   
   const recentUsers = [
-    { id: 1, name: 'Emma Wilson', email: 'emma.w@example.com', role: 'student', joinDate: '2023-06-10' },
-    { id: 2, name: 'Michael Brown', email: 'michael.b@example.com', role: 'student', joinDate: '2023-06-09' },
-    { id: 3, name: 'Sophia Chen', email: 'sophia.c@example.com', role: 'student', joinDate: '2023-06-09' },
-    { id: 4, name: 'James Rodriguez', email: 'james.r@example.com', role: 'student', joinDate: '2023-06-08' },
-    { id: 5, name: 'Olivia Johnson', email: 'olivia.j@example.com', role: 'student', joinDate: '2023-06-08' }
+    { id: 1, name: 'Emma Wilson', email: 'emma.w@example.com', role: 'student', joinDate: '2024-06-10' },
+    { id: 2, name: 'Michael Brown', email: 'michael.b@example.com', role: 'student', joinDate: '2022-06-09' },
+    { id: 3, name: 'Sophia Chen', email: 'sophia.c@example.com', role: 'student', joinDate: '2021-06-09' },
+    { id: 4, name: 'James Rodriguez', email: 'james.r@example.com', role: 'student', joinDate: '2024-06-08' },
+    { id: 5, name: 'Olivia Johnson', email: 'olivia.j@example.com', role: 'student', joinDate: '2022-06-08' }
   ];
   
   const systemAlerts = [
