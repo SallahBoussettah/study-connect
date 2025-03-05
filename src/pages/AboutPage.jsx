@@ -88,7 +88,7 @@ const AboutPage = () => {
                 About <span className="text-primary-600">StudyConnect</span>
               </h1>
               <p className="mt-6 text-xl text-secondary-600">
-                We're on a mission to transform how students collaborate and learn together.
+                A personal project aimed at transforming how students collaborate and learn together.
               </p>
             </div>
           </div>
@@ -128,12 +128,12 @@ const AboutPage = () => {
         <section className="py-20 bg-secondary-50">
           <div className="container-custom">
             <div className="text-center mb-16">
-              <span className="text-primary-600 font-semibold text-sm uppercase tracking-wider">Our Values</span>
+              <span className="text-primary-600 font-semibold text-sm uppercase tracking-wider">Core Values</span>
               <h2 className="text-3xl md:text-4xl font-bold text-secondary-900 mt-2">
-                What Drives Us
+                What Drives This Project
               </h2>
               <p className="mt-4 text-xl text-secondary-600 max-w-3xl mx-auto">
-                These core principles guide everything we do at StudyConnect.
+                These core principles guide the development of StudyConnect.
               </p>
             </div>
             
@@ -149,12 +149,27 @@ const AboutPage = () => {
         <section className="py-20 bg-white">
           <div className="container-custom">
             <div className="text-center max-w-3xl mx-auto">
-              <span className="text-primary-600 font-semibold text-sm uppercase tracking-wider">Our Mission</span>
+              <span className="text-primary-600 font-semibold text-sm uppercase tracking-wider">The Mission</span>
               <h2 className="text-3xl md:text-4xl font-bold text-secondary-900 mt-2 mb-6">
-                Why We Do What We Do
+                Why I Built StudyConnect
               </h2>
               <p className="text-xl text-secondary-600">
-                We believe that learning is inherently social, and that students achieve more when they collaborate effectively. Our mission is to break down the barriers to collaborative learning and create tools that make studying together more accessible, productive, and enjoyable for everyone.
+                I believe that learning is inherently social, and students achieve more when they collaborate effectively. My mission is to break down the barriers to collaborative learning and create tools that make studying together more accessible, productive, and enjoyable for everyone.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Developer Section */}
+        <section className="py-20 bg-secondary-50">
+          <div className="container-custom">
+            <div className="text-center mb-16">
+              <span className="text-primary-600 font-semibold text-sm uppercase tracking-wider">Developer</span>
+              <h2 className="text-3xl md:text-4xl font-bold text-secondary-900 mt-2">
+                About the Developer
+              </h2>
+              <p className="mt-4 text-xl text-secondary-600 max-w-3xl mx-auto">
+                A passionate developer committed to improving the way students learn and collaborate online.
               </p>
             </div>
           </div>
@@ -185,10 +200,10 @@ const AboutPage = () => {
         <section className="py-20 bg-primary-50">
           <div className="container-custom text-center">
             <h2 className="text-3xl font-bold text-secondary-900 mb-6">
-              Join Our Community
+              Join the Beta
             </h2>
             <p className="text-xl text-secondary-600 mb-8 max-w-2xl mx-auto">
-              Be part of the StudyConnect community and transform the way you learn.
+              Be among the first to try StudyConnect and help shape its future.
             </p>
             <Link 
               to="/register" 
