@@ -10,10 +10,18 @@ const {
 } = require('../controllers/studyRoomController');
 const { protect, authorize } = require('../middleware/auth');
 
+// Include sub-routes
+const messageRoutes = require('./messageRoutes');
+const presenceRoutes = require('./presenceRoutes');
+
 const router = express.Router();
 
 // All routes require authentication
 router.use(protect);
+
+// Re-route into other resource routers
+router.use('/:roomId/messages', messageRoutes);
+router.use('/:roomId/presence', presenceRoutes);
 
 // Get all study rooms and create a new study room
 router.route('/')
@@ -26,8 +34,11 @@ router.route('/:id')
   .put(updateStudyRoom)
   .delete(deleteStudyRoom);
 
-// Join and leave a study room
-router.post('/:id/join', joinStudyRoom);
-router.post('/:id/leave', leaveStudyRoom);
+// Join or leave a study room
+router.route('/:id/join')
+  .post(joinStudyRoom);
+
+router.route('/:id/leave')
+  .post(leaveStudyRoom);
 
 module.exports = router; 

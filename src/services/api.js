@@ -102,6 +102,80 @@ export const studyRoomService = {
   }
 };
 
+// Messages API services
+export const messageService = {
+  // Get all messages for a room
+  getRoomMessages: async (roomId, page = 1, limit = 50) => {
+    try {
+      const response = await api.get(`/study-rooms/${roomId}/messages`, {
+        params: { page, limit }
+      });
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error fetching messages for room ${roomId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Send a message to a room
+  sendMessage: async (roomId, content) => {
+    try {
+      const response = await api.post(`/study-rooms/${roomId}/messages`, { content });
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error sending message to room ${roomId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Create a system message (for admins/owners only)
+  createSystemMessage: async (roomId, content) => {
+    try {
+      const response = await api.post(`/study-rooms/${roomId}/messages/system`, { content });
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error creating system message in room ${roomId}:`, error);
+      throw error;
+    }
+  }
+};
+
+// Presence API services
+export const presenceService = {
+  // Get online users in a room
+  getRoomPresence: async (roomId) => {
+    try {
+      const response = await api.get(`/study-rooms/${roomId}/presence`);
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error fetching presence for room ${roomId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Update user presence in a room
+  updatePresence: async (roomId, status = 'active') => {
+    try {
+      const response = await api.post(`/study-rooms/${roomId}/presence`, { status });
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error updating presence in room ${roomId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Set user offline in a room
+  setOffline: async (roomId) => {
+    try {
+      const response = await api.delete(`/study-rooms/${roomId}/presence`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error setting offline in room ${roomId}:`, error);
+      throw error;
+    }
+  }
+};
+
 // Additional service exports can be added here
 
 export default api; 

@@ -8,7 +8,7 @@ import {
   FaArrowLeft, FaSpinner
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
-import { studyRoomService } from '../../services/api';
+import { studyRoomService, messageService, presenceService } from '../../services/api';
 
 const StudyRoomDetail = () => {
   const { roomId } = useParams();
@@ -22,11 +22,18 @@ const StudyRoomDetail = () => {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const messagesEndRef = useRef(null);
-  
+  const [messageLoading, setMessageLoading] = useState(true);
+  const [messagePage, setMessagePage] = useState(1);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+
   // State for room data from API
   const [roomData, setRoomData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // State for online members
+  const [onlineMembers, setOnlineMembers] = useState([]);
+  const [presenceInterval, setPresenceInterval] = useState(null);
   
   // Fetch room data from API
   useEffect(() => {
@@ -35,23 +42,6 @@ const StudyRoomDetail = () => {
         setLoading(true);
         const data = await studyRoomService.getStudyRoomById(roomId);
         setRoomData(data);
-        
-        // Mock messages for now (in a real app, this would be from a WebSocket)
-        const mockMessages = [
-          {
-            id: 1,
-            sender: { 
-              id: data.owner.id, 
-              name: data.owner.name,
-              avatar: data.owner.avatar
-            },
-            content: `Welcome to ${data.name}! Feel free to ask questions and share resources.`,
-            timestamp: data.createdAt,
-            isSystem: false
-          }
-        ];
-        
-        setMessages(mockMessages);
         setError(null);
       } catch (err) {
         console.error('Error fetching study room data:', err);
@@ -64,30 +54,117 @@ const StudyRoomDetail = () => {
     fetchRoomData();
   }, [roomId]);
   
+  // Fetch messages from API
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!roomId) return;
+      
+      try {
+        setMessageLoading(true);
+        const data = await messageService.getRoomMessages(roomId, messagePage);
+        
+        if (messagePage === 1) {
+          setMessages(data.messages);
+        } else {
+          setMessages(prevMessages => [...data.messages, ...prevMessages]);
+        }
+        
+        setHasMoreMessages(data.pagination.page < data.pagination.totalPages);
+        setMessageLoading(false);
+      } catch (err) {
+        console.error('Error fetching messages:', err);
+        setMessageLoading(false);
+      }
+    };
+    
+    fetchMessages();
+  }, [roomId, messagePage]);
+  
+  // Load more messages when user scrolls to top
+  const handleLoadMoreMessages = () => {
+    if (hasMoreMessages && !messageLoading) {
+      setMessagePage(prev => prev + 1);
+    }
+  };
+  
+  // Handle user presence
+  useEffect(() => {
+    if (!roomId || !currentUser) return;
+    
+    const updateUserPresence = async () => {
+      try {
+        // Update current user's presence
+        await presenceService.updatePresence(roomId);
+        
+        // Fetch online users
+        const onlineUsers = await presenceService.getRoomPresence(roomId);
+        setOnlineMembers(onlineUsers);
+      } catch (err) {
+        console.error('Error updating presence:', err);
+      }
+    };
+    
+    // Initial presence update
+    updateUserPresence();
+    
+    // Set up interval to keep updating presence
+    const interval = setInterval(updateUserPresence, 30000); // Every 30 seconds
+    setPresenceInterval(interval);
+    
+    // Set user offline when leaving the room
+    return () => {
+      clearInterval(interval);
+      presenceService.setOffline(roomId).catch(err => {
+        console.error('Error setting user offline:', err);
+      });
+    };
+  }, [roomId, currentUser]);
+  
   // Scroll to bottom of messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (messagePage === 1) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, messagePage]);
   
-  const handleSendMessage = (e) => {
+  // Get member status (online/offline)
+  const getMemberStatus = (memberId) => {
+    const onlineMember = onlineMembers.find(m => m.userId === memberId);
+    
+    if (onlineMember) {
+      return {
+        isOnline: true,
+        status: onlineMember.status,
+        isSpeaking: false,
+        hasCamera: true,
+        hasMic: true
+      };
+    }
+    
+    return {
+      isOnline: false,
+      status: 'offline',
+      isSpeaking: false,
+      hasCamera: false,
+      hasMic: false
+    };
+  };
+  
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
     
-    // In a real app, this would send the message via WebSocket
-    const newMsg = {
-      id: messages.length + 1,
-      sender: { 
-        id: currentUser?.id || 999, 
-        name: `${currentUser?.firstName || 'You'} ${currentUser?.lastName || ''}`, 
-        avatar: currentUser?.avatar 
-      },
-      content: newMessage,
-      timestamp: new Date().toISOString(),
-      isSystem: false
-    };
-    
-    setMessages([...messages, newMsg]);
-    setNewMessage('');
+    try {
+      // Send message to API
+      const sentMessage = await messageService.sendMessage(roomId, newMessage);
+      
+      // Add new message to state
+      setMessages(prev => [...prev, sentMessage]);
+      setNewMessage('');
+    } catch (err) {
+      console.error('Error sending message:', err);
+      alert('Failed to send message. Please try again.');
+    }
   };
   
   const handleStartCall = () => {
@@ -134,17 +211,6 @@ const StudyRoomDetail = () => {
       default:
         return <FaFile className="text-secondary-500" />;
     }
-  };
-
-  // Get online status for members (in a real app, this would come from WebSocket)
-  const getMemberStatus = (memberId) => {
-    // For demo purposes, randomly determine if a member is online
-    return {
-      isOnline: Math.random() > 0.3, // 70% chance of being online
-      isSpeaking: false,
-      hasCamera: true,
-      hasMic: true
-    };
   };
 
   // Format timestamp to readable date
@@ -327,35 +393,65 @@ const StudyRoomDetail = () => {
               <div className="h-full flex flex-col">
                 {/* Messages */}
                 <div className="flex-grow p-4 overflow-y-auto">
-                  <div className="space-y-4">
-                    {messages.map(message => (
-                      <div key={message.id} className={`flex ${message.isSystem ? 'justify-center' : 'items-start'}`}>
-                        {!message.isSystem && (
-                          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center mr-3 flex-shrink-0">
-                            {message.sender.avatar ? (
-                              <img src={message.sender.avatar} alt={message.sender.name} className="w-full h-full rounded-full" />
+                  {messageLoading && messagePage === 1 ? (
+                    <div className="flex justify-center my-4">
+                      <FaSpinner className="animate-spin text-primary-600 text-xl" />
+                    </div>
+                  ) : (
+                    <>
+                      {hasMoreMessages && (
+                        <div className="flex justify-center mb-4">
+                          <button 
+                            onClick={handleLoadMoreMessages}
+                            className="px-4 py-2 text-sm bg-secondary-100 text-secondary-700 rounded-md hover:bg-secondary-200 transition-colors"
+                            disabled={messageLoading}
+                          >
+                            {messageLoading ? (
+                              <FaSpinner className="animate-spin inline mr-2" />
                             ) : (
-                              <span className="text-primary-600 text-xs font-bold">
-                                {message.sender.name.charAt(0)}
-                              </span>
+                              'Load Earlier Messages'
                             )}
-                          </div>
-                        )}
-                        <div className={message.isSystem ? 'bg-secondary-100 text-secondary-600 text-sm py-1 px-3 rounded-md' : 'flex-grow'}>
-                          {!message.isSystem && (
-                            <div className="flex items-baseline">
-                              <span className="font-medium text-secondary-900">{message.sender.name}</span>
-                              <span className="ml-2 text-xs text-secondary-500">{formatTime(message.timestamp)}</span>
-                            </div>
-                          )}
-                          <div className={message.isSystem ? '' : 'mt-1'}>
-                            {message.content}
-                          </div>
+                          </button>
                         </div>
+                      )}
+                      
+                      <div className="space-y-4">
+                        {messages.length === 0 ? (
+                          <div className="text-center py-8">
+                            <p className="text-secondary-500">No messages yet. Start the conversation!</p>
+                          </div>
+                        ) : (
+                          messages.map(message => (
+                            <div key={message.id} className={`flex ${message.isSystem ? 'justify-center' : 'items-start'}`}>
+                              {!message.isSystem && (
+                                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center mr-3 flex-shrink-0">
+                                  {message.sender.avatar ? (
+                                    <img src={message.sender.avatar} alt={message.sender.name} className="w-full h-full rounded-full" />
+                                  ) : (
+                                    <span className="text-primary-600 text-xs font-bold">
+                                      {message.sender.name.charAt(0)}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              <div className={message.isSystem ? 'bg-secondary-100 text-secondary-600 text-sm py-1 px-3 rounded-md' : 'flex-grow'}>
+                                {!message.isSystem && (
+                                  <div className="flex items-baseline">
+                                    <span className="font-medium text-secondary-900">{message.sender.name}</span>
+                                    <span className="ml-2 text-xs text-secondary-500">{formatTime(message.timestamp)}</span>
+                                  </div>
+                                )}
+                                <div className={message.isSystem ? '' : 'mt-1'}>
+                                  {message.content}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                        <div ref={messagesEndRef} />
                       </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
+                    </>
+                  )}
                 </div>
                 
                 {/* Message Input */}
