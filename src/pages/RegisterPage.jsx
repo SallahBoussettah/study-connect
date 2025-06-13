@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaGoogle, FaFacebook, FaApple } from 'react-icons/fa';
+import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -76,17 +78,13 @@ const RegisterPage = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call the register function from AuthContext
+      await register(formData);
       
-      // In a real app, you would send registration data to your backend
-      console.log('Registration data:', formData);
-      
-      // Simulate successful registration
-      localStorage.setItem('isLoggedIn', 'true');
+      // Navigate to dashboard on success
       navigate('/dashboard');
     } catch (err) {
-      setErrors({ submit: 'Registration failed. Please try again.' });
+      setErrors({ submit: err.message || 'Registration failed. Please try again.' });
     } finally {
       setIsLoading(false);
     }

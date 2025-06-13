@@ -1,11 +1,33 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import axios from 'axios';
 
+const API_URL = 'http://localhost:5000/api';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Create axios instance with base URL
+  const api = axios.create({
+    baseURL: API_URL,
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  });
+
+  // Add interceptor to add auth token to requests
+  api.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
 
   useEffect(() => {
     // Check if user is already logged in
@@ -15,11 +37,27 @@ export const AuthProvider = ({ children }) => {
         const userInfo = localStorage.getItem('userInfo');
         
         if (token && userInfo) {
-          // In a real app, you would validate the token with your backend
+          // Set user from stored info initially
           setCurrentUser(JSON.parse(userInfo));
+          
+          // Verify token with backend
+          try {
+            const response = await api.get('/auth/me');
+            if (response.data.success) {
+              // Update user info from server data
+              const userData = response.data.data;
+              localStorage.setItem('userInfo', JSON.stringify(userData));
+              setCurrentUser(userData);
+            }
+          } catch (err) {
+            // If token is invalid, logout user
+            console.error('Token validation failed:', err);
+            logout();
+          }
         }
       } catch (err) {
         console.error('Error checking authentication status:', err);
+        logout();
       } finally {
         setLoading(false);
       }
@@ -33,40 +71,24 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
-      // In a real app, this would be an API call to your backend
-      // Simulating API call for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await api.post('/auth/login', {
+        email,
+        password
+      });
       
-      // Mock user data based on email for demonstration
-      let userData;
-      
-      if (email === 'admin@studyconnect.com') {
-        userData = {
-          id: '1',
-          firstName: 'Admin',
-          lastName: 'User',
-          email: 'admin@studyconnect.com',
-          role: 'admin'
-        };
-      } else {
-        userData = {
-          id: '2',
-          firstName: 'Student',
-          lastName: 'User',
-          email: email,
-          role: 'student'
-        };
-      }
+      const { token, user } = response.data;
       
       // Store auth data
-      localStorage.setItem('authToken', 'mock-jwt-token');
-      localStorage.setItem('userInfo', JSON.stringify(userData));
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('userInfo', JSON.stringify(user));
       
-      setCurrentUser(userData);
-      return userData;
+      setCurrentUser(user);
+      return user;
     } catch (err) {
-      setError('Authentication failed. Please check your credentials.');
-      throw err;
+      console.error('Login error:', err);
+      const errorMessage = err.response?.data?.message || 'Authentication failed. Please check your credentials.';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -77,30 +99,39 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
-      // In a real app, this would be an API call to your backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await api.post('/auth/register', {
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        password: userData.password
+      });
       
-      const newUser = {
-        id: Math.random().toString(36).substr(2, 9),
-        ...userData,
-        role: 'student' // Default role for new users
-      };
+      const { token, user } = response.data;
       
       // Store auth data
-      localStorage.setItem('authToken', 'mock-jwt-token');
-      localStorage.setItem('userInfo', JSON.stringify(newUser));
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('userInfo', JSON.stringify(user));
       
-      setCurrentUser(newUser);
-      return newUser;
+      setCurrentUser(user);
+      return user;
     } catch (err) {
-      setError('Registration failed. Please try again.');
-      throw err;
+      console.error('Registration error:', err);
+      const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const logout = () => {
+    // Optional: Call logout endpoint on server
+    try {
+      api.post('/auth/logout');
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+    
     localStorage.removeItem('authToken');
     localStorage.removeItem('userInfo');
     setCurrentUser(null);
@@ -112,7 +143,8 @@ export const AuthProvider = ({ children }) => {
     error,
     login,
     register,
-    logout
+    logout,
+    api // Expose API instance for other components to use
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
