@@ -8,7 +8,8 @@ import {
   FaArrowLeft, FaSpinner
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
-import { studyRoomService, messageService, presenceService } from '../../services/api';
+import { studyRoomService, messageService } from '../../services/api';
+import socketService from '../../services/socketService';
 
 const StudyRoomDetail = () => {
   const { roomId } = useParams();
@@ -33,7 +34,6 @@ const StudyRoomDetail = () => {
   
   // State for online members
   const [onlineMembers, setOnlineMembers] = useState([]);
-  const [presenceInterval, setPresenceInterval] = useState(null);
   
   // Fetch room data from API
   useEffect(() => {
@@ -80,45 +80,80 @@ const StudyRoomDetail = () => {
     fetchMessages();
   }, [roomId, messagePage]);
   
+  // Set up Socket.IO event listeners
+  useEffect(() => {
+    if (!roomId || !currentUser) return;
+    
+    // Join the chat room
+    socketService.joinChatRoom(roomId);
+    
+    // Listen for new messages
+    const handleNewMessage = (message) => {
+      setMessages(prev => [...prev, message]);
+    };
+    
+    // Listen for user join events
+    const handleUserJoined = (user) => {
+      setOnlineMembers(prev => {
+        const exists = prev.some(m => m.userId === user.id);
+        if (!exists) {
+          return [...prev, { 
+            userId: user.id, 
+            name: user.name, 
+            avatar: user.avatar, 
+            status: user.status 
+          }];
+        }
+        return prev;
+      });
+    };
+    
+    // Listen for user leave events
+    const handleUserLeft = ({ userId }) => {
+      setOnlineMembers(prev => prev.filter(m => m.userId !== userId));
+    };
+    
+    // Listen for status updates
+    const handleStatusUpdated = ({ userId, status }) => {
+      setOnlineMembers(prev => 
+        prev.map(m => m.userId === userId ? { ...m, status } : m)
+      );
+    };
+    
+    // Listen for initial room users list
+    const handleRoomUsers = (users) => {
+      setOnlineMembers(users.map(u => ({
+        userId: u.id,
+        name: u.name,
+        avatar: u.avatar,
+        status: u.status
+      })));
+    };
+    
+    // Register event listeners
+    socketService.on('new-message', handleNewMessage);
+    socketService.on('user-joined', handleUserJoined);
+    socketService.on('user-left', handleUserLeft);
+    socketService.on('status-updated', handleStatusUpdated);
+    socketService.on('room-users', handleRoomUsers);
+    
+    // Clean up event listeners when component unmounts
+    return () => {
+      socketService.off('new-message', handleNewMessage);
+      socketService.off('user-joined', handleUserJoined);
+      socketService.off('user-left', handleUserLeft);
+      socketService.off('status-updated', handleStatusUpdated);
+      socketService.off('room-users', handleRoomUsers);
+      socketService.leaveChatRoom(roomId);
+    };
+  }, [roomId, currentUser]);
+  
   // Load more messages when user scrolls to top
   const handleLoadMoreMessages = () => {
     if (hasMoreMessages && !messageLoading) {
       setMessagePage(prev => prev + 1);
     }
   };
-  
-  // Handle user presence
-  useEffect(() => {
-    if (!roomId || !currentUser) return;
-    
-    const updateUserPresence = async () => {
-      try {
-        // Update current user's presence
-        await presenceService.updatePresence(roomId);
-        
-        // Fetch online users
-        const onlineUsers = await presenceService.getRoomPresence(roomId);
-        setOnlineMembers(onlineUsers);
-      } catch (err) {
-        console.error('Error updating presence:', err);
-      }
-    };
-    
-    // Initial presence update
-    updateUserPresence();
-    
-    // Set up interval to keep updating presence
-    const interval = setInterval(updateUserPresence, 30000); // Every 30 seconds
-    setPresenceInterval(interval);
-    
-    // Set user offline when leaving the room
-    return () => {
-      clearInterval(interval);
-      presenceService.setOffline(roomId).catch(err => {
-        console.error('Error setting user offline:', err);
-      });
-    };
-  }, [roomId, currentUser]);
   
   // Scroll to bottom of messages
   useEffect(() => {
@@ -155,12 +190,19 @@ const StudyRoomDetail = () => {
     if (!newMessage.trim()) return;
     
     try {
-      // Send message to API
-      const sentMessage = await messageService.sendMessage(roomId, newMessage);
+      // Send message via Socket.IO
+      const sent = socketService.sendMessage(roomId, newMessage);
       
-      // Add new message to state
-      setMessages(prev => [...prev, sentMessage]);
-      setNewMessage('');
+      if (sent) {
+        setNewMessage('');
+      } else {
+        // Fallback to API if socket fails
+        const sentMessage = await messageService.sendMessage(roomId, newMessage);
+        
+        // Add new message to state
+        setMessages(prev => [...prev, sentMessage]);
+        setNewMessage('');
+      }
     } catch (err) {
       console.error('Error sending message:', err);
       alert('Failed to send message. Please try again.');

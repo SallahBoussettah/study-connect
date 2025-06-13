@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
+import socketService from '../services/socketService';
 
 const API_URL = 'http://localhost:5000/api';
 const AuthContext = createContext(null);
@@ -29,6 +30,11 @@ export const AuthProvider = ({ children }) => {
     (error) => Promise.reject(error)
   );
 
+  // Initialize socket connection
+  const initializeSocket = (token) => {
+    socketService.init(token);
+  };
+
   useEffect(() => {
     // Check if user is already logged in
     const checkLoggedInStatus = async () => {
@@ -39,6 +45,9 @@ export const AuthProvider = ({ children }) => {
         if (token && userInfo) {
           // Set user from stored info initially
           setCurrentUser(JSON.parse(userInfo));
+          
+          // Initialize socket connection
+          initializeSocket(token);
           
           // Verify token with backend
           try {
@@ -82,6 +91,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('authToken', token);
       localStorage.setItem('userInfo', JSON.stringify(user));
       
+      // Initialize socket connection
+      initializeSocket(token);
+      
       setCurrentUser(user);
       return user;
     } catch (err) {
@@ -112,6 +124,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('authToken', token);
       localStorage.setItem('userInfo', JSON.stringify(user));
       
+      // Initialize socket connection
+      initializeSocket(token);
+      
       setCurrentUser(user);
       return user;
     } catch (err) {
@@ -132,6 +147,9 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout error:', err);
     }
     
+    // Disconnect socket
+    socketService.disconnect();
+    
     localStorage.removeItem('authToken');
     localStorage.removeItem('userInfo');
     setCurrentUser(null);
@@ -144,7 +162,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    api // Expose API instance for other components to use
+    api
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

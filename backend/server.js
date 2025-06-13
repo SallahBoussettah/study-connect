@@ -1,9 +1,12 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const http = require('http');
 const { connectDB } = require('./config/db');
 const config = require('./config/config');
 const errorHandler = require('./middleware/error');
+const NodeCache = require('node-cache');
+const { setupSocket } = require('./socket');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -13,8 +16,17 @@ const studyRoomRoutes = require('./routes/studyRoomRoutes');
 // Load environment variables
 dotenv.config();
 
+// Create global cache for frequently accessed data
+global.userCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+
 // Create Express app
 const app = express();
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// Set up Socket.IO
+setupSocket(server);
 
 // Connect to database
 connectDB();
@@ -47,6 +59,6 @@ app.use(errorHandler);
 
 // Start server
 const PORT = config.port;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running in ${config.nodeEnv} mode on port ${PORT}`);
 }); 
