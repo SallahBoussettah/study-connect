@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaUsers, FaSearch, FaPlus, FaFilter, FaEllipsisH, FaLock, FaGlobe, FaBook } from 'react-icons/fa';
+import { FaUsers, FaSearch, FaPlus, FaFilter, FaEllipsisH, FaLock, FaGlobe, FaBook, FaSpinner } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
+import { studyRoomService } from '../../services/api';
 
 const StudyRooms = () => {
   const { currentUser } = useAuth();
@@ -9,85 +10,46 @@ const StudyRooms = () => {
   const [activeTab, setActiveTab] = useState('myRooms');
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  // Mock data for study rooms
-  const myRooms = [
-    {
-      id: 1,
-      name: 'Advanced Calculus Study Group',
-      description: 'Collaborative study for multivariable calculus and differential equations',
-      subject: 'Mathematics',
-      members: 12,
-      owner: 'Alex Johnson',
-      isPrivate: false,
-      lastActive: '2023-06-14T18:30:00',
-      resources: 8,
-      image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&h=200&q=80'
-    },
-    {
-      id: 2,
-      name: 'Physics 101 Lab Prep',
-      description: 'Preparation for physics lab experiments and problem-solving sessions',
-      subject: 'Physics',
-      members: 8,
-      owner: 'You',
-      isPrivate: true,
-      lastActive: '2023-06-15T10:15:00',
-      resources: 15,
-      image: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&h=200&q=80'
-    },
-    {
-      id: 3,
-      name: 'Programming Fundamentals',
-      description: 'Learning the basics of programming with practical exercises',
-      subject: 'Computer Science',
-      members: 15,
-      owner: 'Maria Garcia',
-      isPrivate: false,
-      lastActive: '2023-06-15T14:45:00',
-      resources: 23,
-      image: 'https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&h=200&q=80'
-    }
-  ];
+  // State for study rooms data from API
+  const [myRooms, setMyRooms] = useState([]);
+  const [discoverRooms, setDiscoverRooms] = useState([]);
+  const [allSubjects, setAllSubjects] = useState([]);
   
-  const discoverRooms = [
-    {
-      id: 4,
-      name: 'Organic Chemistry Group',
-      description: 'Study group focusing on organic chemistry reactions and mechanisms',
-      subject: 'Chemistry',
-      members: 14,
-      owner: 'David Wilson',
-      isPrivate: false,
-      lastActive: '2023-06-14T16:20:00',
-      resources: 19,
-      image: 'https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&h=200&q=80'
-    },
-    {
-      id: 5,
-      name: 'World Literature Discussion',
-      description: 'Analysis and discussion of classic and contemporary world literature',
-      subject: 'Literature',
-      members: 10,
-      owner: 'Sophia Lee',
-      isPrivate: false,
-      lastActive: '2023-06-15T09:30:00',
-      resources: 12,
-      image: 'https://images.unsplash.com/photo-1519682337058-a94d519337bc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&h=200&q=80'
-    },
-    {
-      id: 6,
-      name: 'Data Structures & Algorithms',
-      description: 'Advanced programming concepts and algorithm optimization',
-      subject: 'Computer Science',
-      members: 18,
-      owner: 'Sarah Smith',
-      isPrivate: true,
-      lastActive: '2023-06-15T11:45:00',
-      resources: 31,
-      image: 'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&h=200&q=80'
-    }
-  ];
+  // Fetch study rooms data from API
+  useEffect(() => {
+    const fetchStudyRooms = async () => {
+      try {
+        setLoading(true);
+        const data = await studyRoomService.getAllStudyRooms();
+        
+        // Set the study rooms from API response
+        if (data) {
+          setMyRooms(data.userRooms || []);
+          setDiscoverRooms(data.discoverRooms || []);
+          
+          // Extract unique subjects for filter dropdown
+          const subjects = [...new Set([
+            ...data.userRooms.map(room => room.subject),
+            ...data.discoverRooms.map(room => room.subject)
+          ])].filter(Boolean);
+          
+          setAllSubjects(subjects);
+        }
+        
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching study rooms:', err);
+        setError('Failed to load study rooms. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchStudyRooms();
+  }, []);
 
   // Filter rooms based on search query and subject filter
   const filteredMyRooms = myRooms.filter(room => {
@@ -104,22 +66,52 @@ const StudyRooms = () => {
     return matchesSearch && matchesSubject;
   });
 
-  // Get unique subjects for filter dropdown
-  const allSubjects = [...new Set([...myRooms, ...discoverRooms].map(room => room.subject))];
-
   const handleCreateRoom = () => {
     navigate('/dashboard/rooms/create');
   };
 
-  const handleJoinRoom = (roomId) => {
-    // In a real app, this would send a request to join the room
-    console.log(`Requesting to join room ${roomId}`);
-    alert(`Request to join room sent!`);
+  const handleJoinRoom = async (roomId) => {
+    try {
+      await studyRoomService.joinStudyRoom(roomId);
+      // Refresh the study rooms data after joining
+      const data = await studyRoomService.getAllStudyRooms();
+      setMyRooms(data.userRooms || []);
+      setDiscoverRooms(data.discoverRooms || []);
+      alert('Successfully joined the study room!');
+    } catch (err) {
+      console.error('Error joining room:', err);
+      alert('Failed to join the study room. Please try again.');
+    }
   };
 
   const handleEnterRoom = (roomId) => {
     navigate(`/dashboard/rooms/${roomId}`);
   };
+
+  // Render loading state
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <FaSpinner className="animate-spin text-primary-600 text-4xl" />
+        <span className="ml-3 text-lg text-secondary-700">Loading study rooms...</span>
+      </div>
+    );
+  }
+
+  // Render error state
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
+        <p className="font-medium">{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-2 text-red-900 underline hover:no-underline focus:outline-none"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -212,13 +204,6 @@ const StudyRooms = () => {
                       className="w-full h-full object-cover"
                     />
                   )}
-                  <div className="absolute top-2 right-2 bg-white bg-opacity-90 rounded-full p-1">
-                    {room.isPrivate ? (
-                      <FaLock className="text-secondary-700" />
-                    ) : (
-                      <FaGlobe className="text-secondary-700" />
-                    )}
-                  </div>
                 </div>
                 <div className="p-4">
                   <div className="flex justify-between items-start">
@@ -250,21 +235,16 @@ const StudyRooms = () => {
           ) : (
             <div className="col-span-full text-center py-12">
               <div className="mx-auto w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center mb-4">
-                <FaUsers className="text-secondary-400 text-xl" />
+                <FaSearch className="text-secondary-400 text-xl" />
               </div>
               <h3 className="text-lg font-medium text-secondary-900 mb-1">No study rooms found</h3>
-              <p className="text-secondary-500">Create your first study room to get started</p>
-              <button
-                onClick={handleCreateRoom}
-                className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
-              >
-                Create Study Room
-              </button>
+              <p className="text-secondary-500">Try adjusting your search criteria or create a new room</p>
             </div>
           )}
         </div>
       )}
 
+      {/* Discover Room Grid */}
       {activeTab === 'discover' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDiscoverRooms.length > 0 ? (
@@ -278,13 +258,6 @@ const StudyRooms = () => {
                       className="w-full h-full object-cover"
                     />
                   )}
-                  <div className="absolute top-2 right-2 bg-white bg-opacity-90 rounded-full p-1">
-                    {room.isPrivate ? (
-                      <FaLock className="text-secondary-700" />
-                    ) : (
-                      <FaGlobe className="text-secondary-700" />
-                    )}
-                  </div>
                 </div>
                 <div className="p-4">
                   <div className="flex justify-between items-start">
@@ -305,13 +278,9 @@ const StudyRooms = () => {
                     </div>
                     <button 
                       onClick={() => handleJoinRoom(room.id)}
-                      className={`px-4 py-2 ${
-                        room.isPrivate 
-                          ? 'bg-secondary-100 text-secondary-800' 
-                          : 'bg-primary-600 text-white hover:bg-primary-700'
-                      } rounded-md transition-colors`}
+                      className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
                     >
-                      {room.isPrivate ? 'Request to Join' : 'Join Room'}
+                      Join Room
                     </button>
                   </div>
                 </div>

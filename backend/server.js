@@ -8,6 +8,7 @@ const errorHandler = require('./middleware/error');
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const studyRoomRoutes = require('./routes/studyRoomRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -26,6 +27,7 @@ app.use(cors(config.cors));
 // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/study-rooms', studyRoomRoutes);
 
 // Root route
 app.get('/', (req, res) => {

@@ -18,6 +18,7 @@ import DashboardLayout from './pages/dashboard/DashboardLayout';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import StudyGroups from './pages/dashboard/StudyGroups';
+import StudyRooms from './pages/dashboard/StudyRooms';
 import Resources from './pages/dashboard/Resources';
 import Profile from './pages/dashboard/Profile';
 import Settings from './pages/dashboard/Settings';
@@ -53,6 +54,9 @@ const App = () => {
               </ProtectedRoute>
             } />
             <Route path="groups" element={<StudyGroups />} />
+            <Route path="rooms" element={<StudyRooms />} />
+            <Route path="rooms/create" element={<CreateStudyRoom />} />
+            <Route path="rooms/:roomId" element={<StudyRoomDetail />} />
             <Route path="groups/create" element={<CreateStudyRoom />} />
             <Route path="groups/:roomId" element={<StudyRoomDetail />} />
             <Route path="resources" element={<Resources />} />

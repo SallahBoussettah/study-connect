@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   FaUsers, FaBook, FaComments, FaVideo, FaPhone, FaDesktop, 
   FaMicrophone, FaMicrophoneSlash, FaVideoSlash, FaPaperPlane,
-  FaEllipsisV, FaUserPlus, FaFileUpload, FaDownload, FaCog
+  FaEllipsisV, FaUserPlus, FaFileUpload, FaDownload, FaCog,
+  FaFilePdf, FaFileWord, FaFilePowerpoint, FaLink, FaFile,
+  FaArrowLeft, FaSpinner
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
+import { studyRoomService } from '../../services/api';
 
 const StudyRoomDetail = () => {
   const { roomId } = useParams();
-  const { currentUser } = useAuth();
+  const { currentUser, api } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('chat');
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -19,85 +23,46 @@ const StudyRoomDetail = () => {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const messagesEndRef = useRef(null);
   
-  // Mock room data
-  const roomData = {
-    id: roomId,
-    name: 'Advanced Calculus Study Group',
-    description: 'Collaborative study for multivariable calculus and differential equations',
-    subject: 'Mathematics',
-    owner: 'Alex Johnson',
-    isPrivate: false,
-    createdAt: '2023-05-10T14:30:00',
-    image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&h=200&q=80'
-  };
+  // State for room data from API
+  const [roomData, setRoomData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  // Mock participants data
-  const participantsData = [
-    { id: 101, name: 'Alex Johnson', isOnline: true, isSpeaking: false, hasCamera: true, hasMic: true },
-    { id: 102, name: 'Maria Garcia', isOnline: true, isSpeaking: false, hasCamera: true, hasMic: true },
-    { id: 103, name: 'John Smith', isOnline: true, isSpeaking: false, hasCamera: false, hasMic: true },
-    { id: 104, name: 'Emma Wilson', isOnline: false, isSpeaking: false, hasCamera: true, hasMic: true },
-    { id: 105, name: 'David Lee', isOnline: true, isSpeaking: false, hasCamera: true, hasMic: true }
-  ];
-  
-  // Mock resources data
-  const resourcesData = [
-    { id: 1, title: 'Calculus Cheat Sheet', type: 'pdf', size: '2.4 MB', uploadedBy: 'Alex Johnson', uploadDate: '2023-06-10' },
-    { id: 2, title: 'Partial Derivatives Notes', type: 'doc', size: '1.8 MB', uploadedBy: 'Maria Garcia', uploadDate: '2023-06-12' },
-    { id: 3, title: 'Khan Academy Multivariable Calculus', type: 'link', url: 'https://www.khanacademy.org/math/multivariable-calculus', uploadedBy: 'John Smith', uploadDate: '2023-06-14' },
-    { id: 4, title: 'Practice Problems Set 1', type: 'pdf', size: '3.1 MB', uploadedBy: 'Emma Wilson', uploadDate: '2023-06-15' }
-  ];
-  
-  // Mock messages data
+  // Fetch room data from API
   useEffect(() => {
-    // In a real app, this would be a WebSocket connection
-    const mockMessages = [
-      {
-        id: 1,
-        sender: { id: 101, name: 'Alex Johnson', avatar: null },
-        content: 'Hey everyone! Welcome to our calculus study group.',
-        timestamp: '2023-06-15T10:00:00',
-        isSystem: false
-      },
-      {
-        id: 2,
-        sender: { id: 102, name: 'Maria Garcia', avatar: null },
-        content: 'Thanks for creating this group! Ive been struggling with partial derivatives.',
-        timestamp: '2023-06-15T10:05:00',
-        isSystem: false
-      },
-      {
-        id: 3,
-        sender: { id: 103, name: 'John Smith', avatar: null },
-        content: 'I found a great resource on Khan Academy for this topic. Let me share the link.',
-        timestamp: '2023-06-15T10:08:00',
-        isSystem: false
-      },
-      {
-        id: 4,
-        sender: { id: 103, name: 'John Smith', avatar: null },
-        content: 'https://www.khanacademy.org/math/multivariable-calculus',
-        timestamp: '2023-06-15T10:09:00',
-        isSystem: false
-      },
-      {
-        id: 5,
-        sender: null,
-        content: 'Maria Garcia shared a file: Calculus_Cheat_Sheet.pdf',
-        timestamp: '2023-06-15T10:15:00',
-        isSystem: true
-      },
-      {
-        id: 6,
-        sender: { id: 104, name: 'Emma Wilson', avatar: null },
-        content: 'Thanks for the cheat sheet! Could we schedule a study session for tomorrow?',
-        timestamp: '2023-06-15T10:20:00',
-        isSystem: false
+    const fetchRoomData = async () => {
+      try {
+        setLoading(true);
+        const data = await studyRoomService.getStudyRoomById(roomId);
+        setRoomData(data);
+        
+        // Mock messages for now (in a real app, this would be from a WebSocket)
+        const mockMessages = [
+          {
+            id: 1,
+            sender: { 
+              id: data.owner.id, 
+              name: data.owner.name,
+              avatar: data.owner.avatar
+            },
+            content: `Welcome to ${data.name}! Feel free to ask questions and share resources.`,
+            timestamp: data.createdAt,
+            isSystem: false
+          }
+        ];
+        
+        setMessages(mockMessages);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching study room data:', err);
+        setError('Failed to load study room. Please try again later.');
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
     
-    setMessages(mockMessages);
-  }, []);
+    fetchRoomData();
+  }, [roomId]);
   
   // Scroll to bottom of messages
   useEffect(() => {
@@ -111,7 +76,11 @@ const StudyRoomDetail = () => {
     // In a real app, this would send the message via WebSocket
     const newMsg = {
       id: messages.length + 1,
-      sender: { id: currentUser?.id || 999, name: `${currentUser?.firstName || 'You'} ${currentUser?.lastName || ''}`, avatar: null },
+      sender: { 
+        id: currentUser?.id || 999, 
+        name: `${currentUser?.firstName || 'You'} ${currentUser?.lastName || ''}`, 
+        avatar: currentUser?.avatar 
+      },
       content: newMessage,
       timestamp: new Date().toISOString(),
       isSystem: false
@@ -167,10 +136,77 @@ const StudyRoomDetail = () => {
     }
   };
 
+  // Get online status for members (in a real app, this would come from WebSocket)
+  const getMemberStatus = (memberId) => {
+    // For demo purposes, randomly determine if a member is online
+    return {
+      isOnline: Math.random() > 0.3, // 70% chance of being online
+      isSpeaking: false,
+      hasCamera: true,
+      hasMic: true
+    };
+  };
+
+  // Format timestamp to readable date
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString();
+  };
+
+  // Handle back button
+  const handleBack = () => {
+    navigate('/dashboard/rooms');
+  };
+
+  // Render loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <FaSpinner className="animate-spin text-primary-600 text-4xl mb-4" />
+        <span className="text-lg text-secondary-700">Loading study room...</span>
+      </div>
+    );
+  }
+
+  // Render error state
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-6 flex flex-col items-center">
+        <p className="font-medium mb-4">{error}</p>
+        <div className="flex space-x-4">
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          >
+            Try Again
+          </button>
+          <button
+            onClick={handleBack}
+            className="px-4 py-2 bg-secondary-300 text-secondary-800 rounded-md hover:bg-secondary-400"
+          >
+            Back to Study Rooms
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!roomData) return null;
+
   return (
     <div className="h-full flex flex-col">
+      {/* Back Button */}
+      <div className="mb-4">
+        <button 
+          onClick={handleBack}
+          className="flex items-center text-sm text-secondary-600 hover:text-secondary-800"
+        >
+          <FaArrowLeft className="mr-2" /> Back to Study Rooms
+        </button>
+      </div>
+      
       {/* Room Header */}
-      <div className="bg-white shadow px-6 py-4 flex justify-between items-center">
+      <div className="bg-white shadow px-6 py-4 flex justify-between items-center rounded-t-lg">
         <div className="flex items-center">
           <div className="w-10 h-10 rounded-full overflow-hidden bg-primary-100 flex items-center justify-center">
             {roomData.image ? (
@@ -206,35 +242,58 @@ const StudyRoomDetail = () => {
           <button className="p-2 rounded-full bg-secondary-100 text-secondary-600 hover:bg-secondary-200 transition-colors">
             <FaUserPlus title="Invite members" />
           </button>
-          <button className="p-2 rounded-full bg-secondary-100 text-secondary-600 hover:bg-secondary-200 transition-colors">
-            <FaCog title="Room settings" />
-          </button>
+          {roomData.isOwner && (
+            <button className="p-2 rounded-full bg-secondary-100 text-secondary-600 hover:bg-secondary-200 transition-colors">
+              <FaCog title="Room settings" />
+            </button>
+          )}
         </div>
       </div>
       
       {/* Main Content */}
-      <div className="flex-grow flex overflow-hidden">
+      <div className="flex-grow flex overflow-hidden bg-white shadow rounded-b-lg">
         {/* Left Sidebar - Participants */}
-        <div className="w-64 bg-white border-r border-secondary-200 flex flex-col">
+        <div className="w-64 border-r border-secondary-200 flex flex-col">
           <div className="p-4 border-b border-secondary-200">
-            <h2 className="font-medium text-secondary-900">Participants ({participantsData.length})</h2>
+            <h2 className="font-medium text-secondary-900">Participants ({roomData.members.length})</h2>
           </div>
           <div className="flex-grow overflow-y-auto p-2">
             <ul className="space-y-1">
-              {participantsData.map(participant => (
-                <li 
-                  key={participant.id} 
-                  className="flex items-center p-2 rounded-md hover:bg-secondary-50"
-                >
-                  <div className={`w-2 h-2 rounded-full mr-2 ${participant.isOnline ? 'bg-green-500' : 'bg-secondary-300'}`}></div>
-                  <span className="text-secondary-900">{participant.name}</span>
-                  {participant.isSpeaking && (
-                    <div className="ml-auto">
-                      <FaMicrophone className="text-green-500" />
+              {roomData.members.map(member => {
+                const status = getMemberStatus(member.id);
+                return (
+                  <li 
+                    key={member.id} 
+                    className="flex items-center p-2 rounded-md hover:bg-secondary-50"
+                  >
+                    <div className={`w-2 h-2 rounded-full mr-2 ${status.isOnline ? 'bg-green-500' : 'bg-secondary-300'}`}></div>
+                    <div className="flex items-center">
+                      {member.avatar ? (
+                        <img 
+                          src={member.avatar} 
+                          alt={member.name} 
+                          className="w-6 h-6 rounded-full mr-2"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center mr-2 text-xs text-primary-600 font-bold">
+                          {member.name.charAt(0)}
+                        </div>
+                      )}
+                      <span className="text-secondary-900">{member.name}</span>
                     </div>
-                  )}
-                </li>
-              ))}
+                    {member.role === 'owner' && (
+                      <span className="ml-1 text-xs bg-primary-100 text-primary-800 px-1 rounded">
+                        Owner
+                      </span>
+                    )}
+                    {status.isSpeaking && (
+                      <div className="ml-auto">
+                        <FaMicrophone className="text-green-500" />
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>
@@ -242,7 +301,7 @@ const StudyRoomDetail = () => {
         {/* Main Content Area */}
         <div className="flex-grow flex flex-col">
           {/* Tabs */}
-          <div className="bg-white border-b border-secondary-200">
+          <div className="border-b border-secondary-200">
             <div className="flex">
               <button 
                 className={`px-4 py-3 font-medium text-sm ${activeTab === 'chat' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-secondary-600 hover:text-secondary-900'}`}
@@ -331,32 +390,36 @@ const StudyRoomDetail = () => {
                   </button>
                 </div>
                 <div className="flex-grow p-4 overflow-y-auto">
-                  <div className="space-y-4">
-                    {resourcesData.map(resource => (
-                      <div key={resource.id} className="bg-white border border-secondary-200 rounded-lg p-4 flex items-center">
-                        <div className="mr-4">
-                          {getFileIcon(resource.type)}
-                        </div>
-                        <div className="flex-grow">
-                          <h3 className="font-medium text-secondary-900">{resource.title}</h3>
-                          <div className="flex text-xs text-secondary-500 mt-1">
-                            <span>Uploaded by {resource.uploadedBy}</span>
-                            <span className="mx-2">•</span>
-                            <span>{resource.uploadDate}</span>
-                            {resource.size && (
-                              <>
-                                <span className="mx-2">•</span>
-                                <span>{resource.size}</span>
-                              </>
-                            )}
+                  {roomData.resources && roomData.resources.length > 0 ? (
+                    <div className="space-y-4">
+                      {roomData.resources.map(resource => (
+                        <div key={resource.id} className="bg-white border border-secondary-200 rounded-lg p-4 flex items-center">
+                          <div className="mr-4">
+                            {getFileIcon(resource.type)}
                           </div>
+                          <div className="flex-grow">
+                            <h3 className="font-medium text-secondary-900">{resource.title}</h3>
+                            <div className="flex text-xs text-secondary-500 mt-1">
+                              <span>Uploaded by {resource.uploadedBy}</span>
+                              <span className="mx-2">•</span>
+                              <span>{formatDate(resource.createdAt)}</span>
+                            </div>
+                          </div>
+                          <button className="p-2 text-secondary-600 hover:text-secondary-900 transition-colors">
+                            <FaDownload />
+                          </button>
                         </div>
-                        <button className="p-2 text-secondary-600 hover:text-secondary-900 transition-colors">
-                          <FaDownload />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-64 text-center">
+                      <FaBook className="text-secondary-400 text-4xl mb-4" />
+                      <h3 className="text-lg font-medium text-secondary-900 mb-2">No resources yet</h3>
+                      <p className="text-secondary-500">
+                        Upload study materials, notes, or helpful links to share with the group.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -379,26 +442,29 @@ const StudyRoomDetail = () => {
           
           <div className="flex-grow p-4 flex items-center justify-center">
             <div className="grid grid-cols-3 gap-4">
-              {participantsData.filter(p => p.isOnline).map(participant => (
-                <div key={participant.id} className="w-64 h-48 bg-secondary-800 rounded-lg overflow-hidden relative">
-                  {!isVideoOff && participant.hasCamera ? (
-                    <div className="w-full h-full bg-secondary-700 flex items-center justify-center">
-                      {/* This would be a video element in a real implementation */}
-                      <span className="text-white">Camera Feed</span>
-                    </div>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <div className="w-16 h-16 rounded-full bg-primary-600 flex items-center justify-center">
-                        <span className="text-white text-xl font-bold">{participant.name.charAt(0)}</span>
+              {roomData.members.filter(member => getMemberStatus(member.id).isOnline).map(member => {
+                const status = getMemberStatus(member.id);
+                return (
+                  <div key={member.id} className="w-64 h-48 bg-secondary-800 rounded-lg overflow-hidden relative">
+                    {!isVideoOff && status.hasCamera ? (
+                      <div className="w-full h-full bg-secondary-700 flex items-center justify-center">
+                        {/* This would be a video element in a real implementation */}
+                        <span className="text-white">Camera Feed</span>
                       </div>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-full bg-primary-600 flex items-center justify-center">
+                          <span className="text-white text-xl font-bold">{member.name.charAt(0)}</span>
+                        </div>
+                      </div>
+                    )}
+                    <div className="absolute bottom-2 left-2 text-white text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
+                      {member.name}
+                      {status.isSpeaking && <FaMicrophone className="inline ml-2 text-green-500" />}
                     </div>
-                  )}
-                  <div className="absolute bottom-2 left-2 text-white text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
-                    {participant.name}
-                    {participant.isSpeaking && <FaMicrophone className="inline ml-2 text-green-500" />}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
           

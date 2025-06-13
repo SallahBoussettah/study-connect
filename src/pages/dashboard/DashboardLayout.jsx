@@ -23,7 +23,7 @@ const DashboardLayout = () => {
 
   const navItems = [
     { path: '/dashboard', icon: <FaHome />, label: 'Dashboard' },
-    { path: '/dashboard/groups', icon: <FaUsers />, label: 'Study Rooms' },
+    { path: '/dashboard/rooms', icon: <FaUsers />, label: 'Study Rooms' },
     { path: '/dashboard/resources', icon: <FaBook />, label: 'Resources' },
     { path: '/dashboard/timer', icon: <FaClock />, label: 'Study Timer' },
     { path: '/dashboard/flashcards', icon: <FaGraduationCap />, label: 'Flashcards' },

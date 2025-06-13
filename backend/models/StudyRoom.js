@@ -41,6 +41,10 @@ module.exports = (sequelize, DataTypes) => {
     createdBy: {
       type: DataTypes.UUID,
       allowNull: false
+    },
+    subjectId: {
+      type: DataTypes.UUID,
+      allowNull: true
     }
   }, {
     timestamps: true,
@@ -51,6 +55,11 @@ module.exports = (sequelize, DataTypes) => {
     StudyRoom.belongsTo(models.User, {
       foreignKey: 'createdBy',
       as: 'creator'
+    });
+
+    StudyRoom.belongsTo(models.Subject, {
+      foreignKey: 'subjectId',
+      as: 'subject'
     });
 
     StudyRoom.belongsToMany(models.User, {
