@@ -139,15 +139,15 @@ module.exports = (sequelize, DataTypes) => {
     // User owns many StudyRooms
     if (models.StudyRoom) {
       User.hasMany(models.StudyRoom, {
-        foreignKey: 'ownerId',
+        foreignKey: 'createdBy',
         as: 'ownedRooms'
       });
     }
 
-    // User belongs to many StudyRooms through StudyRoomMember
-    if (models.StudyRoom && models.StudyRoomMember) {
+    // User belongs to many StudyRooms through UserStudyRoom
+    if (models.StudyRoom) {
       User.belongsToMany(models.StudyRoom, {
-        through: models.StudyRoomMember,
+        through: 'UserStudyRoom',
         foreignKey: 'userId',
         otherKey: 'roomId',
         as: 'joinedRooms'
@@ -173,7 +173,7 @@ module.exports = (sequelize, DataTypes) => {
     // User has many Resources
     if (models.Resource) {
       User.hasMany(models.Resource, {
-        foreignKey: 'uploadedById',
+        foreignKey: 'uploadedBy',
         as: 'resources'
       });
     }
@@ -181,18 +181,18 @@ module.exports = (sequelize, DataTypes) => {
     // User creates many Events
     if (models.Event) {
       User.hasMany(models.Event, {
-        foreignKey: 'createdById',
+        foreignKey: 'createdBy',
         as: 'createdEvents'
       });
     }
 
-    // User belongs to many Events through EventAttendee
-    if (models.Event && models.EventAttendee) {
+    // User belongs to many Events through UserEvent
+    if (models.Event && models.UserEvent) {
       User.belongsToMany(models.Event, {
-        through: models.EventAttendee,
+        through: models.UserEvent,
         foreignKey: 'userId',
         otherKey: 'eventId',
-        as: 'attendingEvents'
+        as: 'events'
       });
     }
 
