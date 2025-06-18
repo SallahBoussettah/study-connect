@@ -142,14 +142,6 @@ exports.createResource = async (req, res, next) => {
     // Format the response
     const resourceResponse = resourceWithUser.toJSON();
     
-    // Debug logging
-    console.log('RESOURCE CREATED WITH DATA:', JSON.stringify({
-      id: resourceResponse.id,
-      title: resourceResponse.title,
-      uploadedBy: resourceResponse.uploadedBy,
-      uploader: resourceResponse.uploader
-    }, null, 2));
-    
     // Remove the actual file path for security
     delete resourceResponse.filePath;
     

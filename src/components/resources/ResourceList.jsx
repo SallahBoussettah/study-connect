@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaFile, FaImage, FaFileAlt, FaFilePdf, FaDownload, FaTrash, FaEdit, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaFile, FaImage, FaFileAlt, FaFilePdf, FaDownload, FaTrash, FaEdit, FaExternalLinkAlt, FaFileWord, FaFileExcel, FaFilePowerpoint, FaLink, FaEye } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { resourceService } from '../../services/api';
 import { formatDistanceToNow } from 'date-fns';
@@ -8,6 +8,8 @@ const ResourceList = ({ resources, roomId, onResourceDeleted, onResourceEdit, is
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Get icon based on resource type
   const getResourceIcon = (type) => {
@@ -17,7 +19,13 @@ const ResourceList = ({ resources, roomId, onResourceDeleted, onResourceEdit, is
       case 'Image':
         return <FaImage className="text-blue-500" />;
       case 'Document':
-        return <FaFileAlt className="text-green-600" />;
+        return <FaFileWord className="text-blue-600" />;
+      case 'Spreadsheet':
+        return <FaFileExcel className="text-green-600" />;
+      case 'Presentation':
+        return <FaFilePowerpoint className="text-orange-600" />;
+      case 'Link':
+        return <FaLink className="text-purple-600" />;
       default:
         return <FaFile className="text-gray-600" />;
     }
@@ -41,7 +49,54 @@ const ResourceList = ({ resources, roomId, onResourceDeleted, onResourceEdit, is
 
   // Check if user can edit/delete a resource
   const canModifyResource = (resource) => {
-    return isOwner || resource.uploader?.id === currentUser?.id || currentUser?.role === 'admin';
+    // Only allow the uploader and admins to edit/delete resources
+    return resource.uploader?.id === currentUser?.id || currentUser?.role === 'admin';
+  };
+
+  // Format file size for display
+  const formatFileSize = (sizeInBytes) => {
+    if (!sizeInBytes) return '';
+    
+    if (sizeInBytes < 1024) {
+      return `${sizeInBytes} B`;
+    } else if (sizeInBytes < 1024 * 1024) {
+      return `${(sizeInBytes / 1024).toFixed(1)} KB`;
+    } else {
+      return `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+  };
+
+  // Handle resource access (download or open link)
+  const handleResourceAccess = (resource) => {
+    if (resource.url && !resource.downloadUrl) {
+      // It's an external link
+      window.open(resource.url, '_blank', 'noopener,noreferrer');
+    } else if (resource.downloadUrl) {
+      // It's a downloadable file
+      window.open(resourceService.getDownloadUrl(resource.id), '_blank');
+    }
+  };
+
+  // Handle resource preview
+  const handlePreview = (resource) => {
+    // Only preview supported file types
+    if (resource.type === 'Image' || resource.type === 'PDF') {
+      setPreviewUrl(resourceService.getDownloadUrl(resource.id));
+      setPreviewOpen(true);
+    } else if (resource.url) {
+      window.open(resource.url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  // Close resource preview
+  const closePreview = () => {
+    setPreviewOpen(false);
+    setPreviewUrl('');
+  };
+
+  // Check if resource is previewable
+  const isPreviewable = (resource) => {
+    return resource.type === 'Image' || resource.type === 'PDF' || resource.url;
   };
 
   if (resources.length === 0) {
@@ -74,15 +129,27 @@ const ResourceList = ({ resources, roomId, onResourceDeleted, onResourceEdit, is
               <div className="flex-grow">
                 <h4 className="font-medium text-secondary-900">{resource.title}</h4>
                 {resource.description && (
-                  <p className="text-sm text-secondary-600 line-clamp-1">{resource.description}</p>
+                  <p className="text-sm text-secondary-600 line-clamp-2">{resource.description}</p>
                 )}
-                <div className="flex items-center text-xs text-secondary-500 mt-1">
+                <div className="flex items-center text-xs text-secondary-500 mt-1 flex-wrap gap-2">
                   <span>
                     Added by {resource.uploader?.firstName} {resource.uploader?.lastName} • {formatDistanceToNow(new Date(resource.createdAt), { addSuffix: true })}
                   </span>
                   {resource.fileSize && (
-                    <span className="ml-3">
-                      {Math.round(resource.fileSize / 1024)} KB
+                    <span className="flex items-center">
+                      <span className="w-1 h-1 bg-secondary-400 rounded-full mx-2"></span>
+                      {formatFileSize(resource.fileSize)}
+                    </span>
+                  )}
+                  {resource.type && (
+                    <span className="flex items-center">
+                      <span className="w-1 h-1 bg-secondary-400 rounded-full mx-2"></span>
+                      {resource.type}
+                    </span>
+                  )}
+                  {resource.url && !resource.downloadUrl && (
+                    <span className="flex items-center text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                      <FaLink className="mr-1" size={10} /> External
                     </span>
                   )}
                 </div>
@@ -90,6 +157,16 @@ const ResourceList = ({ resources, roomId, onResourceDeleted, onResourceEdit, is
             </div>
             
             <div className="flex items-center space-x-2">
+              {isPreviewable(resource) && (
+                <button 
+                  onClick={() => handlePreview(resource)}
+                  className="p-2 text-secondary-600 hover:text-primary-600 transition-colors"
+                  title="Preview"
+                >
+                  <FaEye />
+                </button>
+              )}
+              
               {resource.url && !resource.downloadUrl && (
                 <a 
                   href={resource.url} 
@@ -137,6 +214,48 @@ const ResourceList = ({ resources, roomId, onResourceDeleted, onResourceEdit, is
           </div>
         ))}
       </div>
+
+      {/* Preview Modal */}
+      {previewOpen && previewUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-lg font-medium">Resource Preview</h3>
+              <button 
+                onClick={closePreview}
+                className="text-secondary-500 hover:text-secondary-700"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="flex-grow overflow-auto p-4">
+              {previewUrl.endsWith('.pdf') ? (
+                <iframe 
+                  src={previewUrl} 
+                  className="w-full h-[70vh]" 
+                  title="PDF Preview" 
+                  frameBorder="0"
+                ></iframe>
+              ) : (
+                <img 
+                  src={previewUrl} 
+                  alt="Preview" 
+                  className="max-w-full max-h-[70vh] mx-auto"
+                />
+              )}
+            </div>
+            <div className="p-4 border-t flex justify-end">
+              <a 
+                href={previewUrl}
+                download
+                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+              >
+                Download
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
