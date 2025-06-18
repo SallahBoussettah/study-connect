@@ -176,6 +176,136 @@ export const presenceService = {
   }
 };
 
+// Subject API services
+export const subjectService = {
+  // Get all subjects
+  getAllSubjects: async () => {
+    try {
+      const response = await api.get('/subjects');
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      throw error;
+    }
+  },
+  
+  // Get a single subject by ID
+  getSubjectById: async (subjectId) => {
+    try {
+      const response = await api.get(`/subjects/${subjectId}`);
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error fetching subject ${subjectId}:`, error);
+      throw error;
+    }
+  }
+};
+
+// Resource API services
+export const resourceService = {
+  // Get all resources for a study room
+  getStudyRoomResources: async (roomId) => {
+    try {
+      const response = await api.get(`/study-rooms/${roomId}/resources`);
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error fetching resources for room ${roomId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Get a single resource by ID
+  getResourceById: async (resourceId) => {
+    try {
+      const response = await api.get(`/resources/${resourceId}`);
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error fetching resource ${resourceId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Create a new resource in a study room
+  createResource: async (roomId, resourceData) => {
+    try {
+      // Create a FormData object for file uploads
+      const formData = new FormData();
+      
+      // Add fields to the form data
+      Object.keys(resourceData).forEach(key => {
+        // Skip null or undefined values
+        if (resourceData[key] != null) {
+          // Handle file upload separately
+          if (key === 'file' && resourceData[key] instanceof File) {
+            formData.append('file', resourceData[key]);
+          } else {
+            formData.append(key, resourceData[key]);
+          }
+        }
+      });
+      
+      const response = await api.post(`/study-rooms/${roomId}/resources`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error creating resource in room ${roomId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Update a resource
+  updateResource: async (resourceId, resourceData) => {
+    try {
+      // Create a FormData object for file uploads
+      const formData = new FormData();
+      
+      // Add fields to the form data
+      Object.keys(resourceData).forEach(key => {
+        // Skip null or undefined values
+        if (resourceData[key] != null) {
+          // Handle file upload separately
+          if (key === 'file' && resourceData[key] instanceof File) {
+            formData.append('file', resourceData[key]);
+          } else {
+            formData.append(key, resourceData[key]);
+          }
+        }
+      });
+      
+      const response = await api.put(`/resources/${resourceId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error updating resource ${resourceId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Delete a resource
+  deleteResource: async (resourceId) => {
+    try {
+      const response = await api.delete(`/resources/${resourceId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting resource ${resourceId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Get download URL for a resource
+  getDownloadUrl: (resourceId) => {
+    return `${API_URL}/resources/${resourceId}/download`;
+  }
+};
+
 // Additional service exports can be added here
 
 export default api; 

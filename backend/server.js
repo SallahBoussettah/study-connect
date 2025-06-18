@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const http = require('http');
+const path = require('path');
 const { connectDB } = require('./config/db');
 const config = require('./config/config');
 const errorHandler = require('./middleware/error');
@@ -12,6 +13,8 @@ const { setupSocket } = require('./socket');
 const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const studyRoomRoutes = require('./routes/studyRoomRoutes');
+const subjectRoutes = require('./routes/subjectRoutes');
+const resourceRoutes = require('./routes/resourceRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -36,10 +39,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors(config.cors));
 
+// Static file serving for uploads
+// Note: In production, you'd want to put this behind authentication
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/study-rooms', studyRoomRoutes);
+app.use('/api/subjects', subjectRoutes);
+app.use('/api/resources', resourceRoutes);
 
 // Root route
 app.get('/', (req, res) => {

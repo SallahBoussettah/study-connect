@@ -8,7 +8,9 @@ const {
   joinStudyRoom,
   leaveStudyRoom
 } = require('../controllers/studyRoomController');
+const { getStudyRoomResources, createResource } = require('../controllers/resourceController');
 const { protect, authorize } = require('../middleware/auth');
+const upload = require('../middleware/upload');
 
 // Include sub-routes
 const messageRoutes = require('./messageRoutes');
@@ -40,5 +42,10 @@ router.route('/:id/join')
 
 router.route('/:id/leave')
   .post(leaveStudyRoom);
+
+// Resource routes for study rooms
+router.route('/:roomId/resources')
+  .get(getStudyRoomResources)
+  .post(upload.single('file'), createResource);
 
 module.exports = router; 

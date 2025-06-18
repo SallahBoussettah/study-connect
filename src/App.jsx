@@ -27,6 +27,9 @@ import CreateStudyRoom from './pages/dashboard/CreateStudyRoom';
 import StudyTimer from './pages/dashboard/StudyTimer';
 import Flashcards from './pages/dashboard/Flashcards';
 
+// Study Room Pages
+import StudyRoomResources from './pages/studyRoom/StudyRoomResources';
+
 const App = () => {
   return (
     <AuthProvider>
@@ -65,6 +68,13 @@ const App = () => {
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<Settings />} />
           </Route>
+          
+          {/* Study Room Routes */}
+          <Route path="/study-rooms/:roomId/resources" element={
+            <ProtectedRoute>
+              <StudyRoomResources />
+            </ProtectedRoute>
+          } />
           
           {/* 404 Route */}
           <Route path="*" element={<NotFoundPage />} />

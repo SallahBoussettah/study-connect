@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaSpinner } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
-import { studyRoomService } from '../../services/api';
+import { studyRoomService, subjectService } from '../../services/api';
 
 const CreateStudyRoom = () => {
   const navigate = useNavigate();
@@ -24,22 +24,14 @@ const CreateStudyRoom = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        // Note: You would need to create an API endpoint to fetch subjects
-        // For now, we'll use mock data
-        const mockSubjects = [
-          { id: '1', name: 'Mathematics' },
-          { id: '2', name: 'Physics' },
-          { id: '3', name: 'Computer Science' },
-          { id: '4', name: 'Literature' },
-          { id: '5', name: 'Chemistry' },
-          { id: '6', name: 'Biology' }
-        ];
-        
-        setSubjects(mockSubjects);
+        // Fetch subjects from the API
+        const subjectsData = await subjectService.getAllSubjects();
+        setSubjects(subjectsData);
         setLoadingSubjects(false);
       } catch (err) {
         console.error('Error fetching subjects:', err);
         setLoadingSubjects(false);
+        setError('Failed to load subjects. Please refresh the page.');
       }
     };
     
