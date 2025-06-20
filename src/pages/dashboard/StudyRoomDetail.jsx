@@ -571,6 +571,119 @@ const StudyRoomDetail = () => {
     navigate('/dashboard/rooms');
   };
 
+  // Handle resource download with authentication
+  const handleDownload = async (resourceId) => {
+    try {
+      // Show loading toast
+      const toastId = toast.loading('Preparing download...');
+      
+      // First, get resource details to know what we're downloading
+      let resourceDetails;
+      try {
+        const detailsResponse = await api.get(`/resources/${resourceId}`);
+        resourceDetails = detailsResponse.data.data;
+      } catch (err) {
+        console.error('Error fetching resource details:', err);
+        // Continue with download even if we can't get details
+      }
+      
+      // Try the modern approach with Blob first
+      try {
+        // Use the API instance which already has authentication headers
+        const response = await api.get(`/resources/${resourceId}/download`, {
+          responseType: 'blob', // Important for file downloads
+          headers: {
+            'Accept': '*/*' // Accept any content type
+          }
+        });
+        
+        // Determine the correct content type
+        let contentType = response.headers['content-type'] || 'application/octet-stream';
+        
+        // Create a blob with the correct type
+        const blob = new Blob([response.data], { type: contentType });
+        
+        // Create a temporary URL for the blob
+        const url = window.URL.createObjectURL(blob);
+        
+        // Determine filename - try multiple sources
+        let filename = '';
+        
+        // 1. Try to get from Content-Disposition header
+        const contentDisposition = response.headers['content-disposition'];
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+          if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1].trim();
+          }
+        }
+        
+        // 2. If not found in header, try to use resource details
+        if (!filename && resourceDetails) {
+          if (resourceDetails.originalFilename) {
+            filename = resourceDetails.originalFilename;
+          } else if (resourceDetails.title) {
+            // Construct filename from title and type
+            const extension = resourceDetails.type ? 
+              `.${resourceDetails.type.toLowerCase()}` : '';
+            filename = `${resourceDetails.title}${extension}`;
+          }
+        }
+        
+        // 3. Fallback to a generic name with timestamp
+        if (!filename) {
+          const timestamp = new Date().getTime();
+          const extension = contentType.split('/')[1] || 'bin';
+          filename = `download-${timestamp}.${extension}`;
+        }
+        
+        // Create a temporary link element and trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        setTimeout(() => {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+        
+        // Update toast to success
+        toast.update(toastId, { 
+          render: `Downloading ${filename}`, 
+          type: 'success', 
+          isLoading: false,
+          autoClose: 2000
+        });
+      } catch (blobError) {
+        console.error('Blob download failed, trying direct approach:', blobError);
+        
+        // Fallback to direct download approach if blob method fails
+        // Get the auth token
+        const token = localStorage.getItem('authToken');
+        
+        // Create a direct download link with token in query param
+        const downloadUrl = `${api.defaults.baseURL}/resources/${resourceId}/download?token=${token}`;
+        
+        // Open in a new tab/window
+        window.open(downloadUrl, '_blank');
+        
+        toast.update(toastId, { 
+          render: 'Download started in new tab', 
+          type: 'info', 
+          isLoading: false,
+          autoClose: 3000
+        });
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download the file. Please try again.');
+    }
+  };
+
   // Render loading state
   if (loading) {
     return (
@@ -859,15 +972,32 @@ const StudyRoomDetail = () => {
                           <div className="flex items-center space-x-2">
                             {/* Show download button for downloadable resources */}
                             {isResourceDownloadable(resource) && (
-                              <a
-                                href={resourceService.getDownloadUrl(resource.id)}
-                                download
-                                target="_blank"
-                                className="p-2 text-secondary-600 hover:text-primary-600 transition-colors"
-                                title="Download file"
-                              >
-                                <FaDownload />
-                              </a>
+                              <div className="relative group">
+                                <button
+                                  onClick={() => handleDownload(resource.id)}
+                                  className="p-2 text-secondary-600 hover:text-primary-600 transition-colors"
+                                  title="Download file"
+                                >
+                                  <FaDownload />
+                                </button>
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
+                                  <button
+                                    onClick={() => handleDownload(resource.id)}
+                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                  >
+                                    Download (Auto)
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const token = localStorage.getItem('authToken');
+                                      window.open(`${api.defaults.baseURL}/resources/${resource.id}/download?token=${token}`, '_blank');
+                                    }}
+                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                  >
+                                    Download (Direct)
+                                  </button>
+                                </div>
+                              </div>
                             )}
                             
                             {/* External link resources */}
