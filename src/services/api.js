@@ -401,4 +401,53 @@ export const friendshipService = {
 
 // Additional service exports can be added here
 
+// Direct Message API services
+export const directMessageService = {
+  // Get direct messages with a friend
+  getDirectMessages: async (friendId, page = 1, limit = 50) => {
+    try {
+      const response = await api.get(`/messages/direct/${friendId}`, {
+        params: { page, limit }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching direct messages with ${friendId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Send a direct message to a friend
+  sendDirectMessage: async (friendId, content) => {
+    try {
+      const response = await api.post(`/messages/direct/${friendId}`, { content });
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error sending direct message to ${friendId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Get unread message counts from all friends
+  getUnreadMessageCounts: async () => {
+    try {
+      const response = await api.get('/messages/direct/unread');
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching unread message counts:', error);
+      throw error;
+    }
+  },
+  
+  // Mark messages from a friend as read
+  markMessagesAsRead: async (friendId) => {
+    try {
+      const response = await api.put(`/messages/direct/${friendId}/read`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error marking messages as read from ${friendId}:`, error);
+      throw error;
+    }
+  }
+};
+
 export default api; 

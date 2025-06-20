@@ -129,6 +129,55 @@ class SocketService {
   }
   
   /**
+   * Join a direct chat with a friend
+   * @param {string} friendId - ID of the friend
+   */
+  joinDirectChat(friendId) {
+    if (!this.chatSocket || !this.connected) {
+      console.error('Socket not connected. Cannot join direct chat.');
+      return false;
+    }
+    
+    this.chatSocket.emit('join-direct-chat', friendId);
+    return true;
+  }
+  
+  /**
+   * Leave a direct chat with a friend
+   * @param {string} friendId - ID of the friend
+   */
+  leaveDirectChat(friendId) {
+    if (!this.chatSocket) return;
+    
+    this.chatSocket.emit('leave-direct-chat', friendId);
+  }
+  
+  /**
+   * Send a direct message to a friend
+   * @param {string} friendId - ID of the friend
+   * @param {string} content - Message content
+   */
+  sendDirectMessage(friendId, content) {
+    if (!this.chatSocket || !this.connected) {
+      console.error('Socket not connected. Cannot send direct message.');
+      return false;
+    }
+    
+    this.chatSocket.emit('send-direct-message', { friendId, content });
+    return true;
+  }
+  
+  /**
+   * Mark messages from a friend as read
+   * @param {string} friendId - ID of the friend
+   */
+  markMessagesAsRead(friendId) {
+    if (!this.chatSocket) return;
+    
+    this.chatSocket.emit('mark-messages-read', friendId);
+  }
+  
+  /**
    * Update user status in a room
    * @param {string} roomId - ID of the room
    * @param {string} status - User status (active, away, busy)
@@ -143,38 +192,45 @@ class SocketService {
    * Register event listeners
    * @param {string} event - Event name
    * @param {function} callback - Callback function
+   * @param {boolean} useMainSocket - Whether to use main socket instead of chat socket
    */
-  on(event, callback) {
-    if (!this.chatSocket) return;
+  on(event, callback, useMainSocket = false) {
+    const socket = useMainSocket ? this.socket : this.chatSocket;
+    if (!socket) return;
     
     // Store callback reference for cleanup
     if (!this.listeners[event]) {
       this.listeners[event] = [];
     }
     
-    this.listeners[event].push(callback);
-    this.chatSocket.on(event, callback);
+    this.listeners[event].push({ callback, useMainSocket });
+    socket.on(event, callback);
   }
   
   /**
    * Remove event listener
    * @param {string} event - Event name
    * @param {function} callback - Callback function (optional, removes all if not provided)
+   * @param {boolean} useMainSocket - Whether to use main socket instead of chat socket
    */
-  off(event, callback) {
-    if (!this.chatSocket) return;
+  off(event, callback, useMainSocket = false) {
+    const socket = useMainSocket ? this.socket : this.chatSocket;
+    if (!socket) return;
     
     if (callback && this.listeners[event]) {
       // Remove specific callback
-      const index = this.listeners[event].indexOf(callback);
+      const index = this.listeners[event].findIndex(l => l.callback === callback && l.useMainSocket === useMainSocket);
       if (index !== -1) {
         this.listeners[event].splice(index, 1);
-        this.chatSocket.off(event, callback);
+        socket.off(event, callback);
       }
     } else if (this.listeners[event]) {
       // Remove all callbacks for this event
-      this.listeners[event].forEach(cb => {
-        this.chatSocket.off(event, cb);
+      this.listeners[event].forEach(l => {
+        const s = l.useMainSocket ? this.socket : this.chatSocket;
+        if (s) {
+          s.off(event, l.callback);
+        }
       });
       this.listeners[event] = [];
     }

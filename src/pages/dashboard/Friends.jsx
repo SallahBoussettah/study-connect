@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FaUserFriends, FaSearch, FaUserPlus, FaUserMinus, 
   FaCheck, FaTimes, FaSpinner, FaEnvelope, FaSchool, 
-  FaGraduationCap, FaEllipsisH, FaUserClock
+  FaGraduationCap, FaEllipsisH, FaUserClock, FaComment
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { friendshipService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useChat } from '../../contexts/ChatContext';
 
 const Friends = () => {
   const { currentUser } = useAuth();
+  const { openChat } = useChat();
   const [activeTab, setActiveTab] = useState('friends');
   const [friends, setFriends] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
@@ -22,6 +24,22 @@ const Friends = () => {
     search: false
   });
   const [error, setError] = useState(null);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setActiveDropdown(null);
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Fetch friends and requests on component mount
   useEffect(() => {
@@ -51,6 +69,11 @@ const Friends = () => {
     
     fetchFriendsData();
   }, []);
+
+  // Toggle dropdown menu
+  const toggleDropdown = (friendId) => {
+    setActiveDropdown(activeDropdown === friendId ? null : friendId);
+  };
 
   // Handle search for new friends
   const handleSearch = async () => {
@@ -160,11 +183,24 @@ const Friends = () => {
       // Remove from friends list
       setFriends(prev => prev.filter(friend => friend.id !== friendId));
       
+      // Close dropdown
+      setActiveDropdown(null);
+      
       toast.success('Friend removed successfully');
     } catch (err) {
       console.error('Error removing friend:', err);
       toast.error('Failed to remove friend. Please try again.');
     }
+  };
+
+  // Start chat with friend
+  const handleStartChat = (friend) => {
+    openChat(
+      friend.id, 
+      `${friend.firstName} ${friend.lastName}`, 
+      friend.avatar
+    );
+    setActiveDropdown(null);
   };
 
   // Format date to readable string
@@ -291,18 +327,29 @@ const Friends = () => {
                           )}
                         </div>
                       </div>
-                      <div className="dropdown relative">
-                        <button className="p-2 rounded-full hover:bg-secondary-100">
+                      <div className="relative" ref={activeDropdown === friend.id ? dropdownRef : null}>
+                        <button 
+                          className="p-2 rounded-full hover:bg-secondary-100"
+                          onClick={() => toggleDropdown(friend.id)}
+                        >
                           <FaEllipsisH className="text-secondary-500" />
                         </button>
-                        <div className="dropdown-menu absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 hidden">
-                          <button 
-                            onClick={() => handleRemoveFriend(friend.id)}
-                            className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                          >
-                            <FaUserMinus className="mr-2" /> Remove Friend
-                          </button>
-                        </div>
+                        {activeDropdown === friend.id && (
+                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+                            <button 
+                              onClick={() => handleStartChat(friend)}
+                              className="flex items-center w-full px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-100"
+                            >
+                              <FaComment className="mr-2" /> Message
+                            </button>
+                            <button 
+                              onClick={() => handleRemoveFriend(friend.id)}
+                              className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                            >
+                              <FaUserMinus className="mr-2" /> Remove Friend
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                     {friend.bio && (
@@ -314,12 +361,20 @@ const Friends = () => {
                       <div className="text-xs text-secondary-500">
                         Friends since {formatDate(friend.since)}
                       </div>
-                      <button 
-                        onClick={() => handleRemoveFriend(friend.id)}
-                        className="text-sm text-red-600 hover:text-red-800 flex items-center"
-                      >
-                        <FaUserMinus className="mr-1" /> Remove
-                      </button>
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => handleStartChat(friend)}
+                          className="text-sm text-primary-600 hover:text-primary-800 flex items-center"
+                        >
+                          <FaComment className="mr-1" /> Chat
+                        </button>
+                        <button 
+                          onClick={() => handleRemoveFriend(friend.id)}
+                          className="text-sm text-red-600 hover:text-red-800 flex items-center"
+                        >
+                          <FaUserMinus className="mr-1" /> Remove
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

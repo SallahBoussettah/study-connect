@@ -1,11 +1,13 @@
 const socketIO = require('socket.io');
 const jwt = require('jsonwebtoken');
-const { User, UserPresence, Message, StudyRoom } = require('../models');
+const { User, UserPresence, Message, StudyRoom, DirectMessage, Friendship } = require('../models');
 const config = require('../config/config');
 const { Op } = require('sequelize');
 
 // In-memory cache for active users in rooms to reduce DB queries
 const activeRoomUsersCache = new Map();
+// In-memory cache for online users
+const onlineUsersCache = new Map();
 
 // Cache expiration time for room users (5 minutes)
 const CACHE_EXPIRATION = 5 * 60 * 1000;
@@ -74,6 +76,94 @@ function setupSocket(server) {
     } catch (error) {
       console.error('Chat namespace authentication error:', error.message);
       return next(new Error('Authentication failed'));
+    }
+  });
+
+  // Handle main socket connection
+  io.on('connection', async (socket) => {
+    const userId = socket.userId;
+    console.log(`User connected: ${userId}`);
+    
+    try {
+      // Get user info
+      const user = await User.findByPk(userId, {
+        attributes: ['id', 'firstName', 'lastName', 'avatar']
+      });
+      
+      if (!user) {
+        socket.disconnect();
+        return;
+      }
+      
+      // Add user to online users cache
+      onlineUsersCache.set(userId, {
+        id: userId,
+        name: `${user.firstName} ${user.lastName}`,
+        avatar: user.avatar,
+        socketId: socket.id,
+        lastActive: new Date()
+      });
+      
+      // Notify friends that user is online
+      const friendships = await Friendship.findAll({
+        where: {
+          status: 'accepted',
+          [Op.or]: [
+            { senderId: userId },
+            { receiverId: userId }
+          ]
+        }
+      });
+      
+      // Extract friend IDs
+      const friendIds = friendships.map(friendship => 
+        friendship.senderId === userId ? friendship.receiverId : friendship.senderId
+      );
+      
+      // Emit online status to friends
+      friendIds.forEach(friendId => {
+        const friendSocketId = onlineUsersCache.get(friendId)?.socketId;
+        if (friendSocketId) {
+          io.to(friendSocketId).emit('friend-online', {
+            friendId: userId,
+            name: `${user.firstName} ${user.lastName}`,
+            avatar: user.avatar
+          });
+        }
+      });
+      
+      // Send online friends to the user
+      const onlineFriends = friendIds
+        .filter(id => onlineUsersCache.has(id))
+        .map(id => {
+          const friend = onlineUsersCache.get(id);
+          return {
+            id: friend.id,
+            name: friend.name,
+            avatar: friend.avatar
+          };
+        });
+      
+      socket.emit('online-friends', onlineFriends);
+      
+      // Handle disconnect
+      socket.on('disconnect', () => {
+        console.log(`User disconnected: ${userId}`);
+        
+        // Remove from online users
+        onlineUsersCache.delete(userId);
+        
+        // Notify friends that user is offline
+        friendIds.forEach(friendId => {
+          const friendSocketId = onlineUsersCache.get(friendId)?.socketId;
+          if (friendSocketId) {
+            io.to(friendSocketId).emit('friend-offline', { friendId: userId });
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Error handling socket connection:', error);
+      socket.disconnect();
     }
   });
 
@@ -208,7 +298,7 @@ function setupSocket(server) {
       }
     });
     
-    // Send a message
+    // Send a message to a room
     socket.on('send-message', async ({ roomId, content }) => {
       try {
         const userId = socket.userId;
@@ -282,6 +372,181 @@ function setupSocket(server) {
       } catch (error) {
         console.error('Error sending message:', error);
         socket.emit('error', 'Failed to send message');
+      }
+    });
+    
+    // Direct message handling
+    socket.on('join-direct-chat', async (friendId) => {
+      try {
+        const userId = socket.userId;
+        
+        if (!userId || !friendId) {
+          socket.emit('error', 'Invalid user ID or friend ID');
+          return;
+        }
+        
+        // Check if they are friends
+        const friendship = await Friendship.findOne({
+          where: {
+            status: 'accepted',
+            [Op.or]: [
+              { senderId: userId, receiverId: friendId },
+              { senderId: friendId, receiverId: userId }
+            ]
+          }
+        });
+        
+        if (!friendship) {
+          socket.emit('error', 'You are not friends with this user');
+          return;
+        }
+        
+        // Create a unique room ID for direct messages
+        const chatRoomId = [userId, friendId].sort().join('-');
+        
+        // Join the direct message room
+        socket.join(`direct:${chatRoomId}`);
+        
+        console.log(`User ${userId} joined direct chat with ${friendId}`);
+      } catch (error) {
+        console.error('Error joining direct chat:', error);
+        socket.emit('error', 'Failed to join direct chat');
+      }
+    });
+    
+    // Leave direct chat
+    socket.on('leave-direct-chat', async (friendId) => {
+      try {
+        const userId = socket.userId;
+        
+        if (!userId || !friendId) {
+          return;
+        }
+        
+        // Create a unique room ID for direct messages
+        const chatRoomId = [userId, friendId].sort().join('-');
+        
+        // Leave the direct message room
+        socket.leave(`direct:${chatRoomId}`);
+        
+        console.log(`User ${userId} left direct chat with ${friendId}`);
+      } catch (error) {
+        console.error('Error leaving direct chat:', error);
+      }
+    });
+    
+    // Send direct message
+    socket.on('send-direct-message', async ({ friendId, content }) => {
+      try {
+        const userId = socket.userId;
+        
+        if (!content || !content.trim()) {
+          socket.emit('error', 'Message content is required');
+          return;
+        }
+        
+        // Check if they are friends
+        const friendship = await Friendship.findOne({
+          where: {
+            status: 'accepted',
+            [Op.or]: [
+              { senderId: userId, receiverId: friendId },
+              { senderId: friendId, receiverId: userId }
+            ]
+          }
+        });
+        
+        if (!friendship) {
+          socket.emit('error', 'You are not friends with this user');
+          return;
+        }
+        
+        // Get user information
+        const user = await User.findByPk(userId, {
+          attributes: ['id', 'firstName', 'lastName', 'avatar']
+        });
+        
+        if (!user) {
+          socket.emit('error', 'User not found');
+          return;
+        }
+        
+        // Create message in database
+        const message = await DirectMessage.create({
+          content,
+          senderId: userId,
+          receiverId: friendId,
+          isRead: false
+        });
+        
+        // Format message for sending
+        const formattedMessage = {
+          id: message.id,
+          content: message.content,
+          timestamp: message.createdAt,
+          isRead: false,
+          sender: {
+            id: user.id,
+            name: `${user.firstName} ${user.lastName}`,
+            avatar: user.avatar
+          }
+        };
+        
+        // Create a unique room ID for direct messages
+        const chatRoomId = [userId, friendId].sort().join('-');
+        
+        // Send to the direct message room
+        chatNamespace.to(`direct:${chatRoomId}`).emit('new-direct-message', formattedMessage);
+        
+        // If the friend is online but not in the chat room, send a notification
+        const friendSocketId = onlineUsersCache.get(friendId)?.socketId;
+        if (friendSocketId) {
+          io.to(friendSocketId).emit('direct-message-notification', {
+            messageId: message.id,
+            senderId: userId,
+            senderName: `${user.firstName} ${user.lastName}`,
+            senderAvatar: user.avatar,
+            content: content.length > 30 ? content.substring(0, 30) + '...' : content,
+            timestamp: message.createdAt
+          });
+        }
+        
+        console.log(`User ${userId} sent direct message to ${friendId}`);
+      } catch (error) {
+        console.error('Error sending direct message:', error);
+        socket.emit('error', 'Failed to send direct message');
+      }
+    });
+    
+    // Mark direct messages as read
+    socket.on('mark-messages-read', async (friendId) => {
+      try {
+        const userId = socket.userId;
+        
+        // Update messages to read
+        await DirectMessage.update(
+          { isRead: true },
+          {
+            where: {
+              receiverId: userId,
+              senderId: friendId,
+              isRead: false
+            }
+          }
+        );
+        
+        // Create a unique room ID for direct messages
+        const chatRoomId = [userId, friendId].sort().join('-');
+        
+        // Notify the sender that messages were read
+        chatNamespace.to(`direct:${chatRoomId}`).emit('messages-read', {
+          readerId: userId,
+          senderId: friendId
+        });
+        
+        console.log(`User ${userId} marked messages from ${friendId} as read`);
+      } catch (error) {
+        console.error('Error marking messages as read:', error);
       }
     });
     
