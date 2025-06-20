@@ -26,6 +26,7 @@ import StudyRoomDetail from './pages/dashboard/StudyRoomDetail';
 import CreateStudyRoom from './pages/dashboard/CreateStudyRoom';
 import StudyTimer from './pages/dashboard/StudyTimer';
 import Flashcards from './pages/dashboard/Flashcards';
+import Friends from './pages/dashboard/Friends';
 
 // Study Room Pages
 import StudyRoomResources from './pages/studyRoom/StudyRoomResources';
@@ -63,6 +64,7 @@ const App = () => {
             <Route path="groups/create" element={<CreateStudyRoom />} />
             <Route path="groups/:roomId" element={<StudyRoomDetail />} />
             <Route path="resources" element={<Resources />} />
+            <Route path="friends" element={<Friends />} />
             <Route path="timer" element={<StudyTimer />} />
             <Route path="flashcards" element={<Flashcards />} />
             <Route path="profile" element={<Profile />} />

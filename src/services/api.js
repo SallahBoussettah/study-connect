@@ -306,6 +306,99 @@ export const resourceService = {
   }
 };
 
+// Friendship API services
+export const friendshipService = {
+  // Get all friends
+  getAllFriends: async () => {
+    try {
+      const response = await api.get('/friends');
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching friends:', error);
+      throw error;
+    }
+  },
+  
+  // Get all friend requests
+  getFriendRequests: async () => {
+    try {
+      const response = await api.get('/friends/requests');
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching friend requests:', error);
+      throw error;
+    }
+  },
+  
+  // Get all sent friend requests
+  getSentFriendRequests: async () => {
+    try {
+      const response = await api.get('/friends/requests/sent');
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching sent friend requests:', error);
+      throw error;
+    }
+  },
+  
+  // Send a friend request
+  sendFriendRequest: async (receiverId) => {
+    try {
+      const response = await api.post('/friends/requests', { receiverId });
+      return response.data.data;
+    } catch (error) {
+      console.error('Error sending friend request:', error);
+      throw error;
+    }
+  },
+  
+  // Accept a friend request
+  acceptFriendRequest: async (requestId) => {
+    try {
+      const response = await api.put(`/friends/requests/${requestId}/accept`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error accepting friend request:', error);
+      throw error;
+    }
+  },
+  
+  // Reject a friend request
+  rejectFriendRequest: async (requestId) => {
+    try {
+      const response = await api.put(`/friends/requests/${requestId}/reject`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error rejecting friend request:', error);
+      throw error;
+    }
+  },
+  
+  // Remove a friend
+  removeFriend: async (friendId) => {
+    try {
+      const response = await api.delete(`/friends/${friendId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error removing friend:', error);
+      throw error;
+    }
+  },
+  
+  // Search for users to add as friends
+  searchUsers: async (query) => {
+    try {
+      const response = await api.get('/friends/search', {
+        params: { query }
+      });
+      return response.data.data;
+    } catch (error) {
+      console.error('Error searching users:', error);
+      throw error;
+    }
+  }
+};
+
 // Additional service exports can be added here
 
 export default api; 

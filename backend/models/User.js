@@ -219,6 +219,47 @@ module.exports = (sequelize, DataTypes) => {
         as: 'notifications'
       });
     }
+    
+    // Friendship associations
+    if (models.Friendship) {
+      // Sent friend requests
+      User.hasMany(models.Friendship, {
+        foreignKey: 'senderId',
+        as: 'sentFriendRequests'
+      });
+      
+      // Received friend requests
+      User.hasMany(models.Friendship, {
+        foreignKey: 'receiverId',
+        as: 'receivedFriendRequests'
+      });
+      
+      // Friends (users who have accepted this user's friend requests)
+      User.belongsToMany(models.User, {
+        through: {
+          model: models.Friendship,
+          scope: {
+            status: 'accepted'
+          }
+        },
+        foreignKey: 'senderId',
+        otherKey: 'receiverId',
+        as: 'friends'
+      });
+      
+      // Friends (users whose friend requests this user has accepted)
+      User.belongsToMany(models.User, {
+        through: {
+          model: models.Friendship,
+          scope: {
+            status: 'accepted'
+          }
+        },
+        foreignKey: 'receiverId',
+        otherKey: 'senderId',
+        as: 'friendsOf'
+      });
+    }
   };
 
   return User;

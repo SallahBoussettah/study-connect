@@ -15,6 +15,7 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const studyRoomRoutes = require('./routes/studyRoomRoutes');
 const subjectRoutes = require('./routes/subjectRoutes');
 const resourceRoutes = require('./routes/resourceRoutes');
+const friendRoutes = require('./routes/friendRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -49,6 +50,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/study-rooms', studyRoomRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/resources', resourceRoutes);
+app.use('/api/friends', friendRoutes);
 
 // Root route
 app.get('/', (req, res) => {

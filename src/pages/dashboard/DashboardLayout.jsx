@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   FaHome, FaUsers, FaBook, FaUser, FaCog, FaSignOutAlt, 
-  FaChartBar, FaBars, FaTimes, FaBell, FaClock, FaGraduationCap
+  FaChartBar, FaBars, FaTimes, FaBell, FaClock, FaGraduationCap,
+  FaUserFriends
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -24,6 +25,7 @@ const DashboardLayout = () => {
   const navItems = [
     { path: '/dashboard', icon: <FaHome />, label: 'Dashboard' },
     { path: '/dashboard/rooms', icon: <FaUsers />, label: 'Study Rooms' },
+    { path: '/dashboard/friends', icon: <FaUserFriends />, label: 'Friends' },
     { path: '/dashboard/resources', icon: <FaBook />, label: 'Resources' },
     { path: '/dashboard/timer', icon: <FaClock />, label: 'Study Timer' },
     { path: '/dashboard/flashcards', icon: <FaGraduationCap />, label: 'Flashcards' },
