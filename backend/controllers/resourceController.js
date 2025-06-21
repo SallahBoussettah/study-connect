@@ -2,6 +2,7 @@ const { Resource, User, StudyRoom } = require('../models');
 const path = require('path');
 const fs = require('fs');
 const config = require('../config/config');
+const { invalidateCache, invalidateCachePattern } = require('../utils/cache');
 
 /**
  * @desc    Get resources for a study room
@@ -150,6 +151,10 @@ exports.createResource = async (req, res, next) => {
       resourceResponse.downloadUrl = `/api/resources/${resource.id}/download`;
     }
 
+    // Invalidate admin dashboard cache to reflect storage changes
+    invalidateCache('dashboard:admin');
+    invalidateCache('dashboard:admin:storage');
+    
     res.status(201).json({
       success: true,
       data: resourceResponse
@@ -319,6 +324,10 @@ exports.updateResource = async (req, res, next) => {
     // Remove the actual file path for security
     delete resourceResponse.filePath;
 
+    // Invalidate admin dashboard cache to reflect storage changes
+    invalidateCache('dashboard:admin');
+    invalidateCache('dashboard:admin:storage');
+
     res.status(200).json({
       success: true,
       data: resourceResponse
@@ -383,6 +392,13 @@ exports.deleteResource = async (req, res, next) => {
 
     // Delete the resource
     await resource.destroy();
+
+    // Invalidate admin dashboard cache to reflect storage changes
+    invalidateCache('dashboard:admin');
+    invalidateCache('dashboard:admin:storage');
+    
+    // Also invalidate any user-specific dashboard caches
+    invalidateCachePattern(/^dashboard:/);
 
     res.status(200).json({
       success: true,

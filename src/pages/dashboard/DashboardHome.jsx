@@ -63,7 +63,7 @@ const DashboardHome = () => {
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-secondary-200 flex justify-between items-center">
                 <h2 className="text-lg font-medium text-secondary-900">Active Study Rooms</h2>
-                <Link to="/dashboard/groups" className="text-primary-600 hover:text-primary-800 text-sm font-medium">
+                <Link to="/dashboard/rooms" className="text-primary-600 hover:text-primary-800 text-sm font-medium">
                   View All
                 </Link>
               </div>
