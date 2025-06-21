@@ -14,6 +14,7 @@ export const ChatProvider = ({ children }) => {
   const [messages, setMessages] = useState({});
   const [loading, setLoading] = useState(false);
   const [chatFriendDetails, setChatFriendDetails] = useState({});
+  const [isOnlineFriendsOpen, setIsOnlineFriendsOpen] = useState(false);
 
   // Initialize socket listeners
   useEffect(() => {
@@ -125,6 +126,9 @@ export const ChatProvider = ({ children }) => {
   // Open a chat with a friend
   const openChat = async (friendId, friendName, friendAvatar) => {
     console.log("Opening chat with:", friendId, friendName, friendAvatar);
+    
+    // Close online friends list when opening a chat
+    setIsOnlineFriendsOpen(false);
     
     // Store friend details for reference
     setChatFriendDetails(prev => ({
@@ -304,6 +308,20 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // Toggle online friends list
+  const toggleOnlineFriends = (isOpen) => {
+    setIsOnlineFriendsOpen(isOpen);
+    
+    // If opening online friends, close all active chats
+    if (isOpen && activeChats.length > 0) {
+      // Minimize all active chats instead of closing them
+      activeChats.forEach(friendId => {
+        const friend = chatFriendDetails[friendId] || { id: friendId, name: 'Friend', avatar: null };
+        minimizeChat(friendId, friend.name, friend.avatar);
+      });
+    }
+  };
+
   const value = {
     onlineFriends,
     activeChats,
@@ -312,13 +330,15 @@ export const ChatProvider = ({ children }) => {
     messages,
     loading,
     chatFriendDetails,
+    isOnlineFriendsOpen,
     openChat,
     closeChat,
     minimizeChat,
     restoreChat,
     loadMessages,
     sendMessage,
-    markMessagesAsRead
+    markMessagesAsRead,
+    toggleOnlineFriends
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

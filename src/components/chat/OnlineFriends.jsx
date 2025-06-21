@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { FaUserFriends, FaTimes, FaChevronUp, FaChevronDown } from 'react-icons/fa';
 import { useChat } from '../../contexts/ChatContext';
 
 const OnlineFriends = () => {
-  const { onlineFriends, openChat, unreadCounts } = useChat();
-  const [isOpen, setIsOpen] = useState(false);
+  const { onlineFriends, openChat, unreadCounts, isOnlineFriendsOpen, toggleOnlineFriends } = useChat();
   
   // Generate avatar placeholder
   const getAvatarPlaceholder = (name) => {
@@ -17,12 +16,12 @@ const OnlineFriends = () => {
   return (
     <div className="fixed bottom-0 right-4 z-10">
       {/* Online friends list - positioned above the button */}
-      {isOpen && (
+      {isOnlineFriendsOpen && (
         <div className="absolute bottom-12 right-0 bg-white rounded-lg shadow-lg w-64 max-h-80 overflow-hidden flex flex-col">
           <div className="bg-primary-600 text-white p-3 flex justify-between items-center">
             <div className="font-medium">Online Friends</div>
             <button 
-              onClick={() => setIsOpen(false)}
+              onClick={() => toggleOnlineFriends(false)}
               className="p-1 hover:bg-primary-700 rounded"
             >
               <FaTimes size={14} />
@@ -74,7 +73,7 @@ const OnlineFriends = () => {
       {/* Toggle button - fixed width and position */}
       <div className="fixed bottom-0 right-4 w-32">
         <button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => toggleOnlineFriends(!isOnlineFriendsOpen)}
           className="bg-primary-600 hover:bg-primary-700 text-white rounded-t-lg px-4 py-2 w-full relative shadow-lg"
         >
           <div className="flex items-center justify-center">
@@ -90,7 +89,7 @@ const OnlineFriends = () => {
           )}
           
           <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-            {isOpen ? <FaChevronDown size={12} /> : <FaChevronUp size={12} />}
+            {isOnlineFriendsOpen ? <FaChevronDown size={12} /> : <FaChevronUp size={12} />}
           </div>
         </button>
       </div>
