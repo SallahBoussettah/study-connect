@@ -1,19 +1,91 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import ChatWindow from './ChatWindow';
 import MinimizedChat from './MinimizedChat';
 import OnlineFriends from './OnlineFriends';
 
 const ChatContainer = () => {
-  const { activeChats, minimizedChats, onlineFriends } = useChat();
+  const { activeChats, minimizedChats, onlineFriends, chatFriendDetails } = useChat();
+  const [friendsMap, setFriendsMap] = useState({});
   
-  // Find friend details by ID
+  // Store friend details when a chat is opened
+  useEffect(() => {
+    console.log("ChatContainer useEffect - chatFriendDetails:", chatFriendDetails);
+    
+    // Update friendsMap with any friend details from context
+    if (chatFriendDetails && Object.keys(chatFriendDetails).length > 0) {
+      setFriendsMap(prev => ({
+        ...prev,
+        ...chatFriendDetails
+      }));
+    }
+    
+    // Combine active and minimized chats for tracking
+    const allChats = [
+      ...activeChats.map(id => ({ id })),
+      ...minimizedChats
+    ];
+    
+    // Update friendsMap with any new chats
+    const newFriendsMap = { ...friendsMap };
+    let hasChanges = false;
+    
+    allChats.forEach(chat => {
+      const friendId = chat.id;
+      
+      // If we already have this friend's info and it's not just an ID
+      if (friendsMap[friendId] && friendsMap[friendId].name !== 'Friend') {
+        return;
+      }
+      
+      // Check if this friend is in the online friends list
+      const onlineFriend = onlineFriends.find(f => f.id === friendId);
+      
+      if (onlineFriend) {
+        newFriendsMap[friendId] = {
+          id: friendId,
+          name: onlineFriend.name,
+          avatar: onlineFriend.avatar
+        };
+        hasChanges = true;
+      } 
+      // If we have name from minimized chat
+      else if (chat.name) {
+        newFriendsMap[friendId] = {
+          id: friendId,
+          name: chat.name,
+          avatar: chat.avatar
+        };
+        hasChanges = true;
+      }
+      // Fallback
+      else if (!newFriendsMap[friendId]) {
+        newFriendsMap[friendId] = {
+          id: friendId,
+          name: 'Friend',
+          avatar: null
+        };
+        hasChanges = true;
+      }
+    });
+    
+    if (hasChanges) {
+      setFriendsMap(newFriendsMap);
+    }
+  }, [activeChats, minimizedChats, onlineFriends, chatFriendDetails]);
+  
+  // Get friend details by ID
   const getFriendDetails = (friendId) => {
-    const friend = onlineFriends.find(f => f.id === friendId);
-    return {
+    // First check if we have details in chatFriendDetails
+    if (chatFriendDetails[friendId]) {
+      return chatFriendDetails[friendId];
+    }
+    
+    // Then check our local friendsMap
+    return friendsMap[friendId] || {
       id: friendId,
-      name: friend ? friend.name : 'Friend',
-      avatar: friend ? friend.avatar : null
+      name: 'Friend',
+      avatar: null
     };
   };
   

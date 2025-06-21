@@ -195,9 +195,13 @@ const Friends = () => {
 
   // Start chat with friend
   const handleStartChat = (friend) => {
+    console.log("Starting chat with friend:", friend);
+    const friendName = `${friend.firstName} ${friend.lastName}`;
+    console.log("Friend name:", friendName);
+    
     openChat(
       friend.id, 
-      `${friend.firstName} ${friend.lastName}`, 
+      friendName, 
       friend.avatar
     );
     setActiveDropdown(null);

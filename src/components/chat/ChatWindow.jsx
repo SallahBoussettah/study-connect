@@ -3,13 +3,22 @@ import { FaTimes, FaMinus, FaPaperPlane, FaSpinner } from 'react-icons/fa';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 
-const ChatWindow = ({ friendId, friendName, friendAvatar }) => {
-  const { messages, loading, sendMessage, closeChat, minimizeChat } = useChat();
+const ChatWindow = ({ friendId, friendName: propFriendName, friendAvatar: propFriendAvatar }) => {
+  const { messages, loading, sendMessage, closeChat, minimizeChat, chatFriendDetails } = useChat();
   const { currentUser } = useAuth();
   const [newMessage, setNewMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const messagesEndRef = useRef(null);
-  const chatMessages = messages[friendId] || [];
+  
+  // Get friend details from context if available
+  const friendDetails = chatFriendDetails[friendId];
+  const friendName = friendDetails?.name || propFriendName;
+  const friendAvatar = friendDetails?.avatar || propFriendAvatar;
+  
+  // Sort messages by timestamp to ensure chronological order
+  const chatMessages = messages[friendId] ? 
+    [...messages[friendId]].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) : 
+    [];
 
   // Scroll to bottom when messages change
   useEffect(() => {

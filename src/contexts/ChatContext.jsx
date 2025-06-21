@@ -13,6 +13,7 @@ export const ChatProvider = ({ children }) => {
   const [unreadCounts, setUnreadCounts] = useState({});
   const [messages, setMessages] = useState({});
   const [loading, setLoading] = useState(false);
+  const [chatFriendDetails, setChatFriendDetails] = useState({});
 
   // Initialize socket listeners
   useEffect(() => {
@@ -123,6 +124,18 @@ export const ChatProvider = ({ children }) => {
 
   // Open a chat with a friend
   const openChat = async (friendId, friendName, friendAvatar) => {
+    console.log("Opening chat with:", friendId, friendName, friendAvatar);
+    
+    // Store friend details for reference
+    setChatFriendDetails(prev => ({
+      ...prev,
+      [friendId]: {
+        id: friendId,
+        name: friendName || 'Friend',
+        avatar: friendAvatar
+      }
+    }));
+    
     // Join the direct chat room
     socketService.joinDirectChat(friendId);
 
@@ -133,6 +146,19 @@ export const ChatProvider = ({ children }) => {
 
     // If the chat is minimized, remove it from minimized and add to active
     if (minimizedChats.some(chat => chat.id === friendId)) {
+      setMinimizedChats(prev => prev.filter(chat => chat.id !== friendId));
+    } else {
+      // Add to minimized chats first with friend details to preserve the name and avatar
+      setMinimizedChats(prev => [
+        ...prev,
+        {
+          id: friendId,
+          name: friendName || 'Friend',
+          avatar: friendAvatar
+        }
+      ]);
+      
+      // Then immediately remove from minimized (this ensures the friend details are stored)
       setMinimizedChats(prev => prev.filter(chat => chat.id !== friendId));
     }
 
@@ -191,10 +217,10 @@ export const ChatProvider = ({ children }) => {
       setLoading(true);
       const response = await directMessageService.getDirectMessages(friendId, page);
       
-      // Update messages
+      // Update messages - reverse the array to show oldest messages first
       setMessages(prev => ({
         ...prev,
-        [friendId]: response.data
+        [friendId]: response.data.reverse()
       }));
 
       // Mark messages as read
@@ -285,6 +311,7 @@ export const ChatProvider = ({ children }) => {
     unreadCounts,
     messages,
     loading,
+    chatFriendDetails,
     openChat,
     closeChat,
     minimizeChat,
