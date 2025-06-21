@@ -176,6 +176,42 @@ export const presenceService = {
   }
 };
 
+// Notification API services
+export const notificationService = {
+  // Get all notifications for the current user
+  getNotifications: async () => {
+    try {
+      const response = await api.get('/notifications');
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      throw error;
+    }
+  },
+  
+  // Mark a specific notification as read
+  markAsRead: async (notificationId) => {
+    try {
+      const response = await api.put(`/notifications/${notificationId}/read`);
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error marking notification ${notificationId} as read:`, error);
+      throw error;
+    }
+  },
+  
+  // Mark all notifications as read
+  markAllAsRead: async () => {
+    try {
+      const response = await api.put('/notifications/read-all');
+      return response.data.data;
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      throw error;
+    }
+  }
+};
+
 // Subject API services
 export const subjectService = {
   // Get all subjects
@@ -434,6 +470,19 @@ export const directMessageService = {
       return response.data.data;
     } catch (error) {
       console.error('Error fetching unread message counts:', error);
+      throw error;
+    }
+  },
+  
+  // Get recent conversations with friends
+  getRecentConversations: async (limit = 10) => {
+    try {
+      const response = await api.get('/messages/direct/conversations', {
+        params: { limit }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching recent conversations:', error);
       throw error;
     }
   },

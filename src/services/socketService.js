@@ -178,6 +178,25 @@ class SocketService {
   }
   
   /**
+   * Subscribe to notification events
+   * @param {function} callback - Callback function to handle new notifications
+   */
+  subscribeToNotifications(callback) {
+    if (!this.socket) return;
+    
+    this.socket.on('notification', callback);
+  }
+  
+  /**
+   * Unsubscribe from notification events
+   */
+  unsubscribeFromNotifications() {
+    if (!this.socket) return;
+    
+    this.socket.off('notification');
+  }
+  
+  /**
    * Update user status in a room
    * @param {string} roomId - ID of the room
    * @param {string} status - User status (active, away, busy)

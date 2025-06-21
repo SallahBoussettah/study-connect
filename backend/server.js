@@ -17,6 +17,7 @@ const subjectRoutes = require('./routes/subjectRoutes');
 const resourceRoutes = require('./routes/resourceRoutes');
 const friendRoutes = require('./routes/friendRoutes');
 const directMessageRoutes = require('./routes/directMessageRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -53,6 +54,7 @@ app.use('/api/subjects', subjectRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/messages/direct', directMessageRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Root route
 app.get('/', (req, res) => {

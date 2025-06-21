@@ -15,6 +15,7 @@ export const ChatProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [chatFriendDetails, setChatFriendDetails] = useState({});
   const [isOnlineFriendsOpen, setIsOnlineFriendsOpen] = useState(false);
+  const [conversations, setConversations] = useState([]);
 
   // Initialize socket listeners
   useEffect(() => {
@@ -110,7 +111,62 @@ export const ChatProvider = ({ children }) => {
       }
     };
 
+    // Fetch recent conversations
+    const fetchConversations = async () => {
+      try {
+        const response = await directMessageService.getRecentConversations();
+        if (response.data && Array.isArray(response.data)) {
+          // Store the conversations from the API
+          const apiConversations = response.data.map(conv => {
+            // Format the time properly
+            let formattedTime = null;
+            if (conv.lastMessageTime) {
+              try {
+                const date = new Date(conv.lastMessageTime);
+                if (!isNaN(date.getTime())) {
+                  formattedTime = conv.lastMessageTime; // Store the raw timestamp
+                }
+              } catch (e) {
+                console.error('Invalid date format:', conv.lastMessageTime);
+              }
+            }
+            
+            return {
+              friendId: conv.friendId,
+              friendName: conv.friendName,
+              avatar: conv.avatar,
+              online: onlineFriends.some(f => f.id === conv.friendId),
+              lastMessage: conv.lastMessage,
+              lastMessageTime: formattedTime,
+              unreadCount: unreadCounts[conv.friendId] || 0
+            };
+          });
+          
+          // Update the conversations state
+          setConversations(apiConversations);
+          
+          // Also update chatFriendDetails with the friend information
+          const newFriendDetails = {};
+          apiConversations.forEach(conv => {
+            newFriendDetails[conv.friendId] = {
+              id: conv.friendId,
+              name: conv.friendName,
+              avatar: conv.avatar
+            };
+          });
+          
+          setChatFriendDetails(prev => ({
+            ...prev,
+            ...newFriendDetails
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching conversations:', error);
+      }
+    };
+
     fetchUnreadCounts();
+    fetchConversations();
 
     // Clean up event listeners
     return () => {
@@ -122,6 +178,75 @@ export const ChatProvider = ({ children }) => {
       socketService.off('messages-read', handleMessagesRead);
     };
   }, [currentUser, activeChats]);
+
+  // Update conversations when new messages arrive or messages are read
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Only process conversations with messages
+    const friendIdsWithMessages = Object.keys(messages).filter(friendId => 
+      messages[friendId] && messages[friendId].length > 0
+    );
+
+    // Create conversations from chatFriendDetails and messages
+    const updatedConversations = friendIdsWithMessages.map(friendId => {
+      const friend = chatFriendDetails[friendId];
+      if (!friend) return null; // Skip if friend details not available
+      
+      const friendMessages = messages[friendId] || [];
+      const lastMessage = friendMessages.length > 0 ? friendMessages[friendMessages.length - 1] : null;
+      
+      return {
+        friendId: friendId,
+        friendName: friend.name,
+        avatar: friend.avatar,
+        online: onlineFriends.some(f => f.id === friendId),
+        lastMessage: lastMessage ? lastMessage.content : null,
+        lastMessageTime: lastMessage ? lastMessage.timestamp : null,
+        unreadCount: unreadCounts[friendId] || 0
+      };
+    }).filter(Boolean); // Remove null entries
+
+    // Only update if we have conversations with messages
+    if (updatedConversations.length > 0) {
+      setConversations(prev => {
+        // Create a map of existing conversations for quick lookup
+        const existingConversationsMap = new Map();
+        prev.forEach(c => existingConversationsMap.set(c.friendId, c));
+        
+        // Update existing conversations with new message data
+        updatedConversations.forEach(updatedConv => {
+          const existing = existingConversationsMap.get(updatedConv.friendId);
+          if (existing) {
+            // Only update if we have a newer message
+            if (!existing.lastMessageTime || 
+                (updatedConv.lastMessageTime && 
+                 new Date(updatedConv.lastMessageTime) > new Date(existing.lastMessageTime))) {
+              existingConversationsMap.set(updatedConv.friendId, {
+                ...existing,
+                lastMessage: updatedConv.lastMessage,
+                lastMessageTime: updatedConv.lastMessageTime,
+                unreadCount: updatedConv.unreadCount,
+                online: updatedConv.online
+              });
+            }
+          } else {
+            // Add new conversation
+            existingConversationsMap.set(updatedConv.friendId, updatedConv);
+          }
+        });
+        
+        // Convert map back to array and sort
+        return Array.from(existingConversationsMap.values())
+          .sort((a, b) => {
+            // Sort by last message time (most recent first)
+            if (!a.lastMessageTime) return 1;
+            if (!b.lastMessageTime) return -1;
+            return new Date(b.lastMessageTime) - new Date(a.lastMessageTime);
+          });
+      });
+    }
+  }, [currentUser, chatFriendDetails, messages, unreadCounts, onlineFriends]);
 
   // Open a chat with a friend
   const openChat = async (friendId, friendName, friendAvatar) => {
@@ -322,6 +447,14 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // Set active conversation and open chat
+  const setActiveConversation = (friendId) => {
+    const conversation = conversations.find(c => c.friendId === friendId);
+    if (conversation) {
+      openChat(conversation.friendId, conversation.friendName, conversation.avatar);
+    }
+  };
+
   const value = {
     onlineFriends,
     activeChats,
@@ -331,6 +464,7 @@ export const ChatProvider = ({ children }) => {
     loading,
     chatFriendDetails,
     isOnlineFriendsOpen,
+    conversations,
     openChat,
     closeChat,
     minimizeChat,
@@ -338,7 +472,8 @@ export const ChatProvider = ({ children }) => {
     loadMessages,
     sendMessage,
     markMessagesAsRead,
-    toggleOnlineFriends
+    toggleOnlineFriends,
+    setActiveConversation
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

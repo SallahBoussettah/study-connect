@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { FaUsers, FaUserGraduate, FaBook, FaChartLine, FaServer, FaExclamationTriangle, FaCog, FaSearch, FaFilter, FaDownload, FaDatabase, FaUserClock, FaChartBar, FaCalendarAlt, FaUserPlus, FaFileUpload, FaFilePdf, FaFileAlt, FaImage, FaVideo, FaLink, FaFile } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,6 +12,8 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null);
   const [debugMode, setDebugMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
+  const notificationRef = useRef(null);
   const [adminData, setAdminData] = useState({
     stats: {
       totalUsers: 0,
@@ -187,21 +189,180 @@ const AdminDashboard = () => {
     );
   };
   
+  // Handle click outside of notification dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setNotificationDropdownOpen(false);
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [notificationRef]);
+
+  // Mark notification as read
+  const markAsRead = async (notificationId) => {
+    try {
+      await api.put(`/notifications/${notificationId}/read`);
+      
+      // Update the local state to mark the notification as read
+      setAdminData(prevData => {
+        const updatedAlerts = prevData.systemAlerts.map(alert => 
+          alert.id === notificationId ? { ...alert, isRead: true } : alert
+        );
+        
+        return {
+          ...prevData,
+          systemAlerts: updatedAlerts
+        };
+      });
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    try {
+      await api.put('/notifications/read-all');
+      
+      // Update the local state to mark all notifications as read
+      setAdminData(prevData => {
+        const updatedAlerts = prevData.systemAlerts.map(alert => ({
+          ...alert,
+          isRead: true
+        }));
+        
+        return {
+          ...prevData,
+          systemAlerts: updatedAlerts
+        };
+      });
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err);
+    }
+  };
+  
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-8 flex justify-between items-center">
+        <div>
         <h1 className="text-2xl font-bold text-secondary-900">Admin Dashboard</h1>
         <p className="text-secondary-600 mt-1">
           Manage users, monitor platform activity, and review system performance.
-          {currentUser?.role === 'admin' && (
-            <button 
-              onClick={() => setDebugMode(!debugMode)}
-              className="ml-4 text-xs text-primary-600 hover:text-primary-800 underline"
-            >
-              {debugMode ? 'Disable Debug Mode' : 'Enable Debug Mode'}
-            </button>
+            {currentUser?.role === 'admin' && (
+              <button 
+                onClick={() => setDebugMode(!debugMode)}
+                className="ml-4 text-xs text-primary-600 hover:text-primary-800 underline"
+              >
+                {debugMode ? 'Disable Debug Mode' : 'Enable Debug Mode'}
+              </button>
+            )}
+          </p>
+        </div>
+        
+        {/* Notification Bell */}
+        <div className="relative" ref={notificationRef}>
+          <button 
+            className="p-2 rounded-full hover:bg-secondary-100 relative"
+            onClick={() => setNotificationDropdownOpen(!notificationDropdownOpen)}
+          >
+            <svg className="w-6 h-6 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+            </svg>
+            
+            {/* Notification Badge */}
+            {systemAlerts && systemAlerts.filter(alert => !alert.isRead).length > 0 && (
+              <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {systemAlerts.filter(alert => !alert.isRead).length}
+              </span>
+            )}
+          </button>
+          
+          {/* Notification Dropdown */}
+          {notificationDropdownOpen && (
+            <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-50 overflow-hidden">
+              <div className="px-4 py-3 border-b border-secondary-200 flex justify-between items-center">
+                <h3 className="text-sm font-medium text-secondary-900">Notifications</h3>
+                {systemAlerts && systemAlerts.filter(alert => !alert.isRead).length > 0 && (
+                  <button 
+                    onClick={markAllAsRead}
+                    className="text-xs text-primary-600 hover:text-primary-800"
+                  >
+                    Mark all as read
+                  </button>
+                )}
+              </div>
+              
+              <div className="max-h-96 overflow-y-auto">
+                {systemAlerts && systemAlerts.length > 0 ? (
+                  <div>
+                    {systemAlerts.map(alert => (
+                      <div 
+                        key={alert.id} 
+                        className={`px-4 py-3 border-b border-secondary-100 hover:bg-secondary-50 ${!alert.isRead ? 'bg-blue-50' : ''}`}
+                      >
+                        <div className="flex items-start">
+                          <div className={`flex-shrink-0 rounded-full p-1 ${
+                            alert.type === 'warning' ? 'bg-yellow-100 text-yellow-500' : 
+                            alert.type === 'error' ? 'bg-red-100 text-red-500' : 
+                            'bg-blue-100 text-blue-500'
+                          }`}>
+                            {alert.type === 'warning' && (
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                              </svg>
+                            )}
+                            {alert.type === 'error' && (
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                              </svg>
+                            )}
+                            {alert.type === 'info' && (
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                              </svg>
+                            )}
+                          </div>
+                          <div className="ml-3 flex-1">
+                            <p className="text-sm text-secondary-800">{alert.message}</p>
+                            <div className="mt-1 flex justify-between items-center">
+                              <span className="text-xs text-secondary-500">{alert.time}</span>
+                              {!alert.isRead && (
+                                <button 
+                                  onClick={() => markAsRead(alert.id)}
+                                  className="text-xs text-primary-600 hover:text-primary-800"
+                                >
+                                  Mark as read
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-4 py-6 text-center text-secondary-500">
+                    <svg className="mx-auto h-8 w-8 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                    </svg>
+                    <p className="mt-2 text-sm">No notifications</p>
+                  </div>
+                )}
+              </div>
+              
+              {systemAlerts && systemAlerts.length > 0 && (
+                <div className="px-4 py-3 bg-secondary-50 text-center">
+                  <a href="#" className="text-xs text-primary-600 hover:text-primary-800">View all notifications</a>
+                </div>
+              )}
+            </div>
           )}
-        </p>
+        </div>
       </div>
       
       {error && (
@@ -369,17 +530,17 @@ const AdminDashboard = () => {
                       <p className="text-xs text-secondary-500 mt-1">Registration activity over time</p>
                     </div>
                     <div className="flex items-center">
-                      <select 
+                <select 
                         className="border border-secondary-300 rounded-md text-secondary-700 text-xs py-1 px-2 mr-2"
-                        value={timeRange}
-                        onChange={(e) => setTimeRange(e.target.value)}
-                      >
-                        <option value="7days">Last 7 days</option>
-                        <option value="30days">Last 30 days</option>
-                        <option value="90days">Last 90 days</option>
-                        <option value="year">Last year</option>
-                      </select>
-                    </div>
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value)}
+                >
+                  <option value="7days">Last 7 days</option>
+                  <option value="30days">Last 30 days</option>
+                  <option value="90days">Last 90 days</option>
+                  <option value="year">Last year</option>
+                </select>
+                </div>
                   </div>
                   <div className="p-6">
                     {userRegistrationData.length > 0 ? (
@@ -505,7 +666,7 @@ const AdminDashboard = () => {
                             }
                             
                             return (
-                              <div className="flex h-full items-end">
+                          <div className="flex h-full items-end">
                                 {chartData.map((day, index) => {
                                   // Calculate a reasonable height for the bars
                                   const heightPercentage = day.count > 0 
@@ -513,8 +674,8 @@ const AdminDashboard = () => {
                                     : 0;
                                   
                                   return (
-                                    <div 
-                                      key={day.date} 
+                              <div 
+                                key={day.date} 
                                       className="flex-1 flex flex-col items-center group relative"
                                     >
                                       <div className="w-full px-0.5 md:px-1">
@@ -524,24 +685,24 @@ const AdminDashboard = () => {
                                               ? 'bg-gradient-to-t from-primary-600 to-primary-400' 
                                               : 'bg-secondary-200'
                                           } transition-all rounded-t`}
-                                          style={{ 
+                                    style={{ 
                                             height: day.count > 0 ? `${heightPercentage}%` : '4px',
                                             minHeight: day.count > 0 ? '10px' : '4px'
-                                          }}
-                                        ></div>
-                                      </div>
+                                    }}
+                                  ></div>
+                                </div>
                                       <div className="text-xs text-secondary-500 mt-2 truncate w-full text-center">
                                         {day.displayDate}
-                                      </div>
+                                  </div>
                                       <div className="absolute bottom-full mb-2 bg-secondary-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                                         {day.count} user{day.count !== 1 ? 's' : ''}
                                         {day.originalData && (
                                           <span className="block text-xs text-secondary-300">
                                             {day.originalData.length} day{day.originalData.length !== 1 ? 's' : ''}
                                           </span>
-                                        )}
-                                      </div>
-                                    </div>
+                                )}
+                              </div>
+                          </div>
                                   );
                                 })}
                               </div>
@@ -678,7 +839,7 @@ const AdminDashboard = () => {
                 <div className="bg-white rounded-lg shadow">
                   <div className="px-6 py-4 border-b border-secondary-200 flex justify-between items-center">
                     <div>
-                      <h3 className="text-md font-medium text-secondary-900">Recent Users</h3>
+                    <h3 className="text-md font-medium text-secondary-900">Recent Users</h3>
                       <p className="text-xs text-secondary-500 mt-1">Latest registered users</p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -743,36 +904,36 @@ const AdminDashboard = () => {
                             })
                             .map(user => (
                               <tr key={user.id} className="hover:bg-secondary-50">
-                                <td className="px-6 py-4 whitespace-nowrap">
+                            <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="flex items-center">
                                     <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 text-white flex items-center justify-center">
                                       {user.name ? user.name.charAt(0).toUpperCase() : '?'}
                                     </div>
                                     <div className="ml-3 text-sm font-medium text-secondary-900">{user.name}</div>
                                   </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm text-secondary-500">{user.email}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                    user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
-                                  }`}>
-                                    {user.role}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
-                                  {new Date(user.joinDate).toLocaleDateString()}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="flex items-center">
-                                    <span className="text-sm text-secondary-500 mr-2">{user.storageUsed}</span>
-                                    <div className="w-24">
-                                      {renderProgressBar(user.storagePercentage, 'small')}
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-secondary-500">{user.email}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
+                              }`}>
+                                {user.role}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                              {new Date(user.joinDate).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <span className="text-sm text-secondary-500 mr-2">{user.storageUsed}</span>
+                                <div className="w-24">
+                                  {renderProgressBar(user.storagePercentage, 'small')}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
                             ))
                         ) : (
                           <tr>
@@ -1038,55 +1199,55 @@ const AdminDashboard = () => {
                               );
                             })
                             .map(user => (
-                              <tr key={user.id} className="hover:bg-secondary-50">
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="flex items-center">
-                                    <div className="flex-shrink-0 h-10 w-10 rounded-full bg-secondary-200 flex items-center justify-center">
-                                      {user.name.charAt(0)}
-                                    </div>
-                                    <div className="ml-4">
-                                      <div className="text-sm font-medium text-secondary-900">{user.name}</div>
-                                      <div className="text-sm text-secondary-500">{user.email}</div>
-                                    </div>
+                            <tr key={user.id} className="hover:bg-secondary-50">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-secondary-200 flex items-center justify-center">
+                                    {user.name.charAt(0)}
                                   </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                    user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
-                                  }`}>
-                                    {user.role}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
-                                  {new Date(user.joinDate).toLocaleDateString()}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm text-secondary-900">{user.resourceCount}</div>
-                                  <div className="text-xs text-secondary-500">
-                                    {Object.entries(user.resourceTypes || {}).map(([type, count], index, arr) => (
-                                      <span key={type}>
-                                        {count} {type}{index < arr.length - 1 ? ', ' : ''}
-                                      </span>
-                                    ))}
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-secondary-900">{user.name}</div>
+                                    <div className="text-sm text-secondary-500">{user.email}</div>
                                   </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">
-                                  {user.storageUsed}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="flex items-center">
-                                    <div className="w-full max-w-xs">
-                                      {renderProgressBar(user.storagePercentage)}
-                                    </div>
-                                    <span className="ml-2 text-sm text-secondary-500">{user.storagePercentage}%</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                  user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
+                                }`}>
+                                  {user.role}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                                {new Date(user.joinDate).toLocaleDateString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-secondary-900">{user.resourceCount}</div>
+                                <div className="text-xs text-secondary-500">
+                                  {Object.entries(user.resourceTypes || {}).map(([type, count], index, arr) => (
+                                    <span key={type}>
+                                      {count} {type}{index < arr.length - 1 ? ', ' : ''}
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">
+                                {user.storageUsed}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="w-full max-w-xs">
+                                    {renderProgressBar(user.storagePercentage)}
                                   </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                  <button className="text-primary-600 hover:text-primary-900 mr-3">View</button>
-                                  <button className="text-red-600 hover:text-red-900">Reset</button>
-                                </td>
-                              </tr>
-                            ))}
+                                  <span className="ml-2 text-sm text-secondary-500">{user.storagePercentage}%</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button className="text-primary-600 hover:text-primary-900 mr-3">View</button>
+                                <button className="text-red-600 hover:text-red-900">Reset</button>
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>

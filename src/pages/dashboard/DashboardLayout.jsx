@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   FaHome, FaUsers, FaBook, FaUser, FaCog, FaSignOutAlt, 
-  FaChartBar, FaBars, FaTimes, FaBell, FaClock, FaGraduationCap,
+  FaChartBar, FaBars, FaTimes, FaClock, FaGraduationCap,
   FaUserFriends
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
+import NotificationDropdown from '../../components/common/NotificationDropdown';
+import ConversationsDropdown from '../../components/common/ConversationsDropdown';
 
 const DashboardLayout = () => {
   const { currentUser, logout } = useAuth();
@@ -134,11 +136,13 @@ const DashboardLayout = () => {
               <FaBars />
             </button>
             
+            {/* Empty div to push content to right */}
+            <div className="flex-1"></div>
+            
+            {/* Right-aligned items */}
             <div className="flex items-center space-x-4">
-              <button className="p-2 rounded-full text-secondary-500 hover:bg-secondary-100 relative">
-                <FaBell />
-                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
-              </button>
+              <NotificationDropdown />
+              <ConversationsDropdown />
               
               <div className="hidden md:flex items-center space-x-2">
                 <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold text-xs">

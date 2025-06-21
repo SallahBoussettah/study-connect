@@ -3,7 +3,8 @@ const {
   getDirectMessages,
   sendDirectMessage,
   getUnreadMessageCounts,
-  markMessagesAsRead
+  markMessagesAsRead,
+  getRecentConversations
 } = require('../controllers/directMessageController');
 const { protect } = require('../middleware/auth');
 
@@ -14,6 +15,9 @@ router.use(protect);
 
 // Get unread message counts
 router.get('/unread', getUnreadMessageCounts);
+
+// Get all conversations
+router.get('/conversations', getRecentConversations);
 
 // Get messages with a specific friend
 router.get('/:friendId', getDirectMessages);
