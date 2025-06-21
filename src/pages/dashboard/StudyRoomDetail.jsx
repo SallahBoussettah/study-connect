@@ -555,11 +555,10 @@ const StudyRoomDetail = () => {
 
   // Determine if a resource should have a download option
   const isResourceDownloadable = (resource) => {
-    // If it's a URL/link resource, it should not be downloadable
-    if (resource.url) return false;
-    
     // Resources with an explicit downloadUrl are downloadable
-    if (resource.downloadUrl) return true;
+    if (resource.downloadUrl) {
+      return true;
+    }
     
     // Resources with file-based types are typically downloadable
     const downloadableTypes = ['Document', 'PDF', 'Image', 'Spreadsheet', 'Presentation', 'Other'];
@@ -980,37 +979,7 @@ const StudyRoomDetail = () => {
                                 >
                                   <FaDownload />
                                 </button>
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
-                                  <button
-                                    onClick={() => handleDownload(resource.id)}
-                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                  >
-                                    Download (Auto)
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      const token = localStorage.getItem('authToken');
-                                      window.open(`${api.defaults.baseURL}/resources/${resource.id}/download?token=${token}`, '_blank');
-                                    }}
-                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                  >
-                                    Download (Direct)
-                                  </button>
-                                </div>
                               </div>
-                            )}
-                            
-                            {/* External link resources */}
-                            {resource.url && (
-                              <a
-                                href={resource.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 text-secondary-600 hover:text-primary-600 transition-colors"
-                                title="Open link"
-                              >
-                                <FaLink />
-                              </a>
                             )}
                             
                             {/* Check if current user can edit this resource */}

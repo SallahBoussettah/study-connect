@@ -10,7 +10,6 @@ const ChatContainer = () => {
   
   // Store friend details when a chat is opened
   useEffect(() => {
-    console.log("ChatContainer useEffect - chatFriendDetails:", chatFriendDetails);
     
     // Update friendsMap with any friend details from context
     if (chatFriendDetails && Object.keys(chatFriendDetails).length > 0) {

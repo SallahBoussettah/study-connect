@@ -20,7 +20,20 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT
     },
     type: {
-      type: DataTypes.ENUM('PDF', 'Document', 'Link', 'Image', 'Video', 'Other'),
+      type: DataTypes.ENUM(
+        'PDF', 
+        'Document', 
+        'Link', 
+        'Image', 
+        'Video', 
+        'Spreadsheet', 
+        'Presentation', 
+        'Archive', 
+        'Text', 
+        'Code', 
+        'Audio', 
+        'Other'
+      ),
       defaultValue: 'Other'
     },
     url: {
@@ -31,6 +44,9 @@ module.exports = (sequelize, DataTypes) => {
     },
     fileSize: {
       type: DataTypes.INTEGER
+    },
+    originalFilename: {
+      type: DataTypes.STRING(255)
     },
     uploadedBy: {
       type: DataTypes.UUID,

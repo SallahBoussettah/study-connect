@@ -1,31 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FaUpload, FaTimes, FaSpinner, FaLink } from 'react-icons/fa';
+import { FaUpload, FaTimes, FaSpinner } from 'react-icons/fa';
 
 const ResourceForm = ({ resource, onSubmit, onCancel, loading }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     type: 'Document',
-    url: '',
     file: null,
     fileRequired: !resource
   });
-  const [isUrlResource, setIsUrlResource] = useState(false);
   const [filePreview, setFilePreview] = useState(null);
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (resource) {
+      console.log('Editing resource:', resource);
+      
       setFormData({
         title: resource.title || '',
         description: resource.description || '',
         type: resource.type || 'Document',
-        url: resource.url || '',
         file: null,
         fileRequired: false
       });
-      setIsUrlResource(!!resource.url && !resource.filePath);
     }
   }, [resource]);
 
@@ -83,20 +81,6 @@ const ResourceForm = ({ resource, onSubmit, onCancel, loading }) => {
     return 'Other';
   };
 
-  const handleResourceTypeToggle = () => {
-    setIsUrlResource(prev => !prev);
-    setFormData(prev => ({
-      ...prev,
-      file: null,
-      url: '',
-      fileRequired: !isUrlResource && !resource
-    }));
-    setFilePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
   const removeSelectedFile = () => {
     setFormData(prev => ({
       ...prev,
@@ -116,13 +100,7 @@ const ResourceForm = ({ resource, onSubmit, onCancel, loading }) => {
       newErrors.title = 'Title is required';
     }
     
-    if (isUrlResource && !formData.url.trim()) {
-      newErrors.url = 'URL is required for link resources';
-    } else if (isUrlResource && !isValidUrl(formData.url)) {
-      newErrors.url = 'Please enter a valid URL';
-    }
-    
-    if (!isUrlResource && formData.fileRequired && !formData.file) {
+    if (formData.fileRequired && !formData.file) {
       newErrors.file = 'Please select a file to upload';
     }
     
@@ -130,23 +108,11 @@ const ResourceForm = ({ resource, onSubmit, onCancel, loading }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const isValidUrl = (string) => {
-    try {
-      new URL(string);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     
     if (validateForm()) {
-      onSubmit({
-        ...formData,
-        isUrlResource
-      });
+      onSubmit(formData);
     }
   };
 
@@ -189,44 +155,6 @@ const ResourceForm = ({ resource, onSubmit, onCancel, loading }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <div className="flex justify-between items-center mb-2">
-          <label htmlFor="resourceType" className="block text-sm font-medium text-secondary-700">
-            Resource Type
-          </label>
-        </div>
-        <div className="flex space-x-3">
-          <button
-            type="button"
-            onClick={() => !isUrlResource || handleResourceTypeToggle()}
-            className={`flex-1 py-2 px-4 rounded-md border ${
-              !isUrlResource
-                ? 'bg-primary-50 border-primary-500 text-primary-700'
-                : 'bg-white border-secondary-300 text-secondary-700'
-            } focus:outline-none transition-colors`}
-          >
-            <div className="flex items-center justify-center">
-              <FaUpload className="mr-2" />
-              <span>Upload File</span>
-            </div>
-          </button>
-          <button
-            type="button"
-            onClick={() => isUrlResource || handleResourceTypeToggle()}
-            className={`flex-1 py-2 px-4 rounded-md border ${
-              isUrlResource
-                ? 'bg-primary-50 border-primary-500 text-primary-700'
-                : 'bg-white border-secondary-300 text-secondary-700'
-            } focus:outline-none transition-colors`}
-          >
-            <div className="flex items-center justify-center">
-              <FaLink className="mr-2" />
-              <span>External Link</span>
-            </div>
-          </button>
-        </div>
-      </div>
-
-      <div>
         <label htmlFor="title" className="block text-sm font-medium text-secondary-700">
           Title <span className="text-red-500">*</span>
         </label>
@@ -258,77 +186,57 @@ const ResourceForm = ({ resource, onSubmit, onCancel, loading }) => {
         ></textarea>
       </div>
 
-      {isUrlResource ? (
-        <div>
-          <label htmlFor="url" className="block text-sm font-medium text-secondary-700">
-            URL <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="url"
-            id="url"
-            name="url"
-            value={formData.url}
-            onChange={handleInputChange}
-            className={`mt-1 block w-full rounded-md border ${
-              errors.url ? 'border-red-300' : 'border-secondary-300'
-            } shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-            placeholder="https://example.com"
-          />
-          {errors.url && <p className="mt-1 text-sm text-red-600">{errors.url}</p>}
-        </div>
-      ) : (
-        <div>
-          <label htmlFor="file" className="block text-sm font-medium text-secondary-700">
-            File {formData.fileRequired && <span className="text-red-500">*</span>}
-          </label>
-          <div className="mt-1">
-            <div
-              className={`flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md ${
-                errors.file ? 'border-red-300 bg-red-50' : 'border-secondary-300 hover:border-primary-500'
-              }`}
-            >
-              <div className="space-y-1 text-center">
-                <svg
-                  className="mx-auto h-12 w-12 text-secondary-400"
-                  stroke="currentColor"
-                  fill="none"
-                  viewBox="0 0 48 48"
+      <div>
+        <label htmlFor="file" className="block text-sm font-medium text-secondary-700">
+          File {formData.fileRequired && <span className="text-red-500">*</span>}
+        </label>
+        <div className="mt-1">
+          <div
+            className={`flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md ${
+              errors.file ? 'border-red-300 bg-red-50' : 'border-secondary-300 hover:border-primary-500'
+            }`}
+          >
+            <div className="space-y-1 text-center">
+              <svg
+                className="mx-auto h-12 w-12 text-secondary-400"
+                stroke="currentColor"
+                fill="none"
+                viewBox="0 0 48 48"
+              >
+                <path
+                  d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <div className="flex text-sm text-secondary-600">
+                <label
+                  htmlFor="file-upload"
+                  className="relative cursor-pointer rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none"
                 >
-                  <path
-                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                  <span>Upload a file</span>
+                  <input
+                    id="file-upload"
+                    name="file-upload"
+                    type="file"
+                    className="sr-only"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,application/zip"
                   />
-                </svg>
-                <div className="flex text-sm text-secondary-600">
-                  <label
-                    htmlFor="file-upload"
-                    className="relative cursor-pointer rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none"
-                  >
-                    <span>Upload a file</span>
-                    <input
-                      id="file-upload"
-                      name="file-upload"
-                      type="file"
-                      className="sr-only"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,application/zip"
-                    />
-                  </label>
-                  <p className="pl-1">or drag and drop</p>
-                </div>
-                <p className="text-xs text-secondary-500">
-                  PDF, Word, Excel, Images, Text up to 10MB
-                </p>
+                </label>
+                <p className="pl-1">or drag and drop</p>
               </div>
+              <p className="text-xs text-secondary-500">
+                PDF, Word, Excel, Images, Text up to 10MB
+              </p>
             </div>
           </div>
-          {renderFilePreview()}
-          {errors.file && <p className="mt-1 text-sm text-red-600">{errors.file}</p>}
         </div>
-      )}
+        {renderFilePreview()}
+        {errors.file && <p className="mt-1 text-sm text-red-600">{errors.file}</p>}
+      </div>
 
       <div>
         <label htmlFor="type" className="block text-sm font-medium text-secondary-700">

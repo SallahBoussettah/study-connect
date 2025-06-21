@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaUsers, FaUserGraduate, FaBook, FaChartLine, FaServer, FaExclamationTriangle, FaCog, FaSearch, FaFilter, FaDownload, FaDatabase, FaUserClock, FaChartBar, FaCalendarAlt, FaUserPlus, FaFileUpload, FaFilePdf, FaFileAlt, FaImage, FaVideo, FaLink, FaFile } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { format, parseISO, subDays } from 'date-fns';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 const AdminDashboard = () => {
   const { currentUser, api } = useAuth();
@@ -12,8 +13,6 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null);
   const [debugMode, setDebugMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
-  const notificationRef = useRef(null);
   const [adminData, setAdminData] = useState({
     stats: {
       totalUsers: 0,
@@ -49,6 +48,12 @@ const AdminDashboard = () => {
         const response = await api.get('/dashboard/admin', { params: { timeRange } });
         if (response.data.success) {
           setAdminData(response.data.data);
+          
+          // Add system alerts to the notification system
+          if (response.data.data.systemAlerts && response.data.data.systemAlerts.length > 0) {
+            // This would be handled by the backend notification system
+            console.log('System alerts loaded:', response.data.data.systemAlerts.length);
+          }
         }
       } catch (err) {
         console.error('Error fetching admin dashboard data:', err);
@@ -189,63 +194,6 @@ const AdminDashboard = () => {
     );
   };
   
-  // Handle click outside of notification dropdown
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-        setNotificationDropdownOpen(false);
-      }
-    }
-    
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [notificationRef]);
-
-  // Mark notification as read
-  const markAsRead = async (notificationId) => {
-    try {
-      await api.put(`/notifications/${notificationId}/read`);
-      
-      // Update the local state to mark the notification as read
-      setAdminData(prevData => {
-        const updatedAlerts = prevData.systemAlerts.map(alert => 
-          alert.id === notificationId ? { ...alert, isRead: true } : alert
-        );
-        
-        return {
-          ...prevData,
-          systemAlerts: updatedAlerts
-        };
-      });
-    } catch (err) {
-      console.error('Error marking notification as read:', err);
-    }
-  };
-
-  // Mark all notifications as read
-  const markAllAsRead = async () => {
-    try {
-      await api.put('/notifications/read-all');
-      
-      // Update the local state to mark all notifications as read
-      setAdminData(prevData => {
-        const updatedAlerts = prevData.systemAlerts.map(alert => ({
-          ...alert,
-          isRead: true
-        }));
-        
-        return {
-          ...prevData,
-          systemAlerts: updatedAlerts
-        };
-      });
-    } catch (err) {
-      console.error('Error marking all notifications as read:', err);
-    }
-  };
-  
   return (
     <div>
       <div className="mb-8 flex justify-between items-center">
@@ -262,106 +210,6 @@ const AdminDashboard = () => {
               </button>
             )}
           </p>
-        </div>
-        
-        {/* Notification Bell */}
-        <div className="relative" ref={notificationRef}>
-          <button 
-            className="p-2 rounded-full hover:bg-secondary-100 relative"
-            onClick={() => setNotificationDropdownOpen(!notificationDropdownOpen)}
-          >
-            <svg className="w-6 h-6 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-            </svg>
-            
-            {/* Notification Badge */}
-            {systemAlerts && systemAlerts.filter(alert => !alert.isRead).length > 0 && (
-              <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {systemAlerts.filter(alert => !alert.isRead).length}
-              </span>
-            )}
-          </button>
-          
-          {/* Notification Dropdown */}
-          {notificationDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-50 overflow-hidden">
-              <div className="px-4 py-3 border-b border-secondary-200 flex justify-between items-center">
-                <h3 className="text-sm font-medium text-secondary-900">Notifications</h3>
-                {systemAlerts && systemAlerts.filter(alert => !alert.isRead).length > 0 && (
-                  <button 
-                    onClick={markAllAsRead}
-                    className="text-xs text-primary-600 hover:text-primary-800"
-                  >
-                    Mark all as read
-                  </button>
-                )}
-              </div>
-              
-              <div className="max-h-96 overflow-y-auto">
-                {systemAlerts && systemAlerts.length > 0 ? (
-                  <div>
-                    {systemAlerts.map(alert => (
-                      <div 
-                        key={alert.id} 
-                        className={`px-4 py-3 border-b border-secondary-100 hover:bg-secondary-50 ${!alert.isRead ? 'bg-blue-50' : ''}`}
-                      >
-                        <div className="flex items-start">
-                          <div className={`flex-shrink-0 rounded-full p-1 ${
-                            alert.type === 'warning' ? 'bg-yellow-100 text-yellow-500' : 
-                            alert.type === 'error' ? 'bg-red-100 text-red-500' : 
-                            'bg-blue-100 text-blue-500'
-                          }`}>
-                            {alert.type === 'warning' && (
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                              </svg>
-                            )}
-                            {alert.type === 'error' && (
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                              </svg>
-                            )}
-                            {alert.type === 'info' && (
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                              </svg>
-                            )}
-                          </div>
-                          <div className="ml-3 flex-1">
-                            <p className="text-sm text-secondary-800">{alert.message}</p>
-                            <div className="mt-1 flex justify-between items-center">
-                              <span className="text-xs text-secondary-500">{alert.time}</span>
-                              {!alert.isRead && (
-                                <button 
-                                  onClick={() => markAsRead(alert.id)}
-                                  className="text-xs text-primary-600 hover:text-primary-800"
-                                >
-                                  Mark as read
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="px-4 py-6 text-center text-secondary-500">
-                    <svg className="mx-auto h-8 w-8 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                    </svg>
-                    <p className="mt-2 text-sm">No notifications</p>
-                  </div>
-                )}
-              </div>
-              
-              {systemAlerts && systemAlerts.length > 0 && (
-                <div className="px-4 py-3 bg-secondary-50 text-center">
-                  <a href="#" className="text-xs text-primary-600 hover:text-primary-800">View all notifications</a>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
       

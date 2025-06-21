@@ -71,7 +71,14 @@ exports.createResource = async (req, res, next) => {
   try {
     const roomId = req.params.roomId;
     const userId = req.user.id;
-    const { title, description, type, url, subjectId } = req.body;
+    const { title, description, type, subjectId } = req.body;
+
+    console.log('Creating resource with data:', {
+      title,
+      description,
+      type,
+      subjectId
+    });
 
     // Validate that the user is a member of the room
     const isMember = await isRoomMember(userId, roomId);
@@ -94,11 +101,13 @@ exports.createResource = async (req, res, next) => {
     let resourceType = type || 'Other';
     let fileSize = null;
     let filePath = null;
+    let originalFilename = null;
 
     // If a file was uploaded
     if (req.file) {
       filePath = req.file.path;
       fileSize = req.file.size;
+      originalFilename = req.file.originalname;
       
       // Determine type from file mimetype
       if (req.file.mimetype.startsWith('image/')) {
@@ -108,12 +117,26 @@ exports.createResource = async (req, res, next) => {
       } else if (req.file.mimetype.includes('word')) {
         resourceType = 'Document';
       } else if (req.file.mimetype.includes('spreadsheet') || req.file.mimetype.includes('excel')) {
-        resourceType = 'Document';
+        resourceType = 'Spreadsheet';
       } else if (req.file.mimetype.includes('presentation') || req.file.mimetype.includes('powerpoint')) {
-        resourceType = 'Document';
+        resourceType = 'Presentation';
       } else if (req.file.mimetype.includes('compressed') || req.file.mimetype.includes('zip')) {
-        resourceType = 'Other';
+        resourceType = 'Archive';
+      } else if (req.file.mimetype.includes('text/plain')) {
+        resourceType = 'Text';
+      } else if (req.file.mimetype.includes('video')) {
+        resourceType = 'Video';
+      } else if (req.file.mimetype.includes('audio')) {
+        resourceType = 'Audio';
+      } else if (req.file.mimetype.includes('code') || 
+                req.file.originalname.match(/\.(js|html|css|py|java|php|rb|c|cpp|h|cs|go)$/)) {
+        resourceType = 'Code';
       }
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'File upload is required'
+      });
     }
 
     // Create the resource
@@ -121,12 +144,21 @@ exports.createResource = async (req, res, next) => {
       title,
       description,
       type: resourceType,
-      url: url || null,
+      url: null,
       roomId,
       uploadedBy: userId,
       subjectId: subjectId || null,
       filePath,
-      fileSize
+      fileSize,
+      originalFilename
+    });
+
+    // Log the created resource for debugging
+    console.log('Created resource:', {
+      id: resource.id,
+      title: resource.title,
+      type: resource.type,
+      filePath: resource.filePath
     });
 
     // Get the resource with user data included
@@ -244,7 +276,15 @@ exports.updateResource = async (req, res, next) => {
   try {
     const resourceId = req.params.id;
     const userId = req.user.id;
-    const { title, description, type, url, subjectId } = req.body;
+    const { title, description, type, subjectId } = req.body;
+
+    console.log('Updating resource with data:', {
+      resourceId,
+      title,
+      description,
+      type,
+      subjectId
+    });
 
     const resource = await Resource.findByPk(resourceId);
 
@@ -268,7 +308,6 @@ exports.updateResource = async (req, res, next) => {
       title: title || resource.title,
       description: description || resource.description,
       type: type || resource.type,
-      url: url !== undefined ? url : resource.url,
       subjectId: subjectId || resource.subjectId
     };
 
@@ -284,6 +323,7 @@ exports.updateResource = async (req, res, next) => {
       // Update with new file info
       updateData.filePath = req.file.path;
       updateData.fileSize = req.file.size;
+      updateData.originalFilename = req.file.originalname;
       
       // Determine type from file mimetype
       if (req.file.mimetype.startsWith('image/')) {
@@ -293,9 +333,20 @@ exports.updateResource = async (req, res, next) => {
       } else if (req.file.mimetype.includes('word')) {
         updateData.type = 'Document';
       } else if (req.file.mimetype.includes('spreadsheet') || req.file.mimetype.includes('excel')) {
-        updateData.type = 'Document';
+        updateData.type = 'Spreadsheet';
       } else if (req.file.mimetype.includes('presentation') || req.file.mimetype.includes('powerpoint')) {
-        updateData.type = 'Document';
+        updateData.type = 'Presentation';
+      } else if (req.file.mimetype.includes('compressed') || req.file.mimetype.includes('zip')) {
+        updateData.type = 'Archive';
+      } else if (req.file.mimetype.includes('text/plain')) {
+        updateData.type = 'Text';
+      } else if (req.file.mimetype.includes('video')) {
+        updateData.type = 'Video';
+      } else if (req.file.mimetype.includes('audio')) {
+        updateData.type = 'Audio';
+      } else if (req.file.mimetype.includes('code') || 
+                req.file.originalname.match(/\.(js|html|css|py|java|php|rb|c|cpp|h|cs|go)$/)) {
+        updateData.type = 'Code';
       }
     }
 
@@ -456,8 +507,15 @@ exports.downloadResource = async (req, res, next) => {
       });
     }
 
-    const filename = path.basename(resource.filePath);
-    res.download(resource.filePath, filename);
+    // Use the original filename if available, otherwise use the basename of the file path
+    const downloadFilename = resource.originalFilename || path.basename(resource.filePath);
+    
+    // Set Content-Disposition header with the original filename
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
+    
+    // Stream the file to the client
+    const fileStream = fs.createReadStream(resource.filePath);
+    fileStream.pipe(res);
   } catch (error) {
     console.error('Error downloading resource:', error);
     next(error);
