@@ -1,11 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaBell, FaCheck, FaCheckDouble, FaExclamationCircle, FaInfoCircle } from 'react-icons/fa';
+import { 
+  FaBell, 
+  FaCheck, 
+  FaCheckDouble, 
+  FaExclamationCircle, 
+  FaInfoCircle, 
+  FaUserFriends, 
+  FaUserPlus
+} from 'react-icons/fa';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { useNavigation } from '../../hooks/useNavigation';
 
 const NotificationDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const navigate = useNavigation();
   const { 
     notifications, 
     unreadCount, 
@@ -30,11 +40,26 @@ const NotificationDropdown = () => {
   }, []);
 
   // Handle notification click
-  const handleNotificationClick = async (notification) => {
+  const handleNotificationClick = async (notification, e) => {
+    e.preventDefault();
+    
     if (!notification.isRead) {
       await markAsRead(notification.id);
     }
+    
     setIsOpen(false);
+    
+    // Navigate to the appropriate page based on notification type and relatedType
+    if (notification.relatedType === 'friendship') {
+      if (notification.message.includes('sent you a friend request')) {
+        navigate('/dashboard/friends/requests');
+      } else {
+        navigate('/dashboard/friends');
+      }
+    } else if (notification.link) {
+      // For other notifications, use the link provided
+      navigate(notification.link);
+    }
   };
 
   // Handle mark all as read
@@ -44,9 +69,17 @@ const NotificationDropdown = () => {
     await markAllAsRead();
   };
 
-  // Get icon based on notification type
-  const getNotificationIcon = (type) => {
-    switch (type) {
+  // Get icon based on notification type and relatedType
+  const getNotificationIcon = (notification) => {
+    // First check for friendship-related notifications
+    if (notification.relatedType === 'friendship') {
+      return notification.type === 'success' 
+        ? <FaUserFriends className="text-green-500" /> 
+        : <FaUserPlus className="text-blue-500" />;
+    }
+    
+    // Then fall back to type-based icons
+    switch (notification.type) {
       case 'info':
         return <FaInfoCircle className="text-blue-500" />;
       case 'success':
@@ -59,6 +92,49 @@ const NotificationDropdown = () => {
         return <FaInfoCircle className="text-blue-500" />;
     }
   };
+  
+  // Format the notification time display
+  const formatNotificationTime = (notification) => {
+    if (!notification.time && !notification.timeAgo) {
+      // If neither time nor timeAgo is available, format from createdAt
+      if (notification.createdAt) {
+        const date = new Date(notification.createdAt);
+        const now = new Date();
+        const diffMs = now - date;
+        
+        // Less than a minute
+        if (diffMs < 60 * 1000) {
+          return 'Just now';
+        }
+        
+        // Less than an hour
+        if (diffMs < 60 * 60 * 1000) {
+          const minutes = Math.floor(diffMs / (60 * 1000));
+          return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+        }
+        
+        // Less than a day
+        if (diffMs < 24 * 60 * 60 * 1000) {
+          const hours = Math.floor(diffMs / (60 * 60 * 1000));
+          return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+        }
+        
+        // Less than a week
+        if (diffMs < 7 * 24 * 60 * 60 * 1000) {
+          const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+          return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+        }
+        
+        // Format as date
+        return date.toLocaleDateString();
+      }
+      
+      return '';
+    }
+    
+    // Use timeAgo if available, otherwise use time
+    return notification.timeAgo || notification.time;
+  };
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -68,7 +144,7 @@ const NotificationDropdown = () => {
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Notifications"
       >
-        <FaBell />
+        <FaBell className="text-xl" />
         {unreadCount > 0 && (
           <span className="absolute top-0 right-0 flex items-center justify-center h-5 w-5 text-xs font-bold text-white bg-red-500 rounded-full">
             {unreadCount > 9 ? '9+' : unreadCount}
@@ -117,28 +193,31 @@ const NotificationDropdown = () => {
           {!loading && !error && notifications.length > 0 && (
             <div>
               {notifications.map((notification) => (
-                <Link
+                <a
                   key={notification.id}
-                  to={notification.link || '#'}
+                  href="#"
                   className={`block px-4 py-3 border-b border-secondary-100 hover:bg-secondary-50 transition-colors duration-150 ${
                     !notification.isRead ? 'bg-primary-50' : ''
                   }`}
-                  onClick={() => handleNotificationClick(notification)}
+                  onClick={(e) => handleNotificationClick(notification, e)}
                 >
                   <div className="flex items-start">
                     <div className="flex-shrink-0 mr-3 mt-1">
-                      {getNotificationIcon(notification.type)}
+                      {getNotificationIcon(notification)}
                     </div>
                     <div className="flex-1">
                       <p className={`text-sm ${!notification.isRead ? 'font-semibold' : ''}`}>
                         {notification.message}
                       </p>
                       <p className="text-xs text-secondary-500 mt-1">
-                        {notification.timeAgo}
+                        {formatNotificationTime(notification)}
                       </p>
                     </div>
+                    {!notification.isRead && (
+                      <div className="ml-2 h-2 w-2 bg-primary-500 rounded-full"></div>
+                    )}
                   </div>
-                </Link>
+                </a>
               ))}
             </div>
           )}

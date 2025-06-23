@@ -24,6 +24,9 @@ function setupSocket(server) {
   
   console.log('Socket.IO server initialized');
   
+  // Store io instance globally for emitNotification function
+  global.io = io;
+  
   // Authentication middleware
   io.use(async (socket, next) => {
     try {
@@ -146,9 +149,41 @@ function setupSocket(server) {
       
       socket.emit('online-friends', onlineFriends);
       
+      // Ping for presence updates - send presence updates every 30 seconds
+      const presenceInterval = setInterval(() => {
+        if (!socket.connected) {
+          clearInterval(presenceInterval);
+          return;
+        }
+        
+        // Update last active time
+        const userInfo = onlineUsersCache.get(userId);
+        if (userInfo) {
+          userInfo.lastActive = new Date();
+          onlineUsersCache.set(userId, userInfo);
+        }
+        
+        // Refresh online friends list
+        const currentOnlineFriends = friendIds
+          .filter(id => onlineUsersCache.has(id))
+          .map(id => {
+            const friend = onlineUsersCache.get(id);
+            return {
+              id: friend.id,
+              name: friend.name,
+              avatar: friend.avatar
+            };
+          });
+        
+        socket.emit('online-friends', currentOnlineFriends);
+      }, 30000); // Every 30 seconds
+      
       // Handle disconnect
       socket.on('disconnect', () => {
         console.log(`User disconnected: ${userId}`);
+        
+        // Clear presence interval
+        clearInterval(presenceInterval);
         
         // Remove from online users
         onlineUsersCache.delete(userId);
@@ -627,4 +662,47 @@ function setupSocket(server) {
   return io;
 }
 
-module.exports = { setupSocket }; 
+/**
+ * Emit a notification to a specific user
+ * @param {string} userId - User ID to send notification to
+ * @param {object} notification - Notification object
+ */
+async function emitNotification(userId, notification) {
+  try {
+    // Check if io is available
+    if (!global.io) {
+      console.error('Socket.io instance not available');
+      return;
+    }
+    
+    // Find user's socket connection if they're online
+    const userInfo = onlineUsersCache.get(userId);
+    
+    if (userInfo && userInfo.socketId) {
+      // Format notification with time info
+      const formattedNotification = {
+        ...notification,
+        time: 'Just now',
+        timeAgo: 'Just now'
+      };
+      
+      try {
+        // Emit notification to the user
+        global.io.to(userInfo.socketId).emit('notification', formattedNotification);
+        console.log(`Notification emitted to user ${userId}`);
+      } catch (socketError) {
+        console.error(`Error emitting notification to socket: ${socketError.message}`);
+      }
+    } else {
+      console.log(`User ${userId} is offline, notification saved to database only`);
+    }
+  } catch (error) {
+    console.error('Error in emitNotification function:', error);
+  }
+}
+
+// Export both functions
+module.exports = {
+  setupSocket,
+  emitNotification
+}; 

@@ -1,5 +1,6 @@
-const { User, Friendship } = require('../models');
+const { User, Friendship, Notification } = require('../models');
 const { Op } = require('sequelize');
+const { emitNotification } = require('../socket');
 
 /**
  * @desc    Get all friends of the current user
@@ -213,6 +214,11 @@ exports.sendFriendRequest = async (req, res, next) => {
       });
     }
     
+    // Get sender info for notification
+    const sender = await User.findByPk(senderId, {
+      attributes: ['id', 'firstName', 'lastName', 'avatar']
+    });
+    
     // Create friend request
     const friendship = await Friendship.create({
       senderId,
@@ -222,17 +228,32 @@ exports.sendFriendRequest = async (req, res, next) => {
     });
     
     // Create notification for the receiver
-    if (req.models && req.models.Notification) {
-      await req.models.Notification.create({
-        userId: receiverId,
-        message: `${req.user.firstName} ${req.user.lastName} sent you a friend request`,
-        type: 'info',
-        link: '/dashboard/friends/requests',
-        isRead: false,
-        relatedId: friendship.id,
-        relatedType: 'friendship'
-      });
-    }
+    const notification = await Notification.create({
+      userId: receiverId,
+      message: `${sender.firstName} ${sender.lastName} sent you a friend request`,
+      type: 'info',
+      link: '/dashboard/friends/requests',
+      isRead: false,
+      relatedId: friendship.id,
+      relatedType: 'friendship'
+    });
+    
+    // Emit real-time notification
+    await emitNotification(receiverId, {
+      id: notification.id,
+      type: notification.type,
+      message: notification.message,
+      isRead: notification.isRead,
+      link: notification.link,
+      relatedId: notification.relatedId,
+      relatedType: notification.relatedType,
+      createdAt: notification.createdAt,
+      sender: {
+        id: sender.id,
+        name: `${sender.firstName} ${sender.lastName}`,
+        avatar: sender.avatar
+      }
+    });
     
     res.status(201).json({
       success: true,
@@ -265,7 +286,7 @@ exports.acceptFriendRequest = async (req, res, next) => {
         {
           model: User,
           as: 'sender',
-          attributes: ['id', 'firstName', 'lastName']
+          attributes: ['id', 'firstName', 'lastName', 'avatar']
         }
       ]
     });
@@ -280,18 +301,38 @@ exports.acceptFriendRequest = async (req, res, next) => {
     // Update friendship status
     await friendship.update({ status: 'accepted' });
     
+    // Get current user info for notification
+    const currentUser = await User.findByPk(userId, {
+      attributes: ['id', 'firstName', 'lastName', 'avatar']
+    });
+    
     // Create notification for the sender
-    if (req.models && req.models.Notification) {
-      await req.models.Notification.create({
-        userId: friendship.senderId,
-        message: `${req.user.firstName} ${req.user.lastName} accepted your friend request`,
-        type: 'success',
-        link: '/dashboard/friends',
-        isRead: false,
-        relatedId: friendship.id,
-        relatedType: 'friendship'
-      });
-    }
+    const notification = await Notification.create({
+      userId: friendship.senderId,
+      message: `${currentUser.firstName} ${currentUser.lastName} accepted your friend request`,
+      type: 'success',
+      link: '/dashboard/friends',
+      isRead: false,
+      relatedId: friendship.id,
+      relatedType: 'friendship'
+    });
+    
+    // Emit real-time notification
+    await emitNotification(friendship.senderId, {
+      id: notification.id,
+      type: notification.type,
+      message: notification.message,
+      isRead: notification.isRead,
+      link: notification.link,
+      relatedId: notification.relatedId,
+      relatedType: notification.relatedType,
+      createdAt: notification.createdAt,
+      sender: {
+        id: currentUser.id,
+        name: `${currentUser.firstName} ${currentUser.lastName}`,
+        avatar: currentUser.avatar
+      }
+    });
     
     res.status(200).json({
       success: true,
@@ -301,7 +342,8 @@ exports.acceptFriendRequest = async (req, res, next) => {
         sender: {
           id: friendship.sender.id,
           firstName: friendship.sender.firstName,
-          lastName: friendship.sender.lastName
+          lastName: friendship.sender.lastName,
+          avatar: friendship.sender.avatar
         }
       }
     });

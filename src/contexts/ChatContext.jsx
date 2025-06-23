@@ -24,6 +24,12 @@ export const ChatProvider = ({ children }) => {
     // Listen for online friends
     const handleOnlineFriends = (friends) => {
       setOnlineFriends(friends);
+      
+      // Update online status in conversations
+      setConversations(prev => prev.map(conv => ({
+        ...conv,
+        online: friends.some(f => f.id === conv.friendId)
+      })));
     };
 
     // Listen for friend coming online
@@ -38,11 +44,25 @@ export const ChatProvider = ({ children }) => {
         }
         return prev;
       });
+      
+      // Update online status in conversations for this friend
+      setConversations(prev => prev.map(conv => 
+        conv.friendId === friend.friendId 
+          ? { ...conv, online: true }
+          : conv
+      ));
     };
 
     // Listen for friend going offline
     const handleFriendOffline = ({ friendId }) => {
       setOnlineFriends(prev => prev.filter(f => f.id !== friendId));
+      
+      // Update online status in conversations for this friend
+      setConversations(prev => prev.map(conv => 
+        conv.friendId === friendId 
+          ? { ...conv, online: false }
+          : conv
+      ));
     };
 
     // Listen for new direct messages
@@ -63,6 +83,62 @@ export const ChatProvider = ({ children }) => {
           [friendId]: (prev[friendId] || 0) + 1
         }));
       }
+      
+      // Update the conversation with the new message
+      setConversations(prev => {
+        const existingConversation = prev.find(c => c.friendId === friendId);
+        
+        if (existingConversation) {
+          // Update existing conversation
+          return prev.map(c => 
+            c.friendId === friendId 
+              ? { 
+                  ...c, 
+                  lastMessage: message.content,
+                  lastMessageTime: message.timestamp,
+                  unreadCount: message.sender.id !== currentUser.id && !activeChats.includes(friendId)
+                    ? (c.unreadCount || 0) + 1
+                    : c.unreadCount
+                }
+              : c
+          ).sort((a, b) => {
+            // Sort by last message time (most recent first)
+            if (!a.lastMessageTime) return 1;
+            if (!b.lastMessageTime) return -1;
+            return new Date(b.lastMessageTime) - new Date(a.lastMessageTime);
+          });
+        } else {
+          // This is a new conversation, we need to add it
+          // First check if we have friend details
+          const friendDetails = message.sender.id === currentUser.id
+            ? chatFriendDetails[message.receiverId] // We sent the message
+            : { // They sent the message
+                id: message.sender.id,
+                name: message.sender.name,
+                avatar: message.sender.avatar
+              };
+              
+          if (friendDetails) {
+            const newConversation = {
+              friendId: friendId,
+              friendName: friendDetails.name,
+              avatar: friendDetails.avatar,
+              online: onlineFriends.some(f => f.id === friendId),
+              lastMessage: message.content,
+              lastMessageTime: message.timestamp,
+              unreadCount: message.sender.id !== currentUser.id ? 1 : 0
+            };
+            
+            return [newConversation, ...prev].sort((a, b) => {
+              if (!a.lastMessageTime) return 1;
+              if (!b.lastMessageTime) return -1;
+              return new Date(b.lastMessageTime) - new Date(a.lastMessageTime);
+            });
+          }
+          
+          return prev;
+        }
+      });
     };
 
     // Listen for direct message notifications
@@ -73,6 +149,13 @@ export const ChatProvider = ({ children }) => {
           ...prev,
           [notification.senderId]: (prev[notification.senderId] || 0) + 1
         }));
+        
+        // Also update the conversation
+        setConversations(prev => prev.map(c => 
+          c.friendId === notification.senderId
+            ? { ...c, unreadCount: (c.unreadCount || 0) + 1 }
+            : c
+        ));
       }
     };
 
@@ -179,74 +262,16 @@ export const ChatProvider = ({ children }) => {
     };
   }, [currentUser, activeChats]);
 
-  // Update conversations when new messages arrive or messages are read
+  // Update conversations when online friends change
   useEffect(() => {
-    if (!currentUser) return;
-
-    // Only process conversations with messages
-    const friendIdsWithMessages = Object.keys(messages).filter(friendId => 
-      messages[friendId] && messages[friendId].length > 0
-    );
-
-    // Create conversations from chatFriendDetails and messages
-    const updatedConversations = friendIdsWithMessages.map(friendId => {
-      const friend = chatFriendDetails[friendId];
-      if (!friend) return null; // Skip if friend details not available
-      
-      const friendMessages = messages[friendId] || [];
-      const lastMessage = friendMessages.length > 0 ? friendMessages[friendMessages.length - 1] : null;
-      
-      return {
-        friendId: friendId,
-        friendName: friend.name,
-        avatar: friend.avatar,
-        online: onlineFriends.some(f => f.id === friendId),
-        lastMessage: lastMessage ? lastMessage.content : null,
-        lastMessageTime: lastMessage ? lastMessage.timestamp : null,
-        unreadCount: unreadCounts[friendId] || 0
-      };
-    }).filter(Boolean); // Remove null entries
-
-    // Only update if we have conversations with messages
-    if (updatedConversations.length > 0) {
-      setConversations(prev => {
-        // Create a map of existing conversations for quick lookup
-        const existingConversationsMap = new Map();
-        prev.forEach(c => existingConversationsMap.set(c.friendId, c));
-        
-        // Update existing conversations with new message data
-        updatedConversations.forEach(updatedConv => {
-          const existing = existingConversationsMap.get(updatedConv.friendId);
-          if (existing) {
-            // Only update if we have a newer message
-            if (!existing.lastMessageTime || 
-                (updatedConv.lastMessageTime && 
-                 new Date(updatedConv.lastMessageTime) > new Date(existing.lastMessageTime))) {
-              existingConversationsMap.set(updatedConv.friendId, {
-                ...existing,
-                lastMessage: updatedConv.lastMessage,
-                lastMessageTime: updatedConv.lastMessageTime,
-                unreadCount: updatedConv.unreadCount,
-                online: updatedConv.online
-              });
-            }
-          } else {
-            // Add new conversation
-            existingConversationsMap.set(updatedConv.friendId, updatedConv);
-          }
-        });
-        
-        // Convert map back to array and sort
-        return Array.from(existingConversationsMap.values())
-          .sort((a, b) => {
-            // Sort by last message time (most recent first)
-            if (!a.lastMessageTime) return 1;
-            if (!b.lastMessageTime) return -1;
-            return new Date(b.lastMessageTime) - new Date(a.lastMessageTime);
-          });
-      });
-    }
-  }, [currentUser, chatFriendDetails, messages, unreadCounts, onlineFriends]);
+    if (!currentUser || conversations.length === 0) return;
+    
+    // Update online status in all conversations
+    setConversations(prev => prev.map(conv => ({
+      ...conv,
+      online: onlineFriends.some(f => f.id === conv.friendId)
+    })));
+  }, [currentUser, onlineFriends]);
 
   // Open a chat with a friend
   const openChat = async (friendId, friendName, friendAvatar) => {

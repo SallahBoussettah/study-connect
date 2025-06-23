@@ -11,7 +11,8 @@ const ConversationsDropdown = () => {
   const { 
     conversations, 
     unreadCounts, 
-    setActiveConversation 
+    setActiveConversation,
+    onlineFriends 
   } = useChat();
 
   // Close dropdown when clicking outside
@@ -37,6 +38,11 @@ const ConversationsDropdown = () => {
   // Get unread count for a specific conversation
   const getUnreadCount = (friendId) => {
     return unreadCounts[friendId] || 0;
+  };
+
+  // Check if a friend is online
+  const isOnline = (friendId) => {
+    return onlineFriends.some(friend => friend.id === friendId);
   };
 
   // Calculate total unread messages
@@ -76,7 +82,7 @@ const ConversationsDropdown = () => {
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Conversations"
       >
-        <FaComments />
+        <FaComments className="text-xl" />
         {totalUnread > 0 && (
           <span className="absolute top-0 right-0 flex items-center justify-center h-5 w-5 text-xs font-bold text-white bg-primary-600 rounded-full">
             {totalUnread > 9 ? '9+' : totalUnread}
@@ -119,18 +125,29 @@ const ConversationsDropdown = () => {
                   <div className="flex items-center">
                     <div className="flex-shrink-0 mr-3">
                       <div className="relative">
-                        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold">
-                          {conversation.friendName?.charAt(0)}
+                        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold overflow-hidden">
+                          {conversation.avatar ? (
+                            <img 
+                              src={conversation.avatar} 
+                              alt={conversation.friendName} 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            conversation.friendName?.charAt(0)
+                          )}
                         </div>
                         {conversation.online && (
-                          <FaCircle className="absolute bottom-0 right-0 text-green-500 text-xs" />
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                         )}
                       </div>
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-secondary-900">
+                        <p className="text-sm font-medium text-secondary-900 flex items-center">
                           {conversation.friendName}
+                          {conversation.online && (
+                            <span className="ml-1 text-xs text-green-500 font-normal">• online</span>
+                          )}
                         </p>
                         {conversation.lastMessageTime && (
                           <p className="text-xs text-secondary-500">

@@ -41,7 +41,11 @@ exports.getNotifications = async (req, res, next) => {
         type: notification.type || 'info',
         message: notification.message,
         isRead: notification.isRead,
+        link: notification.link,
+        relatedId: notification.relatedId,
+        relatedType: notification.relatedType,
         time,
+        timeAgo: time,
         createdAt: notification.createdAt
       };
     });

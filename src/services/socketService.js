@@ -7,6 +7,7 @@ class SocketService {
     this.connected = false;
     this.connecting = false;
     this.listeners = {};
+    this.token = null;
     
     // Base URL for the Socket.IO server
     this.baseURL = 'http://localhost:5000';
@@ -17,8 +18,10 @@ class SocketService {
    * @param {string} token - JWT auth token
    */
   init(token) {
-    if (this.connecting || this.connected) return;
+    if (this.connecting) return;
     
+    // Store token for reconnection attempts
+    this.token = token;
     this.connecting = true;
     
     try {
@@ -26,7 +29,7 @@ class SocketService {
       this.socket = io(this.baseURL, {
         auth: { token },
         reconnection: true,
-        reconnectionAttempts: 5,
+        reconnectionAttempts: 10,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         timeout: 20000,
@@ -37,7 +40,7 @@ class SocketService {
       this.chatSocket = io(`${this.baseURL}/chat`, {
         auth: { token },
         reconnection: true,
-        reconnectionAttempts: 5,
+        reconnectionAttempts: 10,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         timeout: 20000,
@@ -59,6 +62,13 @@ class SocketService {
       this.socket.on('connect_error', (error) => {
         console.error('Socket connection error:', error.message);
         this.connecting = false;
+        this.connected = false;
+        
+        // Try to reconnect after a delay
+        setTimeout(() => {
+          console.log('Attempting to reconnect after connection error...');
+          this.reconnect();
+        }, 5000);
       });
       
       this.chatSocket.on('connect_error', (error) => {
@@ -69,10 +79,28 @@ class SocketService {
       this.socket.on('disconnect', (reason) => {
         console.log(`Socket disconnected: ${reason}`);
         this.connected = false;
+        
+        // Attempt to reconnect if disconnected unexpectedly
+        if (reason === 'io server disconnect' || reason === 'transport close') {
+          // Server disconnected us, try to reconnect
+          setTimeout(() => {
+            console.log('Attempting to reconnect socket...');
+            this.reconnect();
+          }, 1000);
+        }
       });
       
       this.chatSocket.on('disconnect', (reason) => {
         console.log(`Chat socket disconnected: ${reason}`);
+        
+        // Attempt to reconnect if disconnected unexpectedly
+        if (reason === 'io server disconnect' || reason === 'transport close') {
+          // Server disconnected us, try to reconnect
+          setTimeout(() => {
+            console.log('Attempting to reconnect chat socket...');
+            this.chatSocket.connect();
+          }, 1000);
+        }
       });
       
       // Set up error handling for both sockets
@@ -84,10 +112,55 @@ class SocketService {
         console.error('Chat socket error:', error);
       });
       
+      // Set up automatic reconnection check
+      this.setupReconnectionCheck();
+      
     } catch (error) {
       console.error('Error initializing socket:', error);
       this.connecting = false;
+      
+      // Try to reconnect after a delay
+      setTimeout(() => {
+        console.log('Attempting to reconnect after initialization error...');
+        this.reconnect();
+      }, 5000);
     }
+  }
+  
+  /**
+   * Reconnect both sockets
+   */
+  reconnect() {
+    if (!this.token || this.connecting) return;
+    
+    this.connecting = true;
+    
+    // Clean up existing connections if they exist
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+    
+    if (this.chatSocket) {
+      this.chatSocket.close();
+      this.chatSocket = null;
+    }
+    
+    // Reinitialize with stored token
+    this.init(this.token);
+  }
+  
+  /**
+   * Set up periodic check to ensure connection is alive
+   */
+  setupReconnectionCheck() {
+    // Check connection every minute
+    setInterval(() => {
+      if (!this.connected && this.token && !this.connecting) {
+        console.log('Connection check: Socket disconnected, attempting to reconnect...');
+        this.reconnect();
+      }
+    }, 60000); // Every minute
   }
   
   /**
@@ -184,7 +257,31 @@ class SocketService {
   subscribeToNotifications(callback) {
     if (!this.socket) return;
     
-    this.socket.on('notification', callback);
+    // Remove any existing listeners to prevent duplicates
+    this.socket.off('notification');
+    
+    // Add new listener
+    this.socket.on('notification', (notification) => {
+      console.log('Received notification:', notification);
+      
+      // Format notification time if not already set
+      if (!notification.timeAgo) {
+        notification.timeAgo = 'Just now';
+      }
+      
+      // Process friendship notifications
+      if (notification.relatedType === 'friendship') {
+        // Make sure the link is correct based on notification content
+        if (notification.message.includes('sent you a friend request')) {
+          notification.link = '/dashboard/friends/requests';
+        } else if (notification.message.includes('accepted your friend request')) {
+          notification.link = '/dashboard/friends';
+        }
+      }
+      
+      // Call the callback with the notification
+      callback(notification);
+    });
   }
   
   /**

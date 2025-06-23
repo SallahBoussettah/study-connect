@@ -95,6 +95,15 @@ module.exports = {
         icon: 'art-icon.svg',
         createdAt: now,
         updatedAt: now
+      },
+      {
+        id: uuidv4(),
+        name: 'Other',
+        category: 'Other',
+        description: 'Other subjects',
+        icon: 'other-icon.svg',
+        createdAt: now,
+        updatedAt: now
       }
     ]);
   },

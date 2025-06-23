@@ -8,10 +8,12 @@ import { toast } from 'react-toastify';
 import { friendshipService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
+import { useLocation } from 'react-router-dom';
 
 const Friends = () => {
   const { currentUser } = useAuth();
   const { openChat } = useChat();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('friends');
   const [friends, setFriends] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
@@ -26,6 +28,20 @@ const Friends = () => {
   const [error, setError] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const dropdownRef = useRef(null);
+
+  // Check URL parameters for tab selection
+  useEffect(() => {
+    // Check if we should show the requests tab
+    if (location.pathname === '/dashboard/friends/requests') {
+      setActiveTab('requests');
+    } else if (location.search) {
+      const params = new URLSearchParams(location.search);
+      const tab = params.get('tab');
+      if (tab === 'requests') {
+        setActiveTab('requests');
+      }
+    }
+  }, [location]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

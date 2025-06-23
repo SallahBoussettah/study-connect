@@ -5,6 +5,8 @@ import { ChatProvider } from './contexts/ChatContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import ChatContainer from './components/chat/ChatContainer';
 import ProtectedRoute from './components/ProtectedRoute';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Public Pages
 import LandingPage from './pages/LandingPage';
@@ -36,10 +38,22 @@ import StudyRoomResources from './pages/studyRoom/StudyRoomResources';
 
 const App = () => {
   return (
-    <AuthProvider>
-      <NotificationProvider>
-        <ChatProvider>
-          <Router>
+    <Router>
+      <AuthProvider>
+        <NotificationProvider>
+          <ChatProvider>
+            <ToastContainer
+              position="top-right"
+              autoClose={5000}
+              hideProgressBar={false}
+              newestOnTop
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="light"
+            />
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
@@ -71,6 +85,7 @@ const App = () => {
                 <Route path="groups/:roomId" element={<StudyRoomDetail />} />
                 <Route path="resources" element={<Resources />} />
                 <Route path="friends" element={<Friends />} />
+                <Route path="friends/requests" element={<Friends />} />
                 <Route path="timer" element={<StudyTimer />} />
                 <Route path="flashcards" element={<Flashcards />} />
                 <Route path="profile" element={<Profile />} />
@@ -88,10 +103,10 @@ const App = () => {
               {/* 404 Route */}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
-          </Router>
-        </ChatProvider>
-      </NotificationProvider>
-    </AuthProvider>
+          </ChatProvider>
+        </NotificationProvider>
+      </AuthProvider>
+    </Router>
   );
 };
 

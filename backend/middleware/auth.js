@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const models = require('../models');
 const config = require('../config/config');
 
 /**
@@ -26,7 +26,7 @@ exports.protect = async (req, res, next) => {
     const decoded = jwt.verify(token, config.jwt.secret);
 
     // Get user from the token (exclude password)
-    const user = await User.findByPk(decoded.id, {
+    const user = await models.User.findByPk(decoded.id, {
       attributes: { exclude: ['password'] }
     });
 
@@ -40,6 +40,10 @@ exports.protect = async (req, res, next) => {
 
     // Set user in request object
     req.user = user;
+    
+    // Add models to request for controllers to use
+    req.models = models;
+    
     next();
   } catch (error) {
     return res.status(401).json({ 

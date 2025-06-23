@@ -201,14 +201,6 @@ const AdminDashboard = () => {
         <h1 className="text-2xl font-bold text-secondary-900">Admin Dashboard</h1>
         <p className="text-secondary-600 mt-1">
           Manage users, monitor platform activity, and review system performance.
-            {currentUser?.role === 'admin' && (
-              <button 
-                onClick={() => setDebugMode(!debugMode)}
-                className="ml-4 text-xs text-primary-600 hover:text-primary-800 underline"
-              >
-                {debugMode ? 'Disable Debug Mode' : 'Enable Debug Mode'}
-              </button>
-            )}
           </p>
         </div>
       </div>
