@@ -28,9 +28,9 @@ L'objectif final est de développer une solution intuitive, collaborative et cen
 
 ---
 
-## 3. 💡 Fonctionnalités Principales
+## 3. Fonctionnalités Principales
 
-### A. 🔍 Pour les utilisateurs standard
+### A. Pour les utilisateurs standard
 
 #### Gestion du profil :
 - Création de compte avec authentification sécurisée
@@ -112,7 +112,7 @@ StudyConnect est développé selon une architecture moderne client-serveur avec 
 - Base de données PostgreSQL avec Sequelize ORM
 - Authentification sécurisée basée sur JWT
 - Serveur Socket.IO pour les fonctionnalités en temps réel
-- Stockage de fichiers via AWS S3 ou Firebase Storage
+- Stockage de fichiers en local avec système de gestion des chemins et métadonnées
 
 ### Organisation du code :
 - Structure modulaire avec séparation des préoccupations
@@ -124,47 +124,11 @@ StudyConnect est développé selon une architecture moderne client-serveur avec 
 
 ## 5. 🧱 Contraintes du Système
 
-### A. Contraintes d'intégrité des données
-- Chaque utilisateur dispose d'un identifiant unique (UUID)
-- Relations cohérentes entre utilisateurs, salles d'étude et ressources
-- Validation des données à l'entrée pour prévenir les incohérences
-- Transactions atomiques pour les opérations critiques
+- **Sécurité et protection des données** : Authentification sécurisée, protection contre les attaques web courantes et validation des données à l'entrée pour garantir l'intégrité du système.
 
-### B. Contraintes de domaine
-- Limitation du nombre de membres par salle d'étude selon le plan d'utilisation
-- Restrictions sur les types et tailles de fichiers téléchargeables
-- Format standardisé pour les événements et planifications
-- Validation des adresses email institutionnelles pour certaines fonctionnalités
+- **Performance et évolutivité** : Temps de réponse optimisés, mise en cache intelligente et architecture modulaire permettant l'adaptation à une base d'utilisateurs croissante.
 
-### C. Contraintes temporelles
-- Expiration des sessions d'authentification après période d'inactivité
-- Archivage automatique des salles inactives après une période définie
-- Délais de notification paramétrables pour les événements
-- Limitations de fréquence pour certaines actions (anti-spam)
-
-### D. Contraintes de sécurité
-- Authentification multi-facteurs pour les opérations sensibles
-- Chiffrement des données personnelles et communications
-- Protection contre les attaques CSRF, XSS et injections
-- Journalisation des activités sensibles et tentatives d'accès non autorisées
-
-### E. Contraintes fonctionnelles
-- Compatibilité avec les navigateurs modernes (Chrome, Firefox, Safari, Edge)
-- Temps de réponse inférieur à 2 secondes pour les opérations standard
-- Disponibilité du service 24/7 avec objectif de 99,9% de temps de fonctionnement
-- Support du mode hors ligne pour certaines fonctionnalités clés
-
-### F. Contraintes d'audit et de traçabilité
-- Historique complet des modifications de contenu
-- Traçabilité des accès aux ressources partagées
-- Journal des connexions et activités des utilisateurs
-- Rapports d'utilisation générables pour les administrateurs
-
-### G. Contraintes techniques
-- Optimisation pour les connexions à faible bande passante
-- Mise en cache intelligente pour améliorer les performances
-- Conception évolutive permettant le passage à l'échelle horizontal
-- Architecture modulaire facilitant l'ajout de nouvelles fonctionnalités
+- **Compatibilité et accessibilité** : Interface responsive fonctionnant sur les navigateurs modernes et support partiel du mode hors ligne pour les fonctionnalités essentielles.
 
 ---
 
