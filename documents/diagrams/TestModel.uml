@@ -1,0 +1,140 @@
+FORMAT=1.1
+ROOT=
+	_id=GUID 97e3f3f0-dd5e-4b14-a8e3-f4d4c0b9a1e6
+	_name=TestModel
+	_modifiedTimeWhenChanged=1624553600000
+	_multiplicity=1
+	_stereotype=
+	_isSpecification=FALSE
+	_isRoot=TRUE
+	_isLeaf=FALSE
+	_isAbstract=FALSE
+	_visibility=public
+	CHILDREN
+		ITEM=UMLClass
+			_id=GUID 1df7f3f0-dd5e-4b14-a8e3-f4d4c0b9a1e7
+			_name=TestClass
+			_modifiedTimeWhenChanged=1624553600000
+			_multiplicity=1
+			_stereotype=
+			_isSpecification=FALSE
+			_isRoot=FALSE
+			_isLeaf=FALSE
+			_isAbstract=FALSE
+			_visibility=public
+			CHILDREN
+				ITEM=UMLAttribute
+					_id=GUID 2df7f3f0-dd5e-4b14-a8e3-f4d4c0b9a1e8
+					_name=id
+					_modifiedTimeWhenChanged=1624553600000
+					_multiplicity=1
+					_stereotype=
+					_isSpecification=FALSE
+					_visibility=private
+					_type=String
+					_initialValue=
+				END_ITEM
+				ITEM=UMLAttribute
+					_id=GUID 3df7f3f0-dd5e-4b14-a8e3-f4d4c0b9a1e9
+					_name=name
+					_modifiedTimeWhenChanged=1624553600000
+					_multiplicity=1
+					_stereotype=
+					_isSpecification=FALSE
+					_visibility=private
+					_type=String
+					_initialValue=
+				END_ITEM
+				ITEM=UMLOperation
+					_id=GUID 4df7f3f0-dd5e-4b14-a8e3-f4d4c0b9a1ea
+					_name=getName
+					_modifiedTimeWhenChanged=1624553600000
+					_multiplicity=1
+					_stereotype=
+					_isSpecification=FALSE
+					_visibility=public
+					_isQuery=FALSE
+					_concurrency=sequential
+					CHILDREN
+						ITEM=UMLParameter
+							_id=GUID 5df7f3f0-dd5e-4b14-a8e3-f4d4c0b9a1eb
+							_name=return
+							_modifiedTimeWhenChanged=1624553600000
+							_multiplicity=1
+							_stereotype=
+							_isSpecification=FALSE
+							_type=String
+							_direction=return
+						END_ITEM
+					END_CHILDREN
+				END_ITEM
+			END_CHILDREN
+		END_ITEM
+		ITEM=UMLClass
+			_id=GUID 6df7f3f0-dd5e-4b14-a8e3-f4d4c0b9a1ec
+			_name=AnotherClass
+			_modifiedTimeWhenChanged=1624553600000
+			_multiplicity=1
+			_stereotype=
+			_isSpecification=FALSE
+			_isRoot=FALSE
+			_isLeaf=FALSE
+			_isAbstract=FALSE
+			_visibility=public
+			CHILDREN
+				ITEM=UMLAttribute
+					_id=GUID 7df7f3f0-dd5e-4b14-a8e3-f4d4c0b9a1ed
+					_name=testClassId
+					_modifiedTimeWhenChanged=1624553600000
+					_multiplicity=1
+					_stereotype=
+					_isSpecification=FALSE
+					_visibility=private
+					_type=String
+					_initialValue=
+				END_ITEM
+			END_CHILDREN
+		END_ITEM
+		ITEM=UMLAssociation
+			_id=GUID 8df7f3f0-dd5e-4b14-a8e3-f4d4c0b9a1ee
+			_name=
+			_modifiedTimeWhenChanged=1624553600000
+			_multiplicity=1
+			_stereotype=
+			_isSpecification=FALSE
+			_direction=Source -> Destination
+			CHILDREN
+				ITEM=UMLAssociationEnd
+					_id=GUID 9df7f3f0-dd5e-4b14-a8e3-f4d4c0b9a1ef
+					_name=
+					_modifiedTimeWhenChanged=1624553600000
+					_multiplicity=1
+					_stereotype=
+					_isSpecification=FALSE
+					_isNavigable=TRUE
+					_ordering=unordered
+					_aggregation=none
+					_targetScope=instance
+					_multiplicity=1
+					_changeability=changeable
+					_type=GUID 1df7f3f0-dd5e-4b14-a8e3-f4d4c0b9a1e7
+				END_ITEM
+				ITEM=UMLAssociationEnd
+					_id=GUID adf7f3f0-dd5e-4b14-a8e3-f4d4c0b9a1f0
+					_name=
+					_modifiedTimeWhenChanged=1624553600000
+					_multiplicity=1
+					_stereotype=
+					_isSpecification=FALSE
+					_isNavigable=TRUE
+					_ordering=unordered
+					_aggregation=none
+					_targetScope=instance
+					_multiplicity=*
+					_changeability=changeable
+					_type=GUID 6df7f3f0-dd5e-4b14-a8e3-f4d4c0b9a1ec
+				END_ITEM
+			END_CHILDREN
+		END_ITEM
+	END_CHILDREN
+END 

@@ -115,4 +115,275 @@ Overview of work distribution:
 
 ✅ **Active task during the month**: Analysis & Design: Specifications, needs assessment. Mockups: Wireframes and prototypes. Development: Frontend (interfaces) + Backend (functionalities). Testing: Verification of features (chat, video, etc.).
 
-🚩 **Points to note in your report**: Flexibility: Phases may slightly overlap (e.g., testing at the end of development). Estimated durations: Adjust according to actual progress (e.g., more time for collaborative tools if complex). 
+🚩 **Points to note in your report**: Flexibility: Phases may slightly overlap (e.g., testing at the end of development). Estimated durations: Adjust according to actual progress (e.g., more time for collaborative tools if complex).
+
+## UML Analysis
+
+UML (Unified Modeling Language) diagrams provide visual representations of the StudyConnect system architecture and behavior. The following diagrams illustrate key aspects of the application.
+
+### Use Case Diagram
+
+This diagram illustrates the interactions between system actors (Student, Teacher, Administrator) and the available functionality grouped by modules.
+
+Path: `diagrams/use_case_diagram.puml`
+
+### Class Diagram
+
+The class diagram represents the data model of StudyConnect, showing classes, attributes, operations, and relationships between entities.
+
+Path: `diagrams/class_diagram.puml`
+
+### Sequence Diagram
+
+This diagram shows the messaging flow between components during real-time communication in a study room.
+
+Path: `diagrams/sequence_diagram.puml`
+
+### Component Diagram
+
+The component diagram illustrates the high-level architectural components of the system and their interactions.
+
+Path: `diagrams/component_diagram.puml`
+
+### Deployment Diagram
+
+This diagram shows the physical deployment architecture of StudyConnect across different servers and environments.
+
+Path: `diagrams/deployment_diagram.puml`
+
+### Package Diagram
+
+The package diagram visualizes the organization of the StudyConnect project into logical modules and their dependencies.
+
+**Frontend**: Authentication (login/registration), Dashboard (overview), Room (chat, video), AdminPanel (administration).
+
+**Backend**: UserManagement (authentication), RoomManagement (room management), Communication (WebSockets), FileStorage (files).
+
+**Database**: User and Room models for data persistence.
+
+Path: `diagrams/package_diagram.puml`
+
+All diagrams are available in both PlantUML format (.puml) for text-based representation and StarUML format (.mdj) for visual editing.
+
+## Tools Used
+
+### 🔄 UML Modeling Tools
+
+StarUML (limited free version)
+* Type: Complete UML software
+* Purpose: Create professional UML diagrams
+* Note: Functional free version, but some features locked
+
+### 🎨 UI Design and Mockup Tools
+
+* Direct code development without specific design software
+* Use of Tailwind CSS to rapidly implement the user interface
+
+### 📊 Presentation and Documentation Tools
+
+Canva
+* Type: Visual design tool
+* Purpose: Create logos, banners, presentation slides
+* Advantages: Very intuitive, numerous free templates
+
+PowerPoint
+* Type: Presentation software
+* Purpose: Creation of slides for the final defense
+* Advantages: Familiarity and precise content control
+
+## Development Tools for StudyConnect
+
+1. Frontend Development
+   - **Framework**:
+     React.js → For a dynamic and modular UI
+     Vite → Fast and optimized build tool
+
+   - **UI/UX**:
+     Direct code development without design software
+     Tailwind CSS → Rapid design system
+
+   - **Real-time Communication**:
+     Socket.io → Text chat and notifications
+
+2. Backend Development
+   - **Main Stack**:
+     Node.js (Express) → Robustness and speed
+
+   - **Databases**:
+     PostgreSQL → Relational (clear structure for rooms/users)
+
+   - **APIs**:
+     REST → For flexible data management
+
+3. Advanced Features
+   - **Authentication**:
+     JWT (JSON Web Tokens) → Security and stateless
+     bcrypt → Secure password hashing
+
+   - **File Storage**:
+     Multer → Server-side upload management
+     Local file system → Structured resource organization
+
+   - **Search and Filtering**:
+     Sequelize queries → Efficient database searches
+     Client-side filters → Enhanced user experience
+
+4. DevOps and Deployment
+   - **Version Control**:
+     Git and GitHub → Version control and collaboration
+   
+   - **Deployment**:
+     Vercel → Frontend hosting
+     Local application → Backend in development
+
+   - **Environment**:
+     Environment variables → Configuration separation
+     dotenv → Environment variable management
+
+5. Testing & Quality
+   - **Testing**:
+     Manual testing → Feature verification
+     Debug console → Error identification
+
+   - **Code Quality**:
+     ESLint → Coding standards and error detection
+     Prettier → Consistent code formatting
+
+   - **Performance**:
+     React DevTools → Component optimization
+     Compression → Resource optimization
+
+6. Project Management
+   - **Organization**:
+     Modular folder structure → Clear separation of responsibilities
+     Inline documentation → Explanatory comments in code
+
+   - **Tracking**:
+     Phase objectives → Incremental development
+     Regular reviews → Feature validation
+
+   - **Collaboration**:
+     Git branches → Parallel feature development
+     Pull requests → Code review and integration
+
+## Why These Tools?
+
+Our technology selection for StudyConnect addresses specific collaborative learning needs:
+
+React + Node.js: Rich ecosystem suited for collaborative applications, providing client-side reactivity and server-side robustness.
+
+Socket.io: Essential real-time communication for instant interactions between users in study rooms.
+
+PostgreSQL: Ensures integrity of complex relational data between users, study rooms, and shared resources.
+
+REST API + JWT: Optimal balance between security and performance, with stateless authentication suited to our application model.
+
+These choices form a coherent architecture that meets the requirements of a modern educational platform while remaining scalable.
+
+## Annexes
+
+### 📋 Technical Annexes
+
+#### Complete Specifications Document
+Detailed version of StudyConnect's functional and non-functional requirements, including key user stories such as "As a student, I want to join a study room via an invitation link" and "As a user, I want to share resources with members of my study room."
+
+#### UML Diagrams
+Complete UML diagrams include:
+- Use case diagram showing interactions between students, teachers, and administrators
+- Class diagram detailing the structure of User, StudyRoom, Resource models, etc.
+- Sequence diagram illustrating the real-time communication flow when sending a message in a study room
+- Component diagram showing the modular architecture of the system
+- Deployment diagram presenting the physical architecture of the application
+- Package diagram visualizing the logical organization of the code
+
+#### Database Schema
+Relational model of the PostgreSQL database with:
+- Main tables: users, study_rooms, resources, messages, subjects
+- Entity relationships and integrity constraints
+- Structure optimized for frequent queries
+
+#### Critical Code Excerpts
+Code examples of essential functionalities:
+- Socket.IO implementation for real-time communication
+- JWT authentication system with protection middleware
+- React components for chat and notification management
+
+### 📊 Methodological Annexes
+
+#### Detailed Planning
+Gantt chart showing:
+- Task distribution over the 3 months of development
+- Critical milestones and task dependencies
+- Resource allocation and responsibilities
+
+#### Test Results
+Documentation of tests performed:
+- Manual testing of main functionalities
+- Performance tests for real-time communications
+- User feedback analysis
+
+#### Technical Documentation
+Installation and deployment guide including:
+- Required configuration for development environment
+- Instructions for database setup
+- Frontend and backend deployment procedure
+
+### 📚 Complementary Annexes
+
+#### Bibliography & Webography
+Resources consulted including:
+- Official documentation of used technologies
+- Technical articles on collaborative application architecture
+- Studies on student needs for online learning tools
+
+#### User Manual
+Step-by-step guide for users covering:
+- Registration and login procedures
+- Creating and managing study rooms
+- Sharing and organizing resources
+- Example: "How to create a private room in 3 clicks"
+
+#### Legal Constraints (GDPR)
+Documentation on compliance with data protection requirements:
+- Privacy policy and personal data usage
+- Technical measures to ensure data security
+
+#### Proof of Functionality
+Annotated screenshots of main features:
+- Login interface and user dashboard
+- Real-time chat system with presence indicators
+- Mobile and desktop interfaces demonstrating responsive design
+
+## Summary
+
+### Key Points:
+
+1 - **Optimized User Experience**: The student is at the core of the system, with intuitive interfaces and functionalities adapted to collaborative learning (chat, video, resource sharing).
+
+2 - **Modular Architecture**: Clear division into packages (User Management, Rooms, Communication, etc.), facilitating maintenance and the addition of new functionalities.
+
+3 - **Technical Challenges**: Real-time communication: complex connection management (latency, bandwidth). Security: Robust authentication, data encryption, and essential access control. Data management: Efficient storage of files and discussion histories.
+
+4 - **Scalability**: Adaptable structure for potential scaling (addition of rooms, supplementary collaborative tools).
+
+This analysis confirms the feasibility of the project while identifying critical areas (performance, security) to prioritize during development.
+
+### Proposed Solution:
+An implementation through iterations, starting with essential modules (chat, rooms) before integrating advanced functionalities (video, whiteboard).
+
+## Global Conclusion
+
+### StudyConnect
+
+The project represents an innovative solution for online collaborative learning, addressing the growing needs of students and teachers in terms of flexibility, interactivity, and knowledge sharing.
+
+Through this work, we have designed an intuitive and high-performance platform, integrating advanced functionalities such as virtual rooms, real-time communication (chat, audio, video), and resource sharing, all within a secure and modular environment.
+
+### Project Strengths:
+✅ User-centered approach: A simple and accessible interface, adapted to the needs of students and teachers.
+✅ Robust architecture: Modular structure (Frontend, Backend, database) allowing for easy maintenance and evolution.
+✅ Operational key features: Creation and management of study rooms, Real-time chat with Socket.io, Video calls via WebRTC, File sharing and collaborative tools.
+✅ Scalability: Possibility to add new functionalities (whiteboard, LMS integration, etc.).
+
+### Final Assessment
+StudyConnect positions the student at the heart of the learning process, offering a collaborative, dynamic, and accessible space. This project demonstrates that it is possible to bridge the gap between in-person and remote learning through a well-designed technological solution. With future developments and widespread adoption. 

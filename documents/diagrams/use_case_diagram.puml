@@ -1,0 +1,100 @@
+@startuml StudyConnect Use Case Diagram
+
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam handwritten false
+skinparam usecase {
+  BackgroundColor #F8F9FA
+  BorderColor #DEE2E6
+  ArrowColor #495057
+}
+
+' Actors
+actor "Student" as student
+actor "Teacher" as teacher
+actor "Administrator" as admin
+
+' Inheritance
+teacher -|> student
+admin -|> teacher
+
+' Package for User Management
+package "User Management" {
+  usecase "Register Account" as UC1
+  usecase "Login" as UC2
+  usecase "Manage Profile" as UC3
+  usecase "Reset Password" as UC4
+}
+
+' Package for Study Room Management
+package "Study Room Management" {
+  usecase "Create Study Room" as UC5
+  usecase "Join Study Room" as UC6
+  usecase "Search Study Rooms" as UC7
+  usecase "Manage Room Members" as UC8
+  usecase "Configure Room Settings" as UC9
+}
+
+' Package for Communication
+package "Communication" {
+  usecase "Send Text Messages" as UC10
+  usecase "Participate in Audio/Video Call" as UC11
+  usecase "Share Screen" as UC12
+  usecase "View Online Users" as UC13
+}
+
+' Package for Resource Management
+package "Resource Management" {
+  usecase "Upload Resources" as UC14
+  usecase "Download Resources" as UC15
+  usecase "Organize Resources" as UC16
+  usecase "Preview Documents" as UC17
+}
+
+' Package for Learning Tools
+package "Learning Tools" {
+  usecase "Create Flashcards" as UC18
+  usecase "Use Study Timer" as UC19
+  usecase "Track Study Progress" as UC20
+}
+
+' Package for Administration
+package "Administration" {
+  usecase "Manage Users" as UC21
+  usecase "Monitor System" as UC22
+  usecase "Generate Reports" as UC23
+  usecase "Moderate Content" as UC24
+}
+
+' Student Associations
+student --> UC1
+student --> UC2
+student --> UC3
+student --> UC4
+student --> UC6
+student --> UC7
+student --> UC10
+student --> UC11
+student --> UC12
+student --> UC13
+student --> UC14
+student --> UC15
+student --> UC17
+student --> UC18
+student --> UC19
+student --> UC20
+
+' Teacher Additional Associations
+teacher --> UC5
+teacher --> UC8
+teacher --> UC9
+teacher --> UC16
+
+' Admin Additional Associations
+admin --> UC21
+admin --> UC22
+admin --> UC23
+admin --> UC24
+
+@enduml 

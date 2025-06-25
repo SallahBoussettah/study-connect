@@ -1,0 +1,952 @@
+{
+  "_type": "Project",
+  "name": "StudyConnect",
+  "ownedElements": [
+    {
+      "_type": "UMLModel",
+      "name": "StudyConnect Model",
+      "ownedElements": [
+        {
+          "_type": "UMLUseCaseDiagram",
+          "name": "StudyConnect Use Case Diagram",
+          "ownedElements": [
+            {
+              "_type": "UMLActor",
+              "name": "Student",
+              "stereotype": ""
+            },
+            {
+              "_type": "UMLActor",
+              "name": "Teacher",
+              "stereotype": ""
+            },
+            {
+              "_type": "UMLActor",
+              "name": "Administrator",
+              "stereotype": ""
+            },
+            {
+              "_type": "UMLGeneralization",
+              "source": {
+                "$ref": "Teacher"
+              },
+              "target": {
+                "$ref": "Student"
+              }
+            },
+            {
+              "_type": "UMLGeneralization",
+              "source": {
+                "$ref": "Administrator"
+              },
+              "target": {
+                "$ref": "Teacher"
+              }
+            },
+            {
+              "_type": "UMLPackage",
+              "name": "User Management",
+              "ownedElements": [
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Register Account",
+                  "id": "UC1"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Login",
+                  "id": "UC2"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Manage Profile",
+                  "id": "UC3"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Reset Password",
+                  "id": "UC4"
+                }
+              ]
+            },
+            {
+              "_type": "UMLPackage",
+              "name": "Study Room Management",
+              "ownedElements": [
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Create Study Room",
+                  "id": "UC5"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Join Study Room",
+                  "id": "UC6"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Search Study Rooms",
+                  "id": "UC7"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Manage Room Members",
+                  "id": "UC8"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Configure Room Settings",
+                  "id": "UC9"
+                }
+              ]
+            },
+            {
+              "_type": "UMLPackage",
+              "name": "Communication",
+              "ownedElements": [
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Send Text Messages",
+                  "id": "UC10"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Participate in Audio/Video Call",
+                  "id": "UC11"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Share Screen",
+                  "id": "UC12"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "View Online Users",
+                  "id": "UC13"
+                }
+              ]
+            },
+            {
+              "_type": "UMLPackage",
+              "name": "Resource Management",
+              "ownedElements": [
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Upload Resources",
+                  "id": "UC14"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Download Resources",
+                  "id": "UC15"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Organize Resources",
+                  "id": "UC16"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Preview Documents",
+                  "id": "UC17"
+                }
+              ]
+            },
+            {
+              "_type": "UMLPackage",
+              "name": "Learning Tools",
+              "ownedElements": [
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Create Flashcards",
+                  "id": "UC18"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Use Study Timer",
+                  "id": "UC19"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Track Study Progress",
+                  "id": "UC20"
+                }
+              ]
+            },
+            {
+              "_type": "UMLPackage",
+              "name": "Administration",
+              "ownedElements": [
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Manage Users",
+                  "id": "UC21"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Monitor System",
+                  "id": "UC22"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Generate Reports",
+                  "id": "UC23"
+                },
+                {
+                  "_type": "UMLUseCase",
+                  "name": "Moderate Content",
+                  "id": "UC24"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "_type": "UMLClassDiagram",
+          "name": "StudyConnect Class Diagram",
+          "ownedElements": [
+            {
+              "_type": "UMLPackage",
+              "name": "User Management",
+              "ownedElements": [
+                {
+                  "_type": "UMLClass",
+                  "name": "User",
+                  "attributes": [
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "id",
+                      "type": "UUID"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "firstName",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "lastName",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "email",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "password",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "role",
+                      "type": "Enum"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "avatar",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "bio",
+                      "type": "Text"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "institution",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "major",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "yearOfStudy",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "emailVerified",
+                      "type": "Boolean"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "isActive",
+                      "type": "Boolean"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "lastLogin",
+                      "type": "Date"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "createdAt",
+                      "type": "Date"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "updatedAt",
+                      "type": "Date"
+                    }
+                  ],
+                  "operations": [
+                    {
+                      "_type": "UMLOperation",
+                      "name": "matchPassword",
+                      "parameters": [
+                        {
+                          "_type": "UMLParameter",
+                          "name": "password",
+                          "type": "String"
+                        },
+                        {
+                          "_type": "UMLParameter",
+                          "name": "return",
+                          "type": "Boolean",
+                          "direction": "return"
+                        }
+                      ]
+                    },
+                    {
+                      "_type": "UMLOperation",
+                      "name": "getSignedJwtToken",
+                      "parameters": [
+                        {
+                          "_type": "UMLParameter",
+                          "name": "return",
+                          "type": "String",
+                          "direction": "return"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "_type": "UMLClass",
+                  "name": "UserPreference",
+                  "attributes": [
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "id",
+                      "type": "UUID"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "userId",
+                      "type": "UUID"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "theme",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "notifications",
+                      "type": "Boolean"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "emailNotifications",
+                      "type": "Boolean"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "soundEffects",
+                      "type": "Boolean"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "createdAt",
+                      "type": "Date"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "updatedAt",
+                      "type": "Date"
+                    }
+                  ]
+                },
+                {
+                  "_type": "UMLClass",
+                  "name": "UserPresence",
+                  "attributes": [
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "id",
+                      "type": "UUID"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "userId",
+                      "type": "UUID"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "status",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "lastActive",
+                      "type": "Date"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "device",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "createdAt",
+                      "type": "Date"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "updatedAt",
+                      "type": "Date"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "_type": "UMLPackage",
+              "name": "Study Rooms",
+              "ownedElements": [
+                {
+                  "_type": "UMLClass",
+                  "name": "StudyRoom",
+                  "attributes": [
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "id",
+                      "type": "UUID"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "name",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "description",
+                      "type": "Text"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "image",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "totalMembers",
+                      "type": "Integer"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "activeMembers",
+                      "type": "Integer"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "lastActive",
+                      "type": "Date"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "isActive",
+                      "type": "Boolean"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "createdBy",
+                      "type": "UUID"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "subjectId",
+                      "type": "UUID"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "createdAt",
+                      "type": "Date"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "updatedAt",
+                      "type": "Date"
+                    }
+                  ]
+                },
+                {
+                  "_type": "UMLClass",
+                  "name": "Subject",
+                  "attributes": [
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "id",
+                      "type": "UUID"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "name",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "description",
+                      "type": "Text"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "icon",
+                      "type": "String"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "createdAt",
+                      "type": "Date"
+                    },
+                    {
+                      "_type": "UMLAttribute",
+                      "name": "updatedAt",
+                      "type": "Date"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "_type": "UMLAssociation",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "multiplicity": "1",
+                "reference": {
+                  "$ref": "User"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "multiplicity": "1",
+                "reference": {
+                  "$ref": "UserPreference"
+                },
+                "navigable": true
+              },
+              "name": "has"
+            },
+            {
+              "_type": "UMLAssociation",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "multiplicity": "1",
+                "reference": {
+                  "$ref": "User"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "multiplicity": "1",
+                "reference": {
+                  "$ref": "UserPresence"
+                },
+                "navigable": true
+              },
+              "name": "has"
+            },
+            {
+              "_type": "UMLAssociation",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "multiplicity": "1",
+                "reference": {
+                  "$ref": "User"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "multiplicity": "*",
+                "reference": {
+                  "$ref": "StudyRoom"
+                },
+                "navigable": true
+              },
+              "name": "creates"
+            },
+            {
+              "_type": "UMLAssociation",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "multiplicity": "*",
+                "reference": {
+                  "$ref": "User"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "multiplicity": "*",
+                "reference": {
+                  "$ref": "StudyRoom"
+                },
+                "navigable": true
+              },
+              "name": "joins"
+            },
+            {
+              "_type": "UMLAssociation",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "multiplicity": "*",
+                "reference": {
+                  "$ref": "StudyRoom"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "multiplicity": "1",
+                "reference": {
+                  "$ref": "Subject"
+                },
+                "navigable": true
+              },
+              "name": "belongs to"
+            }
+          ]
+        },
+        {
+          "_type": "UMLSequenceDiagram",
+          "name": "StudyConnect Messaging Sequence",
+          "ownedElements": [
+            {
+              "_type": "UMLLifeline",
+              "name": "User",
+              "isActor": true
+            },
+            {
+              "_type": "UMLLifeline",
+              "name": "Frontend React App"
+            },
+            {
+              "_type": "UMLLifeline",
+              "name": "Backend API Server"
+            },
+            {
+              "_type": "UMLLifeline",
+              "name": "Socket.IO Server"
+            },
+            {
+              "_type": "UMLLifeline",
+              "name": "Database"
+            },
+            {
+              "_type": "UMLLifeline",
+              "name": "Other Users in Room"
+            }
+          ]
+        },
+        {
+          "_type": "UMLComponentDiagram",
+          "name": "StudyConnect Component Diagram",
+          "ownedElements": [
+            {
+              "_type": "UMLPackage",
+              "name": "Frontend (React)",
+              "ownedElements": [
+                {
+                  "_type": "UMLComponent",
+                  "name": "Landing Pages"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Authentication UI"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Dashboard"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Study Room UI"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Resource Manager"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Chat Interface"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Learning Tools UI"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "React Router"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Context API"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Socket.IO Client"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Axios HTTP Client"
+                }
+              ]
+            },
+            {
+              "_type": "UMLPackage",
+              "name": "Backend (Node.js/Express)",
+              "ownedElements": [
+                {
+                  "_type": "UMLComponent",
+                  "name": "API Routes"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Controllers"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Models"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Middleware"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Socket.IO Server"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "File Upload Service"
+                },
+                {
+                  "_type": "UMLComponent",
+                  "name": "Authentication Service"
+                }
+              ]
+            },
+            {
+              "_type": "UMLArtifact",
+              "name": "PostgreSQL",
+              "stereotype": "database"
+            },
+            {
+              "_type": "UMLInterface",
+              "name": "RESTful API"
+            },
+            {
+              "_type": "UMLInterface",
+              "name": "WebSocket"
+            }
+          ]
+        },
+        {
+          "_type": "UMLDeploymentDiagram",
+          "name": "StudyConnect Deployment Diagram",
+          "ownedElements": [
+            {
+              "_type": "UMLNode",
+              "name": "Client Device",
+              "ownedElements": [
+                {
+                  "_type": "UMLArtifact",
+                  "name": "Web Browser"
+                }
+              ]
+            },
+            {
+              "_type": "UMLNode",
+              "name": "Frontend Server",
+              "ownedElements": [
+                {
+                  "_type": "UMLArtifact",
+                  "name": "Nginx Web Server"
+                },
+                {
+                  "_type": "UMLArtifact",
+                  "name": "React Application"
+                },
+                {
+                  "_type": "UMLArtifact",
+                  "name": "Static Assets"
+                }
+              ]
+            },
+            {
+              "_type": "UMLNode",
+              "name": "API Server",
+              "ownedElements": [
+                {
+                  "_type": "UMLArtifact",
+                  "name": "Node.js"
+                },
+                {
+                  "_type": "UMLArtifact",
+                  "name": "Express.js"
+                },
+                {
+                  "_type": "UMLArtifact",
+                  "name": "Socket.IO Server"
+                }
+              ]
+            },
+            {
+              "_type": "UMLNode",
+              "name": "Database Server",
+              "ownedElements": [
+                {
+                  "_type": "UMLArtifact",
+                  "name": "PostgreSQL",
+                  "stereotype": "database"
+                }
+              ]
+            },
+            {
+              "_type": "UMLNode",
+              "name": "Cloud Services",
+              "stereotype": "cloud",
+              "ownedElements": [
+                {
+                  "_type": "UMLArtifact",
+                  "name": "Object Storage"
+                },
+                {
+                  "_type": "UMLArtifact",
+                  "name": "Email Service"
+                },
+                {
+                  "_type": "UMLArtifact",
+                  "name": "CDN"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "_type": "UMLPackageDiagram",
+          "name": "StudyConnect Package Diagram",
+          "ownedElements": [
+            {
+              "_type": "UMLPackage",
+              "name": "StudyConnect (Package Racine)",
+              "ownedElements": [
+                {
+                  "_type": "UMLPackage",
+                  "name": "**Frontend** (Interface Utilisateur)",
+                  "ownedElements": [
+                    {
+                      "_type": "UMLPackage",
+                      "name": "Authentication",
+                      "stereotype": "",
+                      "documentation": "Login, Inscription"
+                    },
+                    {
+                      "_type": "UMLPackage",
+                      "name": "Dashboard",
+                      "stereotype": "",
+                      "documentation": "Vue d'ensemble des salles"
+                    },
+                    {
+                      "_type": "UMLPackage",
+                      "name": "Room",
+                      "stereotype": "",
+                      "documentation": "Interface de salle: chat, vidéo, fichiers"
+                    },
+                    {
+                      "_type": "UMLPackage",
+                      "name": "AdminPanel",
+                      "stereotype": "",
+                      "documentation": "Gestion des utilisateurs/salles"
+                    }
+                  ]
+                },
+                {
+                  "_type": "UMLPackage",
+                  "name": "**Backend** (Logique Métier)",
+                  "ownedElements": [
+                    {
+                      "_type": "UMLPackage",
+                      "name": "UserManagement",
+                      "stereotype": "",
+                      "documentation": "Gestion des comptes"
+                    },
+                    {
+                      "_type": "UMLPackage",
+                      "name": "RoomManagement",
+                      "stereotype": "",
+                      "documentation": "CRUD des salles, permissions"
+                    },
+                    {
+                      "_type": "UMLPackage",
+                      "name": "Communication",
+                      "stereotype": "",
+                      "documentation": "Chat, WebRTC, notifications"
+                    },
+                    {
+                      "_type": "UMLPackage",
+                      "name": "FileStorage",
+                      "stereotype": "",
+                      "documentation": "Upload/Partage de fichiers"
+                    }
+                  ]
+                },
+                {
+                  "_type": "UMLPackage",
+                  "name": "**Database** (Persistance des Données)",
+                  "ownedElements": [
+                    {
+                      "_type": "UMLPackage",
+                      "name": "User",
+                      "stereotype": "",
+                      "documentation": "Profil étudiant/professeur"
+                    },
+                    {
+                      "_type": "UMLPackage",
+                      "name": "Room",
+                      "stereotype": "",
+                      "documentation": "Salles, membres, paramètres"
+                    }
+                  ]
+                },
+                {
+                  "_type": "UMLDependency",
+                  "source": {
+                    "$ref": "**Frontend** (Interface Utilisateur)"
+                  },
+                  "target": {
+                    "$ref": "**Backend** (Logique Métier)"
+                  },
+                  "name": "API Calls"
+                },
+                {
+                  "_type": "UMLDependency",
+                  "source": {
+                    "$ref": "**Backend** (Logique Métier)"
+                  },
+                  "target": {
+                    "$ref": "**Database** (Persistance des Données)"
+                  },
+                  "name": "Queries"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} 

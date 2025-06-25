@@ -1,0 +1,83 @@
+@startuml StudyConnect Component Diagram
+
+skinparam componentStyle rectangle
+skinparam componentBackgroundColor #F8F9FA
+skinparam componentBorderColor #DEE2E6
+skinparam databaseBackgroundColor #E9ECEF
+skinparam databaseBorderColor #ADB5BD
+skinparam interfaceBackgroundColor #FFFFFF
+skinparam interfaceBorderColor #6C757D
+skinparam arrowColor #495057
+
+package "Frontend (React)" {
+  [Landing Pages] as landing
+  [Authentication UI] as authUI
+  [Dashboard] as dashboard
+  [Study Room UI] as roomUI
+  [Resource Manager] as resourceUI
+  [Chat Interface] as chatUI
+  [Learning Tools UI] as toolsUI
+  
+  [React Router] as router
+  [Context API] as context
+  [Socket.IO Client] as socketClient
+  [Axios HTTP Client] as axios
+  
+  landing --> router
+  authUI --> router
+  dashboard --> router
+  roomUI --> router
+  resourceUI --> router
+  chatUI --> router
+  toolsUI --> router
+  
+  router --> context
+  context --> axios
+  context --> socketClient
+}
+
+package "Backend (Node.js/Express)" {
+  [API Routes] as routes
+  [Controllers] as controllers
+  [Models] as models
+  [Middleware] as middleware
+  [Socket.IO Server] as socketServer
+  [File Upload Service] as fileUpload
+  [Authentication Service] as authService
+  
+  routes --> controllers
+  controllers --> models
+  controllers --> fileUpload
+  controllers --> authService
+  middleware --> controllers
+  socketServer --> controllers
+  socketServer --> models
+}
+
+database "PostgreSQL" as db {
+  [User Data] as userData
+  [Study Room Data] as roomData
+  [Messages] as messageData
+  [Resources] as resourceData
+  [Social Data] as socialData
+}
+
+cloud "External Services" {
+  [Email Service] as email
+  [Storage Service] as storage
+}
+
+interface "RESTful API" as restAPI
+interface "WebSocket" as wsAPI
+
+axios --> restAPI
+socketClient --> wsAPI
+
+restAPI --> routes
+wsAPI --> socketServer
+
+models --> db
+fileUpload --> storage
+authService --> email
+
+@enduml 

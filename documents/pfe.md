@@ -116,3 +116,274 @@ Vue d'ensemble de la répartition du travail :
 ✅ **Tâche active durant le mois** : Analyse & Conception : Cahier des charges, étude des besoins. Maquettage : Wireframes et prototypes. Développement : Frontend (interfaces) + Backend (fonctionnalités). Tests : Vérification des fonctionnalités (chat, vidéo, etc.).
 
 🚩 **Points à noter dans votre mémoire** : Flexibilité : Les phases peuvent se chevaucher légèrement (ex: tests en fin de développement). Durées estimées : Ajustez selon l'avancement réel (ex: + de temps pour les outils collaboratifs si complexe).
+
+## Analyse UML
+
+Les diagrammes UML (Unified Modeling Language) fournissent des représentations visuelles de l'architecture et du comportement du système StudyConnect. Les diagrammes suivants illustrent les aspects clés de l'application.
+
+### Diagramme de Cas d'Utilisation
+
+Ce diagramme illustre les interactions entre les acteurs du système (Étudiant, Enseignant, Administrateur) et les fonctionnalités disponibles regroupées par modules.
+
+Chemin: `diagrams/use_case_diagram.puml`
+
+### Diagramme de Classes
+
+Le diagramme de classes représente le modèle de données de StudyConnect, montrant les classes, attributs, opérations et relations entre les entités.
+
+Chemin: `diagrams/class_diagram.puml`
+
+### Diagramme de Séquence
+
+Ce diagramme montre le flux de messages entre les composants lors de la communication en temps réel dans une salle d'étude.
+
+Chemin: `diagrams/sequence_diagram.puml`
+
+### Diagramme de Composants
+
+Le diagramme de composants illustre les composants architecturaux de haut niveau du système et leurs interactions.
+
+Chemin: `diagrams/component_diagram.puml`
+
+### Diagramme de Déploiement
+
+Ce diagramme montre l'architecture de déploiement physique de StudyConnect à travers différents serveurs et environnements.
+
+Chemin: `diagrams/deployment_diagram.puml`
+
+### Diagramme de Paquetages
+
+Le diagramme de paquetages visualise l'organisation du projet StudyConnect en modules logiques et leurs dépendances.
+
+**Frontend** : Authentication (login/inscription), Dashboard (vue d'ensemble), Room (chat, vidéo), AdminPanel (administration).
+
+**Backend** : UserManagement (authentification), RoomManagement (gestion des salles), Communication (WebSockets), FileStorage (fichiers).
+
+**Database** : Modèles User et Room pour la persistance des données.
+
+Chemin: `diagrams/package_diagram.puml`
+
+Tous les diagrammes sont disponibles à la fois en format PlantUML (.puml) pour une représentation textuelle et en format StarUML (.mdj) pour une édition visuelle.
+
+## Outils Utilisés
+
+### 🔄 Outils pour la Modélisation UML
+
+StarUML (version gratuite limitée)
+* Type : Logiciel UML complet 
+* Utilité : Créer diagrammes UML professionnels 
+* Remarque : Version gratuite fonctionnelle, mais certaines fonctions bloquées
+
+### 🎨 Outils pour la Maquette et Design UI
+
+* Développement direct en code sans logiciel de design spécifique
+* Utilisation de Tailwind CSS pour implémenter rapidement l'interface utilisateur
+
+### 📊 Outils pour la Présentation et Documentation
+
+Canva
+* Type : Outil de design visuel 
+* Utilité : Créer logos, bannières, slides de soutenance 
+* Avantages : Très intuitif, nombreux templates gratuits
+
+PowerPoint
+* Type : Logiciel de présentation 
+* Utilité : Création des slides pour la soutenance finale
+* Avantages : Familiarité et contrôle précis du contenu
+
+## Outils de Développement pour StudyConnect
+
+1. Développement Frontend
+   - **Framework** :
+     React.js → Pour une UI dynamique et modulaire
+     Vite → Outil de build rapide et optimisé
+
+   - **UI/UX** :
+     Développement direct en code sans logiciel de design
+     Tailwind CSS → Design system rapide
+
+   - **Communication Temps Réel** :
+     Socket.io → Chat textuel et notifications
+
+2. Développement Backend
+   - **Stack Principale** :
+     Node.js (Express) → Robustesse et rapidité
+
+   - **Bases de Données** :
+     PostgreSQL → Relationnel (structure claire pour salles/utilisateurs)
+
+   - **APIs** :
+     REST → Pour une gestion flexible des données
+
+3. Fonctionnalités Avancées
+   - **Authentification** :
+     JWT (JSON Web Tokens) → Sécurité et stateless
+     bcrypt → Hachage sécurisé des mots de passe
+
+   - **Stockage de Fichiers** :
+     Multer → Gestion des uploads côté serveur
+     Système de fichiers local → Organisation structurée des ressources
+
+   - **Recherche et Filtrage** :
+     Sequelize queries → Recherche efficace dans la base de données
+     Filtres côté client → Expérience utilisateur améliorée
+
+4. DevOps et Déploiement
+   - **Gestion de Version** :
+     Git et GitHub → Contrôle de version et collaboration
+   
+   - **Déploiement** :
+     Vercel → Hébergement du frontend
+     Application locale → Backend en développement
+
+   - **Environnement** :
+     Variables d'environnement → Séparation des configurations
+     dotenv → Gestion des variables d'environnement
+
+5. Tests & Qualité
+   - **Tests** :
+     Tests manuels → Vérification des fonctionnalités
+     Console de débogage → Identification des erreurs
+
+   - **Qualité de Code** :
+     ESLint → Standards de codage et détection d'erreurs
+     Prettier → Formatage cohérent du code
+
+   - **Performance** :
+     React DevTools → Optimisation des composants
+     Compression → Optimisation des ressources
+
+6. Gestion de Projet
+   - **Organisation** :
+     Structure de dossiers modulaire → Séparation claire des responsabilités
+     Documentation inline → Commentaires explicatifs dans le code
+
+   - **Suivi** :
+     Objectifs par phases → Développement incrémental
+     Révisions régulières → Validation des fonctionnalités
+
+   - **Collaboration** :
+     Branches Git → Développement parallèle de fonctionnalités
+     Pull requests → Revue de code et intégration
+
+## Pourquoi Ces Outils ?
+
+Notre sélection technologique pour StudyConnect répond à des besoins spécifiques d'apprentissage collaboratif :
+
+React + Node.js : Écosystème riche et adapté aux applications collaboratives, offrant réactivité côté client et robustesse côté serveur.
+
+Socket.io : Communication en temps réel essentielle pour les interactions instantanées entre utilisateurs dans les salles d'étude.
+
+PostgreSQL : Garantit l'intégrité des données relationnelles complexes entre utilisateurs, salles d'étude et ressources partagées.
+
+API REST + JWT : Équilibre optimal entre sécurité et performance, avec authentification stateless adaptée à notre modèle d'application.
+
+Ces choix forment une architecture cohérente qui répond aux exigences d'une plateforme éducative moderne tout en restant évolutive.
+
+## Annexes
+
+### 📋 Annexes Techniques
+
+#### Cahier des charges complet
+Version détaillée des besoins fonctionnels et non-fonctionnels de StudyConnect, incluant les user stories principales comme "En tant qu'étudiant, je veux rejoindre une salle d'étude via un lien d'invitation" et "En tant qu'utilisateur, je souhaite partager des ressources avec les membres de ma salle d'étude".
+
+#### Diagrammes UML
+Les diagrammes UML complets incluent:
+- Diagramme de cas d'utilisation montrant les interactions entre étudiants, enseignants et administrateurs
+- Diagramme de classes détaillant la structure des modèles User, StudyRoom, Resource, etc.
+- Diagramme de séquence illustrant le flux de communication en temps réel lors de l'envoi d'un message dans une salle d'étude
+- Diagramme de composants montrant l'architecture modulaire du système
+- Diagramme de déploiement présentant l'architecture physique de l'application
+- Diagramme de paquetages visualisant l'organisation logique du code
+
+#### Schéma de la base de données
+Modèle relationnel de la base de données PostgreSQL avec:
+- Tables principales: users, study_rooms, resources, messages, subjects
+- Relations entre entités et contraintes d'intégrité
+- Structure optimisée pour les requêtes fréquentes
+
+#### Extraits de code critiques
+Exemples de code des fonctionnalités essentielles:
+- Implémentation Socket.IO pour la communication en temps réel
+- Système d'authentification JWT avec middleware de protection
+- Composants React pour le chat et la gestion des notifications
+
+### 📊 Annexes Méthodologiques
+
+#### Planning détaillé
+Diagramme de Gantt montrant:
+- Répartition des tâches sur les 3 mois de développement
+- Jalons critiques et dépendances entre tâches
+- Allocation des ressources et responsabilités
+
+#### Résultats des tests
+Documentation des tests effectués:
+- Tests manuels des fonctionnalités principales
+- Tests de performance pour les communications en temps réel
+- Analyse des retours utilisateurs
+
+#### Documentation technique
+Guide d'installation et déploiement comprenant:
+- Configuration requise pour l'environnement de développement
+- Instructions pour la mise en place de la base de données
+- Procédure de déploiement du frontend et du backend
+
+### 📚 Annexes Complémentaires
+
+#### Bibliographie & Webographie
+Ressources consultées incluant:
+- Documentation officielle des technologies utilisées
+- Articles techniques sur l'architecture des applications collaboratives
+- Études sur les besoins des étudiants en matière d'outils d'apprentissage
+
+#### Manuel d'utilisation
+Guide étape-par-étape pour les utilisateurs couvrant:
+- Procédure d'inscription et de connexion
+- Création et gestion des salles d'étude
+- Partage et organisation des ressources
+- Exemple: "Comment créer une salle privée en 3 clics"
+
+#### Contraintes légales (RGPD)
+Documentation sur la conformité aux exigences de protection des données:
+- Politique de confidentialité et utilisation des données personnelles
+- Mesures techniques pour assurer la sécurité des données
+
+#### Preuves de fonctionnement
+Captures d'écran annotées des principales fonctionnalités:
+- Interface de connexion et tableau de bord utilisateur
+- Système de chat en temps réel avec indicateurs de présence
+- Interfaces mobile et desktop démontrant la conception responsive
+
+## Résumé
+
+### Points Clés :
+
+1 - **Expérience Utilisateur Optimisée** : L'étudiant est au cœur du système, avec des interfaces intuitives et des fonctionnalités adaptées à l'apprentissage collaboratif (chat, vidéo, partage de ressources).
+
+2 - **Architecture Modulaire** : Découpage clair en packages (Gestion des utilisateurs, Salles, Communication, etc.), facilitant la maintenance et l'ajout de nouvelles fonctionnalités.
+
+3 - **Défis Techniques** : Communication temps réel : gestion complexe des connexions (latence, bande passante). Sécurité : Authentification robuste, chiffrement des données et contrôle des accès indispensables. Gestion des données : Stockage efficace des fichiers et historiques de discussions.
+
+4 - **Scalabilité** : Structure adaptable pour une éventuelle montée en charge (ajout de salles, outils collaboratifs supplémentaires).
+
+Cette analyse confirme la faisabilité du projet tout en identifiant les axes critiques (performance, sécurité) à prioriser lors du développement.
+
+### Solution proposée :
+Une implémentation par itérations, en commençant par les modules essentiels (chat, salles) avant d'intégrer les fonctionnalités avancées (vidéo, tableau blanc).
+
+## Conclusion Globale
+
+### StudyConnect
+
+Le projet représente une solution innovante pour l'apprentissage collaboratif en ligne, répondant aux besoins croissants des étudiants et enseignants en matière de flexibilité, d'interactivité et de partage de connaissances.
+
+À travers ce travail, nous avons conçu une plateforme intuitive et performante, intégrant des fonctionnalités avancées telles que les salles virtuelles, la communication en temps réel (chat, audio, vidéo) et le partage de ressources, le tout dans un environnement sécurisé et modulaire.
+
+### Points Forts du Projet:
+✅ Approche centrée utilisateur : Une interface simple et accessible, adaptée aux besoins des étudiants et enseignants.
+✅ Architecture robuste : Structure modulaire (Frontend, Backend, base de données) permettant une maintenance et une évolution aisées.
+✅ Fonctionnalités clés opérationnelles : Création et gestion de salles d'étude, Chat en temps réel avec Socket.io, Appels vidéo via WebRTC, Partage de fichiers et outils collaboratifs.
+✅ Scalabilité : Possibilité d'ajouter de nouvelles fonctionnalités (tableau blanc, intégration LMS, etc.).
+
+### Bilan Final
+StudyConnect positionne l'étudiant au cœur du processus d'apprentissage, en lui offrant un espace collaboratif, dynamique et accessible. Ce projet démontre qu'il est possible de combler le fossé entre présentiel et distanciel grâce à une solution technologique bien conçue. Avec des développements futurs et une adoption large.
