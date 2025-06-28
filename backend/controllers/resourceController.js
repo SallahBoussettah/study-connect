@@ -723,7 +723,31 @@ exports.reviewResource = async (req, res, next) => {
       });
     }
 
-    // Update the resource status
+    // If rejecting, delete the resource
+    if (status === 'rejected') {
+      // Delete file if exists
+      if (resource.filePath && fs.existsSync(resource.filePath)) {
+        fs.unlink(resource.filePath, err => {
+          if (err) console.error('Error deleting file during resource rejection:', err);
+        });
+      }
+
+      // Delete the resource from database
+      await resource.destroy();
+
+      // Return success response
+      return res.status(200).json({
+        success: true,
+        message: 'Resource rejected and deleted successfully',
+        data: {
+          id: resourceId,
+          status: 'rejected',
+          reviewNotes: notes || null
+        }
+      });
+    }
+
+    // If approving, update the resource status
     await resource.update({
       status,
       reviewedBy: req.user.id,
@@ -780,7 +804,8 @@ exports.getGlobalResources = async (req, res, next) => {
 
     // Set up query conditions - only get resources not associated with rooms
     const whereConditions = { 
-      roomId: null  // Only get resources not associated with any room
+      roomId: null,  // Only get resources not associated with any room
+      status: { [Op.ne]: 'rejected' } // Exclude rejected resources for all users
     };
     
     // Students can only see approved resources or their own pending resources
@@ -789,9 +814,10 @@ exports.getGlobalResources = async (req, res, next) => {
         { status: 'approved' },
         { 
           uploadedBy: userId,
-          status: { [Op.ne]: 'approved' }
+          status: 'pending'
         }
       ];
+      delete whereConditions.status; // Remove the general status condition when using OR
     }
     
     // Get the resources

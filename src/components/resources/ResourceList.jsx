@@ -343,7 +343,7 @@ const ResourceList = ({ resources = [], roomId, onResourceDeleted, onResourceEdi
 
     if (resource.status === 'pending') {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 ml-2">
           Pending Approval
         </span>
       );
@@ -351,7 +351,7 @@ const ResourceList = ({ resources = [], roomId, onResourceDeleted, onResourceEdi
 
     if (resource.status === 'rejected') {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 ml-2">
           Rejected
         </span>
       );

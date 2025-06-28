@@ -34,6 +34,7 @@ import CreateStudyRoom from './pages/dashboard/CreateStudyRoom';
 import StudyTimer from './pages/dashboard/StudyTimer';
 import Flashcards from './pages/dashboard/Flashcards';
 import Friends from './pages/dashboard/Friends';
+import ResourceEdit from './pages/dashboard/ResourceEdit';
 
 // Study Room Pages
 import StudyRoomResources from './pages/studyRoom/StudyRoomResources';
@@ -92,6 +93,7 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 <Route path="resources/upload" element={<ResourceUpload />} />
+                <Route path="resources/edit/:resourceId" element={<ResourceEdit />} />
                 <Route path="friends" element={<Friends />} />
                 <Route path="friends/requests" element={<Friends />} />
                 <Route path="timer" element={<StudyTimer />} />

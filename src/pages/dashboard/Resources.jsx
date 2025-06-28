@@ -46,11 +46,13 @@ const Resources = () => {
         
         // Split resources into "my resources" and "shared resources"
         const myRes = globalResources.filter(resource => 
-          resource.uploader?.id === currentUser?.id
+          resource.uploader?.id === currentUser?.id && 
+          resource.status !== 'rejected'
         );
         
         const sharedRes = globalResources.filter(resource => 
-          resource.uploader?.id !== currentUser?.id
+          resource.uploader?.id !== currentUser?.id && 
+          resource.status === 'approved'
         );
         
         console.log(`My resources: ${myRes.length}, Shared resources: ${sharedRes.length}`);
@@ -93,11 +95,13 @@ const Resources = () => {
   };
 
   const filteredMyResources = myResources.filter(resource => 
-    resource.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    resource.title?.toLowerCase().includes(searchQuery.toLowerCase()) &&
+    (resource.status === 'approved' || resource.status === 'pending')
   );
   
   const filteredSharedResources = sharedResources.filter(resource => 
-    resource.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    resource.title?.toLowerCase().includes(searchQuery.toLowerCase()) &&
+    resource.status === 'approved'
   );
 
   const formatDate = (dateString) => {
