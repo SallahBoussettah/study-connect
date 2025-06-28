@@ -130,4 +130,118 @@ Face à ces défis, la nécessité de solutions intégrées, spécifiquement con
 
 StudyConnect propose une approche holistique qui combine en une seule interface intuitive les fonctionnalités essentielles pour l'apprentissage collaboratif : salles d'étude virtuelles, communication en temps réel, partage de ressources structuré, et outils d'apprentissage intégrés. Notre plateforme s'appuie sur une architecture technique moderne et robuste, utilisant Node.js et Express pour le backend, React.js pour le frontend, et PostgreSQL comme système de gestion de base de données.
 
-Ce mémoire présente notre démarche de conception et d'implémentation de StudyConnect, depuis l'analyse des besoins et l'état de l'art des plateformes d'apprentissage collaboratif, jusqu'aux détails techniques de l'implémentation et aux perspectives d'évolution. Nous y détaillons les choix technologiques effectués, les défis rencontrés et les solutions apportées pour créer une plateforme qui répond efficacement aux besoins croissants des environnements d'apprentissage collaboratif numériques. 
+Ce mémoire présente notre démarche de conception et d'implémentation de StudyConnect, depuis l'analyse des besoins et l'état de l'art des plateformes d'apprentissage collaboratif, jusqu'aux détails techniques de l'implémentation et aux perspectives d'évolution. Nous y détaillons les choix technologiques effectués, les défis rencontrés et les solutions apportées pour créer une plateforme qui répond efficacement aux besoins croissants des environnements d'apprentissage collaboratif numériques.
+
+## Conclusion générale
+
+À l'ère de la digitalisation de l'éducation, la fragmentation des outils d'apprentissage représente un défi majeur pour les étudiants et enseignants. Le projet StudyConnect s'inscrit dans cette problématique en proposant une plateforme collaborative unifiée permettant aux utilisateurs de créer des salles d'étude virtuelles, partager des ressources, et communiquer en temps réel. Cette solution repose sur une architecture moderne : un backend Node.js/Express, un frontend React.js, et une base de données PostgreSQL gérée par Sequelize ORM pour assurer la persistance des données et la gestion des relations entre utilisateurs, ressources et salles d'étude.
+
+L'architecture technique du projet s'articule autour d'un modèle MVC côté serveur et d'une structure de composants modulaires côté client. La sécurité est assurée par l'authentification JWT, tandis que Socket.IO permet une communication instantanée entre les participants. Cette combinaison technologique offre une expérience fluide et réactive, essentielle pour un environnement d'apprentissage collaboratif efficace.
+
+Bien que la plateforme soit fonctionnelle dans sa forme actuelle, certaines limitations ont été identifiées, notamment l'absence de communication audio/vidéo intégrée et le besoin d'outils plus avancés pour la prise de notes collaborative. Pour y remédier, plusieurs axes d'amélioration sont envisagés : l'intégration de WebRTC pour les appels audio/vidéo, l'ajout d'un tableau blanc collaboratif, le développement d'une application mobile, et l'implémentation d'un système de recommandation pour les ressources et groupes d'étude.
+
+En définitive, ce projet a mobilisé des compétences en développement web full-stack, conception d'interfaces utilisateur, et gestion de données relationnelles, tout en nous confrontant aux enjeux réels de la collaboration à distance dans le contexte éducatif. StudyConnect constitue une première étape vers un écosystème d'apprentissage intégré, évolutif et centré sur l'utilisateur, ouvrant la voie à de futures innovations dans un secteur éducatif en constante mutation.
+
+## Références
+
+[1]	"Node.js," [Online]. Available: https://nodejs.org/.
+
+[2]	"Express.js," [Online]. Available: https://expressjs.com/.
+
+[3]	"React.js," Facebook, [Online]. Available: https://reactjs.org/.
+
+[4]	"PostgreSQL," [Online]. Available: https://www.postgresql.org/.
+
+[5]	"Sequelize ORM," [Online]. Available: https://sequelize.org/.
+
+[6]	"Socket.IO," [Online]. Available: https://socket.io/.
+
+[7]	"JSON Web Tokens," [Online]. Available: https://jwt.io/.
+
+[8]	"Tailwind CSS," [Online]. Available: https://tailwindcss.com/.
+
+[9]	"WebRTC," [Online]. Available: https://webrtc.org/.
+
+[10]	"ESLint," [Online]. Available: https://eslint.org/.
+
+[11]	"Prettier," [Online]. Available: https://prettier.io/.
+
+[12]	"Vercel," [Online]. Available: https://vercel.com/.
+
+[13]	"Multer," [Online]. Available: https://github.com/expressjs/multer.
+
+[14]	"Node-Cache," [Online]. Available: https://www.npmjs.com/package/node-cache.
+
+[15]	"bcrypt," [Online]. Available: https://www.npmjs.com/package/bcrypt.
+
+[16]	D. Abramson, "Collaborative Learning in Online Education: A Systematic Review," Journal of Educational Technology & Society, vol. 24, no. 2, pp. 82-95, 2021.
+
+[17]	S. Hrastinski, "Asynchronous and Synchronous E-Learning," EDUCAUSE Quarterly, vol. 31, no. 4, 2008.
+
+[18]	M. Simonson, S. Smaldino, M. Albright, & S. Zvacek, "Teaching and Learning at a Distance: Foundations of Distance Education," 7th Edition, Information Age Publishing, 2019.
+
+[19]	"MVC Architecture," [Online]. Available: https://developer.mozilla.org/en-US/docs/Glossary/MVC.
+
+[20]	"RESTful API Design," [Online]. Available: https://restfulapi.net/.
+
+[21]	"Context API," React Documentation, [Online]. Available: https://reactjs.org/docs/context.html.
+
+[22]	"CORS," Mozilla Developer Network, [Online]. Available: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS.
+
+[23]	"Progressive Web Applications," Google Developers, [Online]. Available: https://developers.google.com/web/progressive-web-apps/.
+
+[24]	"Responsive Web Design," [Online]. Available: https://www.w3schools.com/html/html_responsive.asp.
+
+[25]	"Web Accessibility Initiative (WAI)," W3C, [Online]. Available: https://www.w3.org/WAI/.
+
+## Bibliographie
+
+Node.js. (n.d.). Node.js – JavaScript runtime built on Chrome's V8 JavaScript engine. https://nodejs.org/
+
+Express.js. (n.d.). Express – Node.js web application framework. https://expressjs.com/
+
+React.js. (n.d.). React – A JavaScript library for building user interfaces. https://reactjs.org/
+
+PostgreSQL. (n.d.). PostgreSQL: The world's most advanced open source database. https://www.postgresql.org/
+
+Sequelize. (n.d.). Sequelize ORM – Node.js ORM for PostgreSQL, MySQL, MariaDB, SQLite, and more. https://sequelize.org/
+
+Socket.IO. (n.d.). Socket.IO – Bidirectional and low-latency communication for every platform. https://socket.io/
+
+JSON Web Tokens. (n.d.). JWT.io – JSON Web Tokens Introduction. https://jwt.io/introduction/
+
+Tailwind CSS. (n.d.). Tailwind CSS – A utility-first CSS framework for rapidly building custom designs. https://tailwindcss.com/
+
+WebRTC. (n.d.). WebRTC – Real-time communication for the web. https://webrtc.org/
+
+ESLint. (n.d.). ESLint – Find and fix problems in your JavaScript code. https://eslint.org/
+
+Prettier. (n.d.). Prettier – An opinionated code formatter. https://prettier.io/
+
+Vercel. (n.d.). Vercel – Develop. Preview. Ship. https://vercel.com/
+
+Multer. (n.d.). Multer – Node.js middleware for handling multipart/form-data. https://github.com/expressjs/multer
+
+Node-Cache. (n.d.). Node-Cache – Simple and fast NodeJS internal caching. https://www.npmjs.com/package/node-cache
+
+bcrypt. (n.d.). bcrypt – A library to help you hash passwords. https://www.npmjs.com/package/bcrypt
+
+REST API Tutorial. (n.d.). RESTful API Design Guidelines. https://restfulapi.net/
+
+React Context API. (n.d.). Context – React. https://reactjs.org/docs/context.html
+
+MDN Web Docs. (n.d.). Cross-Origin Resource Sharing (CORS). https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+
+Google Developers. (n.d.). Progressive Web Apps. https://developers.google.com/web/progressive-web-apps/
+
+W3Schools. (n.d.). Responsive Web Design - Introduction. https://www.w3schools.com/css/css_rwd_intro.asp
+
+W3C. (n.d.). Web Accessibility Initiative (WAI). https://www.w3.org/WAI/
+
+Git. (n.d.). Git – Distributed version control system. https://git-scm.com/
+
+GitHub. (n.d.). GitHub – Where the world builds software. https://github.com/
+
+Visual Studio Code. (n.d.). Visual Studio Code – Code editing. Redefined. https://code.visualstudio.com/
+
+npm. (n.d.). npm – Build amazing things. https://www.npmjs.com/ 
