@@ -25,6 +25,8 @@ import AdminDashboard from './pages/dashboard/AdminDashboard';
 import StudyGroups from './pages/dashboard/StudyGroups';
 import StudyRooms from './pages/dashboard/StudyRooms';
 import Resources from './pages/dashboard/Resources';
+import ResourceApproval from './pages/dashboard/ResourceApproval';
+import ResourceUpload from './pages/dashboard/ResourceUpload';
 import Profile from './pages/dashboard/Profile';
 import Settings from './pages/dashboard/Settings';
 import StudyRoomDetail from './pages/dashboard/StudyRoomDetail';
@@ -84,6 +86,12 @@ const App = () => {
                 <Route path="groups/create" element={<CreateStudyRoom />} />
                 <Route path="groups/:roomId" element={<StudyRoomDetail />} />
                 <Route path="resources" element={<Resources />} />
+                <Route path="resources/approval" element={
+                  <ProtectedRoute allowedRoles={['admin', 'teacher']}>
+                    <ResourceApproval />
+                  </ProtectedRoute>
+                } />
+                <Route path="resources/upload" element={<ResourceUpload />} />
                 <Route path="friends" element={<Friends />} />
                 <Route path="friends/requests" element={<Friends />} />
                 <Route path="timer" element={<StudyTimer />} />

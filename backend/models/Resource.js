@@ -57,6 +57,22 @@ module.exports = (sequelize, DataTypes) => {
     },
     roomId: {
       type: DataTypes.UUID
+    },
+    status: {
+      type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+      defaultValue: 'pending'
+    },
+    reviewedBy: {
+      type: DataTypes.UUID,
+      allowNull: true
+    },
+    reviewedAt: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    reviewNotes: {
+      type: DataTypes.TEXT,
+      allowNull: true
     }
   }, {
     timestamps: true,
@@ -77,6 +93,12 @@ module.exports = (sequelize, DataTypes) => {
     Resource.belongsTo(models.StudyRoom, {
       foreignKey: 'roomId',
       as: 'studyRoom'
+    });
+    
+    // Add association for the reviewer
+    Resource.belongsTo(models.User, {
+      foreignKey: 'reviewedBy',
+      as: 'reviewer'
     });
   };
 

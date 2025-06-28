@@ -4,7 +4,8 @@ const {
   sendDirectMessage,
   getUnreadMessageCounts,
   markMessagesAsRead,
-  getRecentConversations
+  getRecentConversations,
+  sendMessage
 } = require('../controllers/directMessageController');
 const { protect } = require('../middleware/auth');
 
@@ -18,6 +19,9 @@ router.get('/unread', getUnreadMessageCounts);
 
 // Get all conversations
 router.get('/conversations', getRecentConversations);
+
+// Send a message with recipient in body
+router.post('/', sendMessage);
 
 // Get messages with a specific friend
 router.get('/:friendId', getDirectMessages);

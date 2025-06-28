@@ -57,6 +57,67 @@ const ChatWindow = ({ friendId, friendName: propFriendName, friendAvatar: propFr
     }
   };
 
+  // Function to render message content with clickable links
+  const renderMessageWithLinks = (content) => {
+    if (!content) return '';
+    
+    // Check if the message already contains HTML link tags
+    if (content.includes('<a href="') && content.includes('</a>')) {
+      // Extract the URL and link text from the HTML
+      const linkMatch = content.match(/<a href="([^"]+)">([^<]+)<\/a>/);
+      
+      if (linkMatch) {
+        const [fullMatch, url, linkText] = linkMatch;
+        
+        // Replace the HTML link with a React link component
+        const parts = content.split(fullMatch);
+        return (
+          <>
+            {parts[0]}
+            <a 
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              {linkText}
+            </a>
+            {parts[1]}
+          </>
+        );
+      }
+    }
+    
+    // Regular expression to match URLs
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    
+    // Split the content by URLs
+    const parts = content.split(urlRegex);
+    
+    // Find all URLs in the content
+    const urls = content.match(urlRegex) || [];
+    
+    // Combine parts and URLs
+    return parts.map((part, i) => {
+      // If this part is a URL (it will be at odd indices in our parts array)
+      if (urls.includes(part)) {
+        return (
+          <a 
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline break-all"
+          >
+            {part}
+          </a>
+        );
+      }
+      // Otherwise it's just text
+      return part;
+    });
+  };
+
   return (
     <div className="w-72 bg-white rounded-t-lg shadow-lg flex flex-col overflow-hidden">
       {/* Chat header */}
@@ -120,7 +181,9 @@ const ChatWindow = ({ friendId, friendName: propFriendName, friendAvatar: propFr
                       : 'bg-gray-200 text-gray-800'
                   }`}
                 >
-                  <div className="text-sm">{message.content}</div>
+                  <div className="text-sm">
+                    {renderMessageWithLinks(message.content)}
+                  </div>
                   <div className="text-xs text-gray-500 mt-1 text-right flex items-center justify-end">
                     {formatTime(message.timestamp)}
                     {message.sender.id === currentUser.id && (

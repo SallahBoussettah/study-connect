@@ -365,4 +365,83 @@ exports.markMessagesAsRead = async (req, res, next) => {
     console.error('Error marking messages as read:', error);
     next(error);
   }
+};
+
+/**
+ * @desc    Send a direct message to a friend (alternative endpoint)
+ * @route   POST /api/messages/direct
+ * @access  Private
+ */
+exports.sendMessage = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { recipientId, content } = req.body;
+    
+    // Validate request
+    if (!recipientId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Recipient ID is required'
+      });
+    }
+    
+    if (!content || !content.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Message content is required'
+      });
+    }
+    
+    // Check if friendship exists
+    const friendship = await Friendship.findOne({
+      where: {
+        status: 'accepted',
+        [Op.or]: [
+          { senderId: userId, receiverId: recipientId },
+          { senderId: recipientId, receiverId: userId }
+        ]
+      }
+    });
+    
+    if (!friendship) {
+      return res.status(403).json({
+        success: false,
+        error: 'You are not friends with this user'
+      });
+    }
+    
+    // Create message
+    const message = await DirectMessage.create({
+      content,
+      senderId: userId,
+      receiverId: recipientId,
+      isRead: false
+    });
+    
+    // Get sender info
+    const sender = await User.findByPk(userId, {
+      attributes: ['id', 'firstName', 'lastName', 'avatar']
+    });
+    
+    // Format response
+    const formattedMessage = {
+      id: message.id,
+      content: message.content,
+      timestamp: message.createdAt,
+      isRead: message.isRead,
+      sender: {
+        id: sender.id,
+        name: `${sender.firstName} ${sender.lastName}`,
+        avatar: sender.avatar
+      }
+    };
+    
+    res.status(201).json({
+      success: true,
+      data: formattedMessage
+    });
+  } catch (error) {
+    console.error('Error sending direct message:', error);
+    next(error);
+  }
 }; 

@@ -22,6 +22,28 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Add response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Handle authentication errors
+    if (error.response && error.response.status === 401) {
+      console.error('Authentication error:', error.response.data);
+      
+      // If not already on the login page, redirect to login
+      if (!window.location.pathname.includes('/login')) {
+        // Clear auth token
+        localStorage.removeItem('authToken');
+        
+        // Redirect to login page
+        window.location.href = '/login?session_expired=true';
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 // Study Room API services
 export const studyRoomService = {
   // Get all study rooms (both user's rooms and discover rooms)
@@ -29,6 +51,20 @@ export const studyRoomService = {
     try {
       const response = await api.get('/study-rooms');
       return response.data.data;
+    } catch (error) {
+      console.error('Error fetching study rooms:', error);
+      throw error;
+    }
+  },
+  
+  // Get study rooms for the current user
+  getStudyRooms: async () => {
+    try {
+      const response = await api.get('/study-rooms');
+      return {
+        userRooms: response.data.data.userRooms || [],
+        discoverRooms: response.data.data.discoverRooms || []
+      };
     } catch (error) {
       console.error('Error fetching study rooms:', error);
       throw error;
@@ -239,6 +275,49 @@ export const subjectService = {
 
 // Resource API services
 export const resourceService = {
+  // Get all global resources (not associated with study rooms)
+  getGlobalResources: async () => {
+    try {
+      const response = await api.get('/resources/global');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching global resources:', error);
+      throw error;
+    }
+  },
+  
+  // Create a new global resource (not associated with any study room)
+  createGlobalResource: async (resourceData) => {
+    try {
+      // Create a FormData object for file uploads
+      const formData = new FormData();
+      
+      // Add fields to the form data
+      Object.keys(resourceData).forEach(key => {
+        // Skip null or undefined values
+        if (resourceData[key] != null) {
+          // Handle file upload separately
+          if (key === 'file' && resourceData[key] instanceof File) {
+            formData.append('file', resourceData[key]);
+          } else {
+            formData.append(key, resourceData[key]);
+          }
+        }
+      });
+      
+      const response = await api.post('/resources/global', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      return response.data.data;
+    } catch (error) {
+      console.error('Error creating global resource:', error);
+      throw error;
+    }
+  },
+  
   // Get all resources for a study room
   getStudyRoomResources: async (roomId) => {
     try {
@@ -336,9 +415,84 @@ export const resourceService = {
     }
   },
   
+  // Get pending resources for review
+  getPendingResources: async () => {
+    try {
+      const response = await api.get('/resources/pending');
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching pending resources:', error);
+      throw error;
+    }
+  },
+  
+  // Review a resource (approve or reject)
+  reviewResource: async (resourceId, status, notes) => {
+    try {
+      const response = await api.put(`/resources/${resourceId}/review`, {
+        status,
+        notes
+      });
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error reviewing resource ${resourceId}:`, error);
+      throw error;
+    }
+  },
+  
   // Get download URL for a resource
   getDownloadUrl: (resourceId) => {
-    return `${API_URL}/resources/${resourceId}/download`;
+    // Include the auth token in the URL as a query parameter for direct access
+    const token = localStorage.getItem('authToken');
+    return `${API_URL}/resources/${resourceId}/download?token=${token}`;
+  },
+  
+  // Download a resource file
+  downloadResource: async (resourceId, filename) => {
+    try {
+      // Get the auth token
+      const token = localStorage.getItem('authToken');
+      
+      // Make a GET request with responseType 'blob' to get the file data
+      const response = await axios({
+        url: `${API_URL}/resources/${resourceId}/download`,
+        method: 'GET',
+        responseType: 'blob',
+        headers: {
+          Authorization: token ? `Bearer ${token}` : ''
+        }
+      });
+      
+      // Create a blob from the response data
+      const blob = new Blob([response.data]);
+      
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Set the download attribute with the filename
+      link.setAttribute('download', filename || `resource-${resourceId}`);
+      
+      // Append the link to the body
+      document.body.appendChild(link);
+      
+      // Click the link to start the download
+      link.click();
+      
+      // Remove the link from the body
+      document.body.removeChild(link);
+      
+      // Revoke the URL to free up memory
+      window.URL.revokeObjectURL(url);
+      
+      return true;
+    } catch (error) {
+      console.error(`Error downloading resource ${resourceId}:`, error);
+      throw error;
+    }
   }
 };
 
@@ -496,6 +650,21 @@ export const directMessageService = {
       console.error(`Error marking messages as read from ${friendId}:`, error);
       throw error;
     }
+  },
+  
+  getAllMessages: async (friendId) => {
+    const response = await api.get(`/api/messages/direct/${friendId}`);
+    return response.data;
+  },
+  
+  getUnreadCount: async () => {
+    const response = await api.get('/api/messages/unread/count');
+    return response.data;
+  },
+  
+  markAsRead: async (messageId) => {
+    const response = await api.put(`/api/messages/${messageId}/read`);
+    return response.data;
   }
 };
 

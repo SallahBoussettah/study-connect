@@ -11,6 +11,10 @@ exports.protect = async (req, res, next) => {
   // Get token from header
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
+  } 
+  // Get token from query params (for direct file downloads)
+  else if (req.query && req.query.token) {
+    token = req.query.token;
   }
 
   // Check if token exists
@@ -46,6 +50,7 @@ exports.protect = async (req, res, next) => {
     
     next();
   } catch (error) {
+    console.error('Auth error:', error.message);
     return res.status(401).json({ 
       success: false, 
       message: 'Not authorized to access this route' 
