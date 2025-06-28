@@ -82,6 +82,17 @@ export const studyRoomService = {
     }
   },
   
+  // Get basic information about a study room without requiring membership
+  getStudyRoomBasicInfo: async (roomId) => {
+    try {
+      const response = await api.get(`/study-rooms/${roomId}/basic-info`);
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error fetching basic info for study room ${roomId}:`, error);
+      throw error;
+    }
+  },
+  
   // Create a new study room
   createStudyRoom: async (roomData) => {
     try {

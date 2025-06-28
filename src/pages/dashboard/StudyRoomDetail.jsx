@@ -5,10 +5,10 @@ import {
   FaMicrophone, FaMicrophoneSlash, FaVideoSlash, FaPaperPlane,
   FaEllipsisV, FaUserPlus, FaFileUpload, FaDownload, FaCog,
   FaFilePdf, FaFileWord, FaFilePowerpoint, FaLink, FaFile,
-  FaArrowLeft, FaSpinner, FaTrash, FaEdit
+  FaArrowLeft, FaSpinner, FaTrash, FaEdit, FaTimes, FaShareAlt
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
-import { studyRoomService, messageService, resourceService } from '../../services/api';
+import { studyRoomService, messageService, resourceService, friendshipService, directMessageService } from '../../services/api';
 import socketService from '../../services/socketService';
 import ResourceModal from '../../components/resources/ResourceModal';
 import { toast } from 'react-toastify';
@@ -34,6 +34,13 @@ const StudyRoomDetail = () => {
   const [selectedResource, setSelectedResource] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // State for share room modal
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
+  const [sharingStatus, setSharingStatus] = useState({});
+  const [memberFriends, setMemberFriends] = useState({}); // Track which friends are already members
+
   // State for room data from API
   const [roomData, setRoomData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +49,11 @@ const StudyRoomDetail = () => {
   // State for online members
   const [onlineMembers, setOnlineMembers] = useState([]);
   
+  // Add new state for join room functionality
+  const [isJoining, setIsJoining] = useState(false);
+  const [notMember, setNotMember] = useState(false);
+  const [roomBasicInfo, setRoomBasicInfo] = useState(null);
+
   // Fetch room data from API
   useEffect(() => {
     const fetchRoomData = async () => {
@@ -50,9 +62,24 @@ const StudyRoomDetail = () => {
         const data = await studyRoomService.getStudyRoomById(roomId);
         setRoomData(data);
         setError(null);
+        setNotMember(false); // Reset not member state if successful
       } catch (err) {
         console.error('Error fetching study room data:', err);
-        setError('Failed to load study room. Please try again later.');
+        
+        // Check if the error is because user is not a member (403 Forbidden)
+        if (err.response && err.response.status === 403) {
+          setNotMember(true);
+          
+          // Try to get basic room info without requiring membership
+          try {
+            const basicInfo = await studyRoomService.getStudyRoomBasicInfo(roomId);
+            setRoomBasicInfo(basicInfo);
+          } catch (infoErr) {
+            console.error('Error fetching room basic info:', infoErr);
+          }
+        } else {
+          setError('Failed to load study room. Please try again later.');
+        }
       } finally {
         setLoading(false);
       }
@@ -683,12 +710,161 @@ const StudyRoomDetail = () => {
     }
   };
 
+  // Open share modal
+  const openShareModal = () => {
+    setShareModalOpen(true);
+    fetchFriends();
+  };
+
+  // Close share modal
+  const closeShareModal = () => {
+    setShareModalOpen(false);
+    setSharingStatus({});
+  };
+
+  // Fetch friends list
+  const fetchFriends = async () => {
+    setLoadingFriends(true);
+    try {
+      const response = await friendshipService.getAllFriends();
+      let friendsList = response || [];
+      
+      // Create a map of which friends are already members
+      const memberMap = {};
+      if (roomData && roomData.members) {
+        // Get the IDs of all room members
+        const memberIds = roomData.members.map(member => member.id);
+        
+        // Mark which friends are already members
+        friendsList.forEach(friend => {
+          memberMap[friend.id] = memberIds.includes(friend.id);
+        });
+      }
+      
+      setMemberFriends(memberMap);
+      setFriends(friendsList);
+    } catch (error) {
+      console.error('Error fetching friends:', error);
+      toast.error('Failed to load friends list');
+      setFriends([]);
+    } finally {
+      setLoadingFriends(false);
+    }
+  };
+
+  // Share room with a friend
+  const shareWithFriend = async (friendId) => {
+    try {
+      setSharingStatus(prev => ({ ...prev, [friendId]: 'loading' }));
+      
+      // Create room link
+      const roomUrl = `${window.location.origin}/dashboard/rooms/${roomId}`;
+      
+      // Create a well-formatted message with the room details and HTML link
+      let messageContent = `I'd like to invite you to join my study room:\n\n"${roomData.name}"\n\n<a href="${roomUrl}">Join Study Room</a>`;
+      
+      // First try to send via socket for real-time updates
+      // Join the direct chat first to ensure the connection is established
+      socketService.joinDirectChat(friendId);
+      
+      // Small delay to ensure the join operation completes
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Now send the message via socket
+      const sent = socketService.sendDirectMessage(friendId, messageContent);
+      
+      if (!sent) {
+        // Fallback to API if socket is not connected
+        await directMessageService.sendDirectMessage(friendId, messageContent);
+      }
+      
+      setSharingStatus(prev => ({ ...prev, [friendId]: 'success' }));
+      
+      // Reset status after 2 seconds
+      setTimeout(() => {
+        setSharingStatus(prev => {
+          const newStatus = { ...prev };
+          delete newStatus[friendId];
+          return newStatus;
+        });
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error sharing room with friend:', error);
+      setSharingStatus(prev => ({ ...prev, [friendId]: 'error' }));
+      
+      // Reset error status after 2 seconds
+      setTimeout(() => {
+        setSharingStatus(prev => {
+          const newStatus = { ...prev };
+          delete newStatus[friendId];
+          return newStatus;
+        });
+      }, 2000);
+    }
+  };
+
+  // Handle joining the room
+  const handleJoinRoom = async () => {
+    try {
+      setIsJoining(true);
+      await studyRoomService.joinStudyRoom(roomId);
+      
+      // Reload room data after joining
+      const data = await studyRoomService.getStudyRoomById(roomId);
+      setRoomData(data);
+      setNotMember(false);
+      
+      toast.success('Successfully joined the study room!');
+    } catch (err) {
+      console.error('Error joining room:', err);
+      toast.error('Failed to join the study room. Please try again.');
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
   // Render loading state
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <FaSpinner className="animate-spin text-primary-600 text-4xl mb-4" />
         <span className="text-lg text-secondary-700">Loading study room...</span>
+      </div>
+    );
+  }
+
+  // Render not-a-member state
+  if (notMember) {
+    return (
+      <div className="bg-white border border-secondary-200 rounded-lg p-6 flex flex-col items-center">
+        <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mb-4">
+          <FaUsers className="text-primary-600 text-2xl" />
+        </div>
+        <h2 className="text-xl font-semibold mb-2">
+          {roomBasicInfo ? roomBasicInfo.name : 'Study Room'}
+        </h2>
+        <p className="text-secondary-600 text-center mb-6">
+          {roomBasicInfo ? 
+            `You've been invited to join this study room about ${roomBasicInfo.subject || 'various topics'}.` : 
+            'You need to join this study room to access its content.'}
+        </p>
+        <div className="flex space-x-4">
+          <button 
+            onClick={handleJoinRoom}
+            disabled={isJoining}
+            className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors flex items-center"
+          >
+            {isJoining ? <FaSpinner className="animate-spin mr-2" /> : <FaUserPlus className="mr-2" />}
+            {isJoining ? 'Joining...' : 'Join Room'}
+          </button>
+          <button
+            onClick={handleBack}
+            className="px-4 py-2 bg-secondary-100 text-secondary-700 rounded-md hover:bg-secondary-200 transition-colors"
+          >
+            Back to Study Rooms
+          </button>
+        </div>
       </div>
     );
   }
@@ -764,7 +940,10 @@ const StudyRoomDetail = () => {
               </button>
             </>
           )}
-          <button className="p-2 rounded-full bg-secondary-100 text-secondary-600 hover:bg-secondary-200 transition-colors">
+          <button 
+            onClick={openShareModal}
+            className="p-2 rounded-full bg-secondary-100 text-secondary-600 hover:bg-secondary-200 transition-colors"
+          >
             <FaUserPlus title="Invite members" />
           </button>
           {roomData.isOwner && (
@@ -1092,6 +1271,88 @@ const StudyRoomDetail = () => {
               >
                 <FaDesktop />
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Room Modal */}
+      {shareModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-lg font-medium">Invite Friends to Study Room</h3>
+              <button 
+                onClick={closeShareModal}
+                className="text-secondary-500 hover:text-secondary-700"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <div className="p-4">
+              <p className="mb-4 text-secondary-600">
+                Invite your friends to join "{roomData.name}":
+              </p>
+              
+              {loadingFriends ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-500 border-t-transparent"></div>
+                  <p className="mt-2 text-secondary-600">Loading friends...</p>
+                </div>
+              ) : friends.length === 0 ? (
+                <div className="text-center py-8 text-secondary-600">
+                  <p>You don't have any friends yet.</p>
+                  <p className="mt-2">
+                    <Link to="/dashboard/friends" className="text-primary-600 hover:text-primary-700">
+                      Add friends
+                    </Link>
+                    {' '}to share study rooms with them.
+                  </p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-secondary-200 max-h-60 overflow-y-auto">
+                  {friends.map(friend => (
+                    <li key={friend.id} className="py-3 flex items-center justify-between">
+                      <div className="flex items-center">
+                        {friend.avatar ? (
+                          <img 
+                            src={friend.avatar} 
+                            alt={`${friend.firstName} ${friend.lastName}`}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center">
+                            {friend.firstName.charAt(0).toUpperCase()}{friend.lastName.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-secondary-900">{friend.firstName} {friend.lastName}</p>
+                        </div>
+                      </div>
+                      {memberFriends[friend.id] ? (
+                        <span className="px-3 py-1 rounded-md text-sm font-medium bg-secondary-100 text-secondary-600">
+                          Joined
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => shareWithFriend(friend.id)}
+                          disabled={sharingStatus[friend.id] === 'loading' || memberFriends[friend.id]}
+                          className={`px-3 py-1 rounded-md text-sm font-medium ${
+                            sharingStatus[friend.id] === 'success' ? 'bg-green-100 text-green-800' :
+                            sharingStatus[friend.id] === 'error' ? 'bg-red-100 text-red-800' :
+                            'bg-primary-100 text-primary-600 hover:bg-primary-200'
+                          }`}
+                        >
+                          {sharingStatus[friend.id] === 'loading' ? 'Inviting...' :
+                           sharingStatus[friend.id] === 'success' ? 'Invited!' :
+                           sharingStatus[friend.id] === 'error' ? 'Failed' : 'Invite'}
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>

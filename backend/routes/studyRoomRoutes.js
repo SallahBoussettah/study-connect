@@ -6,7 +6,8 @@ const {
   updateStudyRoom,
   deleteStudyRoom,
   joinStudyRoom,
-  leaveStudyRoom
+  leaveStudyRoom,
+  getStudyRoomBasicInfo
 } = require('../controllers/studyRoomController');
 const { getStudyRoomResources, createResource } = require('../controllers/resourceController');
 const { protect, authorize } = require('../middleware/auth');
@@ -29,6 +30,10 @@ router.use('/:roomId/presence', presenceRoutes);
 router.route('/')
   .get(getStudyRooms)
   .post(createStudyRoom);
+
+// Get basic info about a study room (without requiring membership)
+router.route('/:id/basic-info')
+  .get(getStudyRoomBasicInfo);
 
 // Get, update, delete a specific study room
 router.route('/:id')

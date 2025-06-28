@@ -502,4 +502,60 @@ exports.leaveStudyRoom = async (req, res, next) => {
     console.error('Error leaving study room:', error);
     next(error);
   }
+};
+
+/**
+ * @desc    Get basic information about a study room (without requiring membership)
+ * @route   GET /api/study-rooms/:id/basic-info
+ * @access  Private
+ */
+exports.getStudyRoomBasicInfo = async (req, res, next) => {
+  try {
+    const roomId = req.params.id;
+
+    const room = await StudyRoom.findByPk(roomId, {
+      attributes: ['id', 'name', 'description', 'image', 'totalMembers', 'activeMembers', 'lastActive', 'createdAt'],
+      include: [
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'firstName', 'lastName']
+        },
+        {
+          model: Subject,
+          as: 'subject',
+          attributes: ['id', 'name', 'category']
+        }
+      ]
+    });
+
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        error: 'Study room not found'
+      });
+    }
+
+    // Format the response with only the necessary information
+    const formattedRoom = {
+      id: room.id,
+      name: room.name,
+      description: room.description,
+      subject: room.subject ? room.subject.name : 'General',
+      totalMembers: room.totalMembers,
+      activeMembers: room.activeMembers,
+      lastActive: room.lastActive,
+      image: room.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(room.name)}&background=random`,
+      creator: room.creator ? `${room.creator.firstName} ${room.creator.lastName}` : 'Unknown',
+      createdAt: room.createdAt
+    };
+
+    res.status(200).json({
+      success: true,
+      data: formattedRoom
+    });
+  } catch (error) {
+    console.error('Error fetching study room basic info:', error);
+    next(error);
+  }
 }; 
