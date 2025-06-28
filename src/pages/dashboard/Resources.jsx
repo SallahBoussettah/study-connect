@@ -194,10 +194,17 @@ const Resources = () => {
     if (!resource || !currentUser) return false;
     
     // Admin can modify any resource
-    if (currentUser.role === 'admin') return true;
+    if (currentUser.role === 'admin' || currentUser.role === 'teacher') return true;
     
-    // User can modify their own resources
-    return resource.uploaderId === currentUser.id;
+    // Check all possible ways the uploader ID might be stored
+    const uploaderId = resource.uploaderId || resource.uploadedBy;
+    const uploaderObjectId = resource.uploader?.id;
+    
+    // User can modify their own resources - check all possible ID formats
+    return (
+      (uploaderId && String(uploaderId) === String(currentUser.id)) ||
+      (uploaderObjectId && String(uploaderObjectId) === String(currentUser.id))
+    );
   };
 
   // Open share modal

@@ -8,7 +8,7 @@ import {
   FaArrowLeft, FaSpinner, FaTrash, FaEdit, FaTimes, FaShareAlt
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
-import { studyRoomService, messageService, resourceService, friendshipService, directMessageService } from '../../services/api';
+import { studyRoomService, messageService, resourceService, friendshipService, directMessageService, subjectService } from '../../services/api';
 import socketService from '../../services/socketService';
 import ResourceModal from '../../components/resources/ResourceModal';
 import { toast } from 'react-toastify';
@@ -40,6 +40,21 @@ const StudyRoomDetail = () => {
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [sharingStatus, setSharingStatus] = useState({});
   const [memberFriends, setMemberFriends] = useState({}); // Track which friends are already members
+
+  // State for room settings modal (for owners)
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [roomForm, setRoomForm] = useState({
+    name: '',
+    description: '',
+    image: '',
+    isActive: true,
+    subjectId: ''
+  });
+  const [updatingRoom, setUpdatingRoom] = useState(false);
+  const [subjects, setSubjects] = useState([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingRoom, setDeletingRoom] = useState(false);
 
   // State for room data from API
   const [roomData, setRoomData] = useState(null);
@@ -824,6 +839,102 @@ const StudyRoomDetail = () => {
     }
   };
 
+  // Open room settings modal
+  const openSettingsModal = () => {
+    if (roomData) {
+      // Initialize form with current room data
+      setRoomForm({
+        name: roomData.name || '',
+        description: roomData.description || '',
+        image: roomData.image || '',
+        isActive: roomData.isActive !== false, // Default to true if undefined
+        subjectId: roomData.subject?.id || ''
+      });
+      setSettingsModalOpen(true);
+      fetchSubjects();
+    }
+  };
+
+  // Close room settings modal
+  const closeSettingsModal = () => {
+    setSettingsModalOpen(false);
+  };
+
+  // Handle room form input changes
+  const handleRoomFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setRoomForm(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  // Fetch all available subjects
+  const fetchSubjects = async () => {
+    try {
+      setLoadingSubjects(true);
+      const subjectsList = await subjectService.getAllSubjects();
+      setSubjects(subjectsList);
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      toast.error('Failed to load subjects');
+    } finally {
+      setLoadingSubjects(false);
+    }
+  };
+
+  // Handle room deletion
+  const handleDeleteRoom = async () => {
+    try {
+      setDeletingRoom(true);
+      await studyRoomService.deleteStudyRoom(roomId);
+      toast.success('Study room deleted successfully');
+      // Navigate back to rooms list
+      navigate('/dashboard/rooms');
+    } catch (err) {
+      console.error('Error deleting study room:', err);
+      toast.error(err.response?.data?.error || 'Failed to delete study room. Please try again.');
+      setDeletingRoom(false);
+    }
+  };
+
+  // Handle room settings form submission
+  const handleUpdateRoom = async (e) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!roomForm.name.trim()) {
+      toast.error('Room name is required');
+      return;
+    }
+    
+    try {
+      setUpdatingRoom(true);
+      
+      // Call API to update room
+      const updatedRoom = await studyRoomService.updateStudyRoom(roomId, roomForm);
+      
+      // Update local room data
+      setRoomData(prev => ({
+        ...prev,
+        name: updatedRoom.name,
+        description: updatedRoom.description,
+        image: updatedRoom.image,
+        isActive: updatedRoom.isActive,
+        subject: updatedRoom.subject
+      }));
+      
+      // Close modal and show success message
+      setSettingsModalOpen(false);
+      toast.success('Study room updated successfully');
+    } catch (err) {
+      console.error('Error updating study room:', err);
+      toast.error(err.response?.data?.error || 'Failed to update study room. Please try again.');
+    } finally {
+      setUpdatingRoom(false);
+    }
+  };
+
   // Render loading state
   if (loading) {
     return (
@@ -947,7 +1058,10 @@ const StudyRoomDetail = () => {
             <FaUserPlus title="Invite members" />
           </button>
           {roomData.isOwner && (
-            <button className="p-2 rounded-full bg-secondary-100 text-secondary-600 hover:bg-secondary-200 transition-colors">
+            <button 
+              onClick={openSettingsModal}
+              className="p-2 rounded-full bg-secondary-100 text-secondary-600 hover:bg-secondary-200 transition-colors"
+            >
               <FaCog title="Room settings" />
             </button>
           )}
@@ -1353,6 +1467,190 @@ const StudyRoomDetail = () => {
                   ))}
                 </ul>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Room Settings Modal */}
+      {settingsModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-lg font-medium">Room Settings</h3>
+              <button 
+                onClick={closeSettingsModal}
+                className="text-secondary-500 hover:text-secondary-700"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <div className="p-4 overflow-y-auto">
+              <form onSubmit={handleUpdateRoom}>
+                <div className="mb-4">
+                  <label htmlFor="name" className="block text-sm font-medium text-secondary-700 mb-1">
+                    Room Name*
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={roomForm.name}
+                    onChange={handleRoomFormChange}
+                    className="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    required
+                  />
+                </div>
+                
+                <div className="mb-4">
+                  <label htmlFor="description" className="block text-sm font-medium text-secondary-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={roomForm.description}
+                    onChange={handleRoomFormChange}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                
+                <div className="mb-4">
+                  <label htmlFor="subjectId" className="block text-sm font-medium text-secondary-700 mb-1">
+                    Subject
+                  </label>
+                  <select
+                    id="subjectId"
+                    name="subjectId"
+                    value={roomForm.subjectId}
+                    onChange={handleRoomFormChange}
+                    className="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    disabled={loadingSubjects}
+                  >
+                    <option value="">Select a subject</option>
+                    {subjects.map(subject => (
+                      <option key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingSubjects && (
+                    <div className="mt-1 text-xs text-secondary-500 flex items-center">
+                      <FaSpinner className="animate-spin mr-1" /> Loading subjects...
+                    </div>
+                  )}
+                </div>
+                
+                <div className="mb-4">
+                  <label htmlFor="image" className="block text-sm font-medium text-secondary-700 mb-1">
+                    Room Image URL
+                  </label>
+                  <input
+                    type="text"
+                    id="image"
+                    name="image"
+                    value={roomForm.image}
+                    onChange={handleRoomFormChange}
+                    className="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="https://example.com/image.jpg"
+                  />
+                  <p className="text-xs text-secondary-500 mt-1">
+                    Enter a URL for the room image, or leave blank for a default image
+                  </p>
+                </div>
+                
+                <div className="mb-6 flex items-center">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    name="isActive"
+                    checked={roomForm.isActive}
+                    onChange={handleRoomFormChange}
+                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
+                  />
+                  <label htmlFor="isActive" className="ml-2 block text-sm text-secondary-700">
+                    Room is active
+                  </label>
+                  <p className="text-xs text-secondary-500 ml-6">
+                    Inactive rooms won't appear in discovery
+                  </p>
+                </div>
+                
+                <div className="flex justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    Delete Room
+                  </button>
+                  
+                  <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={closeSettingsModal}
+                      className="px-4 py-2 bg-secondary-100 text-secondary-700 rounded-md hover:bg-secondary-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={updatingRoom}
+                      className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors flex items-center"
+                    >
+                      {updatingRoom ? (
+                        <>
+                          <FaSpinner className="animate-spin mr-2" />
+                          Updating...
+                        </>
+                      ) : (
+                        'Save Changes'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Room Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-medium text-red-600 mb-2">Delete Study Room</h3>
+            <p className="text-secondary-700 mb-6">
+              Are you sure you want to delete this study room? This action cannot be undone and will permanently delete:
+              <ul className="list-disc ml-6 mt-2">
+                <li>All room messages</li>
+                <li>All shared resources</li>
+                <li>All member associations</li>
+              </ul>
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 bg-secondary-100 text-secondary-700 rounded-md hover:bg-secondary-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteRoom}
+                disabled={deletingRoom}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center"
+              >
+                {deletingRoom ? (
+                  <>
+                    <FaSpinner className="animate-spin mr-2" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Room'
+                )}
+              </button>
             </div>
           </div>
         </div>

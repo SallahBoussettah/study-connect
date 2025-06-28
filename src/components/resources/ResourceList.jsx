@@ -175,8 +175,23 @@ const ResourceList = ({ resources = [], roomId, onResourceDeleted, onResourceEdi
 
   // Check if user can edit/delete a resource
   const canModifyResource = (resource) => {
-    // Only allow the uploader and admins to edit/delete resources
-    return resource.uploader?.id === currentUser?.id || currentUser?.role === 'admin' || isOwner;
+    if (!resource || !currentUser) return false;
+    
+    // Admin can modify any resource
+    if (currentUser.role === 'admin' || currentUser.role === 'teacher') return true;
+    
+    // Room owner can modify resources in their room
+    if (isOwner) return true;
+    
+    // Check all possible ways the uploader ID might be stored
+    const uploaderId = resource.uploaderId || resource.uploadedBy;
+    const uploaderObjectId = resource.uploader?.id;
+    
+    // User can modify their own resources - check all possible ID formats
+    return (
+      (uploaderId && String(uploaderId) === String(currentUser.id)) ||
+      (uploaderObjectId && String(uploaderObjectId) === String(currentUser.id))
+    );
   };
 
   // Format file size for display

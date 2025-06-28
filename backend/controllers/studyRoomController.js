@@ -1,5 +1,7 @@
 const { StudyRoom, User, Subject, Resource, UserStudyRoom, Event } = require('../models');
 const { Op } = require('sequelize');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * @desc    Get all study rooms
@@ -294,7 +296,7 @@ exports.createStudyRoom = async (req, res, next) => {
  */
 exports.updateStudyRoom = async (req, res, next) => {
   try {
-    const { name, description, image, isActive } = req.body;
+    const { name, description, image, isActive, subjectId } = req.body;
     const roomId = req.params.id;
     const userId = req.user.id;
 
@@ -319,20 +321,33 @@ exports.updateStudyRoom = async (req, res, next) => {
     // Update the room
     await room.update({
       name: name || room.name,
-      description: description || room.description,
-      image: image || room.image,
-      isActive: isActive !== undefined ? isActive : room.isActive
+      description: description !== undefined ? description : room.description,
+      image: image !== undefined ? image : room.image,
+      isActive: isActive !== undefined ? isActive : room.isActive,
+      subjectId: subjectId !== undefined ? subjectId : room.subjectId
+    });
+
+    // Get the updated room with subject information
+    const updatedRoom = await StudyRoom.findByPk(roomId, {
+      include: [
+        {
+          model: Subject,
+          as: 'subject',
+          attributes: ['id', 'name', 'category']
+        }
+      ]
     });
 
     res.status(200).json({
       success: true,
       data: {
-        id: room.id,
-        name: room.name,
-        description: room.description,
-        image: room.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(room.name)}&background=random`,
-        isActive: room.isActive,
-        updatedAt: room.updatedAt
+        id: updatedRoom.id,
+        name: updatedRoom.name,
+        description: updatedRoom.description,
+        image: updatedRoom.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(updatedRoom.name)}&background=random`,
+        isActive: updatedRoom.isActive,
+        subject: updatedRoom.subject,
+        updatedAt: updatedRoom.updatedAt
       }
     });
   } catch (error) {
@@ -369,7 +384,156 @@ exports.deleteStudyRoom = async (req, res, next) => {
       });
     }
 
-    // Delete the room (will cascade delete memberships, resources, events, etc.)
+    // Get all resources associated with the room
+    const resources = await Resource.findAll({
+      where: { roomId }
+    });
+
+    // Delete physical files associated with resources
+    const deletedDirs = new Set(); // Track directories we've deleted files from
+    
+    for (const resource of resources) {
+      if (resource.filePath) {
+        try {
+          // The filePath in the database should be the absolute path to the file
+          console.log(`Attempting to delete file: ${resource.filePath}`);
+          
+          let fileDeleted = false;
+          let deletedFromPath = '';
+          
+          if (fs.existsSync(resource.filePath)) {
+            fs.unlinkSync(resource.filePath);
+            console.log(`Successfully deleted file: ${resource.filePath}`);
+            fileDeleted = true;
+            deletedFromPath = resource.filePath;
+          } else {
+            console.log(`File not found at path stored in database: ${resource.filePath}`);
+            
+            // Get just the filename without the path
+            const fileName = path.basename(resource.filePath);
+            
+            // Extract userId and filename from the path if possible
+            // Path might be like 'uploads/userId/filename' or '/uploads/userId/filename'
+            const pathParts = resource.filePath.replace(/\\/g, '/').split('/');
+            
+            // Try alternative paths if the file wasn't found
+            const alternativePaths = [
+              // Try path relative to the backend directory
+              path.join(__dirname, '..', 'uploads', fileName),
+              // Try path relative to project root
+              path.join(__dirname, '../../uploads', fileName)
+            ];
+            
+            // If we can identify a userId in the path
+            if (pathParts.length > 2) {
+              const possibleUserId = pathParts[pathParts.length - 2];
+              // Check if it looks like a UUID
+              if (possibleUserId.includes('-') && possibleUserId.length > 30) {
+                // Add path with the extracted userId and filename
+                alternativePaths.push(path.join(__dirname, '../../uploads', possibleUserId, fileName));
+              }
+            }
+            
+            // Based on the screenshot, try the specific pattern
+            // Look for any directories in the uploads folder that match UUID pattern
+            try {
+              const uploadsDir = path.join(__dirname, '../../uploads');
+              if (fs.existsSync(uploadsDir)) {
+                const dirs = fs.readdirSync(uploadsDir);
+                for (const dir of dirs) {
+                  // Check if directory name looks like a UUID
+                  if (dir.includes('-') && dir.length > 30) {
+                    const possiblePath = path.join(uploadsDir, dir, fileName);
+                    if (!alternativePaths.includes(possiblePath)) {
+                      alternativePaths.push(possiblePath);
+                    }
+                  }
+                }
+              }
+            } catch (dirError) {
+              console.error('Error reading uploads directory:', dirError);
+            }
+            
+            for (const altPath of alternativePaths) {
+              if (fs.existsSync(altPath)) {
+                fs.unlinkSync(altPath);
+                console.log(`Successfully deleted file using alternative path: ${altPath}`);
+                fileDeleted = true;
+                deletedFromPath = altPath;
+                break;
+              }
+            }
+            
+            if (!fileDeleted) {
+              console.log(`File not found at any expected location for resource ${resource.id}: ${resource.filePath}`);
+            }
+          }
+          
+          // If we successfully deleted a file, add its directory to our tracking set
+          if (fileDeleted && deletedFromPath) {
+            const dirPath = path.dirname(deletedFromPath);
+            deletedDirs.add(dirPath);
+          }
+        } catch (fileError) {
+          console.error(`Error deleting file for resource ${resource.id}:`, fileError);
+          // Continue with deletion even if file removal fails
+        }
+      }
+    }
+    
+    // Clean up empty directories
+    try {
+      // Process each directory we've deleted files from
+      for (const dirPath of deletedDirs) {
+        if (fs.existsSync(dirPath)) {
+          // Check if directory is empty
+          const files = fs.readdirSync(dirPath);
+          if (files.length === 0) {
+            // Directory is empty, delete it
+            fs.rmdirSync(dirPath);
+            console.log(`Removed empty directory: ${dirPath}`);
+            
+            // Check if parent directory is now empty (for nested structures)
+            const parentDir = path.dirname(dirPath);
+            if (parentDir.includes('uploads')) {
+              try {
+                const parentFiles = fs.readdirSync(parentDir);
+                if (parentFiles.length === 0) {
+                  fs.rmdirSync(parentDir);
+                  console.log(`Removed empty parent directory: ${parentDir}`);
+                }
+              } catch (parentError) {
+                console.error(`Error checking/removing parent directory: ${parentError}`);
+              }
+            }
+          } else {
+            console.log(`Directory not empty, skipping removal: ${dirPath}`);
+          }
+        }
+      }
+    } catch (dirError) {
+      console.error('Error cleaning up empty directories:', dirError);
+    }
+
+    // Explicitly delete resources associated with the room
+    await Resource.destroy({
+      where: { roomId }
+    });
+
+    // Delete messages associated with the room (in case cascade isn't working)
+    const Message = require('../models').Message;
+    if (Message) {
+      await Message.destroy({
+        where: { roomId }
+      });
+    }
+
+    // Delete user-room associations
+    await UserStudyRoom.destroy({
+      where: { roomId }
+    });
+
+    // Delete the room
     await room.destroy();
 
     res.status(200).json({
