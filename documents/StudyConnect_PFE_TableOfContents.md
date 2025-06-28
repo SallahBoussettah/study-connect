@@ -129,27 +129,21 @@ CHAPITRE V : Implémentation	71
 
 CHAPITRE VI : Évaluation et perspectives	103
 1.	Introduction	104
-2.	Méthodologie d'évaluation	105
-    2.1. Tests techniques	106
-    2.2. Validation fonctionnelle	107
-    2.3. Évaluation utilisateur	108
-3.	Résultats des tests	109
-    3.1. Performance et scalabilité	109
-    3.2. Sécurité et fiabilité	110
-    3.3. Expérience utilisateur	111
-4.	Déploiement et mise en production	112
-    4.1. Infrastructure de déploiement	112
-    4.2. Stratégie de mise en production	113
-    4.3. Monitoring et maintenance	114
-5.	Analyse des résultats et impact	115
-    5.1. Atteinte des objectifs initiaux	115
-    5.2. Impact sur l'expérience d'apprentissage	116
-    5.3. Comparaison avec les solutions existantes	117
-6.	Perspectives d'évolution	118
-    6.1. Améliorations à court terme	118
-    6.2. Vision à long terme	119
-    6.3. Modèle de développement durable	120
-7.	Conclusion	121
+2.	Architecture Technique de l'Application	105
+    2.1. Frontend (Interface Utilisateur)	105
+    2.2. Backend (API Serveur)	106
+    2.3. Base de Données	107
+3.	Flux Fonctionnel Utilisateur	108
+4.	Gestion des Données et Suivi des Statuts	112
+    4.1. Organisation des données	113
+    4.2. Suivi des statuts	113
+    4.3. Traitement de feedback	114
+5.	Interface Utilisateur et Navigation	115
+    5.1. About Us	115
+    5.2. Contact Us	116
+    5.3. Profile	117
+6.	Limites Actuelles et Perspectives d'Amélioration	118
+7.	Conclusion	119
 
 Conclusion générale	122
 Références	124
