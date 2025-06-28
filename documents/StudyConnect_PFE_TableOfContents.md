@@ -127,12 +127,36 @@ CHAPITRE V : Implémentation	71
     7.3. Expansion du marché cible	101
 8.	Conclusion	102
 
-Conclusion générale	103
-Références	105
-Bibliographie	108
-Annexes	111
-    Annexe A: Spécifications détaillées	112
-    Annexe B: Diagrammes UML complets	116
-    Annexe C: Schéma de base de données	121
-    Annexe D: Guide d'installation	124
-    Annexe E: Manuel utilisateur	128 
+CHAPITRE VI : Évaluation et perspectives	103
+1.	Introduction	104
+2.	Méthodologie d'évaluation	105
+    2.1. Tests techniques	106
+    2.2. Validation fonctionnelle	107
+    2.3. Évaluation utilisateur	108
+3.	Résultats des tests	109
+    3.1. Performance et scalabilité	109
+    3.2. Sécurité et fiabilité	110
+    3.3. Expérience utilisateur	111
+4.	Déploiement et mise en production	112
+    4.1. Infrastructure de déploiement	112
+    4.2. Stratégie de mise en production	113
+    4.3. Monitoring et maintenance	114
+5.	Analyse des résultats et impact	115
+    5.1. Atteinte des objectifs initiaux	115
+    5.2. Impact sur l'expérience d'apprentissage	116
+    5.3. Comparaison avec les solutions existantes	117
+6.	Perspectives d'évolution	118
+    6.1. Améliorations à court terme	118
+    6.2. Vision à long terme	119
+    6.3. Modèle de développement durable	120
+7.	Conclusion	121
+
+Conclusion générale	122
+Références	124
+Bibliographie	127
+Annexes	130
+    Annexe A: Spécifications détaillées	131
+    Annexe B: Diagrammes UML complets	135
+    Annexe C: Schéma de base de données	140
+    Annexe D: Guide d'installation	143
+    Annexe E: Manuel utilisateur	147 

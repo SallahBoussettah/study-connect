@@ -1,244 +1,165 @@
-CHAPITRE V :
-Conception et méthodologie
+CHAPITRE VI :
+Implémentation et intégration
  
 1.	Introduction :
-Ce chapitre présente la conception et l’entraînement du modèle d’apprentissage automatique de Clarifyr, développé pour réduire les limites de l’API Google Fact Check. Après avoir collecté, nettoyé et vectorisé les données, nous avons traité le déséquilibre des classes avant de tester plusieurs modèles. Le choix final s’est porté sur la régression logistique, offrant un bon compromis entre simplicité, rapidité et précision.
-Cette solution complémentaire permet à Clarifyr de vérifier efficacement les informations même en l’absence de données externes, améliorant ainsi la fiabilité et l’expérience utilisateur.
-2.	Présentation générale de l’approche:
+Ce chapitre présente l’intégration de notre modèle de détection de fake news dans une application web accessible aux utilisateurs finaux. Après le développement du modèle, il a été essentiel de créer une interface intuitive permettant une vérification rapide des informations.
+Nous détaillons l’architecture de l’application, les technologies utilisées, ainsi que le parcours utilisateur, de la soumission de la requête à l’affichage des résultats, en insistant sur la communication entre les modules et l’intégration du modèle.
+L’interaction avec l’utilisateur via l’interface et le système de feedback est également abordée, soulignant l’amélioration continue de la précision du système. Enfin, les mesures de sécurité pour la protection des données et les limites actuelles du projet sont discutées.
+Ce chapitre illustre la transformation du prototype en un outil concret et fonctionnel, répondant aux enjeux de la lutte contre la désinformation en ligne.
+2.	Architecture Technique de l’Application :
 
-Figure 9: Fonctionnement de Clarifyr
-L’approche développée dans cette deuxième phase du projet Clarifyr repose sur un système hybride combinant une vérification externe via l’API Google Fact Check et une classification interne à l’aide d’un modèle d’apprentissage automatique. Cette dualité vise à pallier les limites rencontrées avec la seule API externe, dont la couverture ne permet pas toujours d’obtenir une réponse pertinente pour tous les articles soumis par les utilisateurs.
-Le fonctionnement de cette approche s’articule autour d’un suivi rigoureux des données via un champ de statut dans la base de données :
+L’application web a été conçue selon une architecture modulaire, permettant une séparation claire des responsabilités et facilitant la maintenance ainsi que les futures évolutions. Elle se compose principalement de trois parties :
+
+Figure 15: Architecture Technique
+
+
+
+1.	Frontend (Interface Utilisateur) :
+
+Cette couche est responsable de l’interface utilisateur. Elle permet la navigation fluide entre les pages, la saisie des textes à analyser, l’affichage des résultats et la collecte des retours. React.js a été choisi pour ses performances avec le DOM virtuel, ce qui rend l’application réactive et agréable à utiliser.
  
-2.1.	Soumission et enregistrement de l’information
-
-Lorsqu’un utilisateur soumet un article ou une information via l’interface de Clarifyr, cette entrée est immédiatement enregistrée dans la base de données avec un statut initial
-«pending» (en attente). Ce statut indique que l’information est en cours de traitement.
-2.2.	Première étape — Vérification par l’API Google Fact Check
-
-Le système récupère régulièrement les entrées avec le statut « pending » pour les envoyer à l’API Google Fact Check.
-Si l’API retourne des résultats pertinents, ceux-ci sont sauvegardés dans la base de données, et le statut de l’entrée est mis à jour pour refléter l’achèvement du traitement.
-Ces résultats sont ensuite transmis aux contrôleurs de l’application pour être affichés à l’utilisateur.
-2.3.	Deuxième étape — Classification via modèle d’apprentissage automatique
-
-Si l’API Google Fact Check ne fournit aucun résultat (l’article ou l’information n’est pas référencé), l’entrée est alors prétraitée (nettoyage, vectorisation) en utilisant la même logique qu’on a suivi pour préparer les données d’entrainement, puis l’envoyée au modèle interne de classification. Ce modèle, entraîné sur un corpus de données étiquetées, prédit si l’article est vrai, faux ou sarcastique.
-Les résultats de cette classification sont aussi sauvegardés dans la base de données, avec mise à jour du statut.
-2.4.	Affichage des résultats
-
-Enfin, les résultats — qu’ils proviennent de l’API externe ou du modèle interne — sont récupérés par les contrôleurs de l’application et présentés à l’utilisateur via l’interface Clarifyr.
-Cette approche en plusieurs étapes garantit un suivi complet et transparent des données, optimise la couverture de vérification en combinant plusieurs sources et méthodes, et offre à l’utilisateur une expérience fluide et fiable. Elle illustre l’importance d’un système orchestré, capable de gérer à la fois les réponses automatiques issues d’API tierces et les prédictions générées en interne.
- 
-2.	Technologies et outils utilisées :
-
-a)	Google Fact Check API :
-
-
-
-
-
-L'API de fact-checking de Google offre un accès à des résultats de vérification issus d'entités fiables. Cette API a été utilisée comme premier instrument de vérification dans le contexte de ce projet. Lorsque qu'un article est soumis, l'application consulte cette API pour déterminer si le contenu a déjà été validé. En l'absence de réponse, l'article est ensuite évalué par le modèle d'intelligence artificielle créé.
-b)	Logistic Regression :
-
-
-
-L'algorithme de régression logistique est une technique de classification supervisée employée pour estimer la probabilité d'appartenance à une catégorie spécifique. Elle excelle particulièrement dans les problématiques binaires, comme la distinction entre les articles Fake et Real dans notre exemple.
-Dans le cadre de notre projet, nous avons formé un modèle de régression logistique en utilisant un ensemble de données étiqueté, qui inclut des articles provenant de médias tels qu'Al Jazeera (authentiques), The Onion (ironiques) et divers sites de fausses nouvelles. Ce modèle est utilisé lorsque l'API Google Fact Check ne fournit pas de résultats.
- 
-c)	Google Colab :
-
-
-
-
-Google Colab, ou Google Colaboratory en entier, est une plateforme cloud sans frais basée sur Jupyter Notebook, donnant la possibilité aux utilisateurs de rédiger et d'exécuter du code Python directement depuis leur navigateur, sans besoin de configuration ou d'installation locale. Colab simplifie l'entraînement de modèles à grande échelle grâce à un accès aisé aux ressources GPU/TPU de Google. Pour ce projet, Google Colab a servi à prétraiter les données, à effectuer la vectorisation du texte et également pour l'entraînement et la validation du modèle destiné à détecter les fausses informations.
-d)	Laravel :
-
-
-Dans ce projet, Laravel, un framework PHP open source basé sur le modèle MVC, a été utilisé pour la partie backend. Cela a facilité la gestion des utilisateurs, des articles soumis, des analyses, des retours utilisateurs et des interactions avec la base de données. Laravel a aussi joué le rôle d'intermédiaire entre le frontend React et les modules d'analyse IA.
- 
-e)	MySQL :
-
-
-
-
-
-
-MySQL est un système de gestion de base de données relationnelle qui permet de sécuriser le stockage des informations des utilisateurs, des données des articles examinés et des retours d'expérience soumis. Il a été intégré à l'aide de Laravel afin d'assurer la cohérence et la pérennité des données.
-f)	React.js :
-
-
-
-
-
-
-
-
-React.js est une bibliothèque JavaScript qui simplifie la création d'interfaces utilisateur dynamiques. Dans ce projet, elle a été utilisée pour concevoir toutes les pages de l'application, y compris la page d'accueil, l'analyse d'article, l'historique des analyses, la gestion du profil et les pages d'information générale telles que « À propos » et « Contact ».
- 
-g)	Pandas et NumPy :
-
-
-
-
-Pandas est une librairie Python employée pour le traitement et l'examen des données en format tabulaire (DataFrames), tandis que NumPy facilite la manipulation performante des structures de données numériques. On a fait appel à ces bibliothèques pour l'importation, le nettoyage et la structuration des jeux de données avant de les passer au modèle.
-h)	Scikit-learn :
-
-
-
-Scikit-learn est une bibliothèque open source en Python dédiée à l'apprentissage automatique. Elle fournit une large gamme d’outils efficaces pour la classification, la régression, le clustering et la réduction de dimension. Dans ce projet, elle a été utilisée pour le prétraitement des données, la vectorisation du texte avec TfidfVectorizer, la création du pipeline de traitement, ainsi que pour entraîner et évaluer un modèle de régression logistique chargé de détecter les fausses nouvelles.
- 
-i)	Git et Github :
-
-
-
-Git est un instrument de contrôle de version employé pour enregistrer les modifications du code source durant l'ensemble du projet. GitHub, la plateforme liée, a servi à collaborer, partager les fichiers au sein de l'équipe et garder un enregistrement organisé de la progression du projet.
-j)	Xampp :
-
-
-
-
-XAMPP est une plateforme de serveur web local qui intègre Apache, MySQL, PHP et Perl. Il rend plus aisé le développement et l'expérimentation d'applications web localement avant leur mise en ligne sur un serveur éloigné. Dans le cadre de notre projet, nous avons eu recours à XAMPP pour l'hébergement et l'exécution du backend de l'application, ce qui a permis une gestion performante de la base de données et un traitement efficace des requêtes sur le serveur.
- 
-2.	Collecte et préparation des données :
-
-Le développement d’un modèle de détection de fausses informations repose avant tout sur la qualité des données utilisées pour l’entraîner. Dans le cadre de notre projet Clarifyr, nous avons dû rassembler un ensemble de textes représentatifs de trois catégories d’informations : les informations vraies, les fausses informations, et les contenus satiriques. Cette approche permet non seulement d'entraîner un modèle plus nuancé, mais aussi d'assurer que Clarifyr puisse différencier entre mensonge volontaire et humour volontairement absurde, un enjeu fondamental dans la lutte contre la désinformation.
-3.1.	Origine et justification du choix des sources :
-
-Pour garantir la qualité, la diversité et la pertinence des données utilisées dans l’entraînement du modèle de classification de Clarifyr, nous avons adopté une stratégie de sélection rigoureuse, fondée sur la nature des contenus et la fiabilité de leur provenance.
-
-L’objectif principal était de construire un ensemble de données équilibré, représentatif des trois grandes catégories ciblées : les informations vraies, les fausses nouvelles, et les contenus satiriques.
-
-	Informations réelles (classe : True):
-
-Ce données proviennent de sites d’actualités de renommée mondiale, notamment Al Jazeera[46], qui est réputé pour sa rigueur journalistique, de couverture globale et de neutralité éditoriale.
-Ce choix vise à ancrer l’apprentissage du modèle sur des textes structurés, bien sourcés, et exempts de biais sensationnalistes. Ces articles permettent au modèle de détecter les éléments caractéristiques d’un discours informatif factuel : ton neutre, présence de citations vérifiables, sources officielles, structures syntaxiques claires, etc.
-	Fausses nouvelles (classe : Fake)
-
-La classe Fake est alimenté par des données issues de bases de données open-source disponibles sur des sites spécialisés tels que Kaggle[47].
-
-Ces jeux de données ont été élaborés à partir de publications diffusées sur les réseaux sociaux ou des sites à faible crédibilité, contenant des affirmations délibérément fausses ou trompeuses.
-Ces contenus ont été conçus soit pour illustrer des cas typiques de désinformation, soit extraits de campagnes réelles de diffusion de fake news. Ils sont généralement marqués par
- 
-des titres accrocheurs, un vocabulaire émotionnellement chargé, une absence de vérifiabilité, voire des références à des "experts anonymes".
-
-En exposant le modèle à ces caractéristiques récurrentes, on lui permet d’apprendre à reconnaître les signaux faibles qui trahissent une information erronée, même lorsque celle- ci semble plausible à première vue.
-
-	Contenus satiriques (classe : Satire)
-
-La classe Satire repose principalement sur des articles issus de sites humoristiques tels que The Onion [48], connus pour leur ton ironique et leur traitement volontairement absurde de l’actualité. Bien que ces articles soient inventés, leur objectif n’est pas de désinformer, mais de divertir par l’exagération ou la parodie.
-
-Cependant, leur forme imite souvent celle d’un article d’actualité légitime (titres sérieux, structures rédactionnelles classiques), ce qui les rend particulièrement complexes à distinguer automatiquement des vraies ou fausses informations.
-Inclure cette catégorie est donc essentiel pour éviter que notre modèle ne les classe à tort comme des articles « vrais » ou « faux », et pour renforcer sa capacité à nuancer son interprétation selon le contexte.
-Ce choix stratégique de sources permet non seulement de couvrir un spectre large des types de contenus circulant en ligne, mais aussi de renforcer la robustesse et la capacité de généralisation du modèle. Il s'agit d'une approche stratégique pour entraîner un modèle qui, au-delà d’une simple détection binaire, est capable de comprendre l’intention sous-jacente du contenu : informer, manipuler ou divertir.
-
-Cette démarche garantit également que Clarifyr ne se contente pas d’appliquer des règles superficielles de classification, mais développe une compréhension plus fine des dynamiques narratives et stylistiques propres à chaque type de contenu.
-3.2.	Description du jeu de données utilisé :
-
-Pour entraîner notre modèle de classification de textes, nous avons constitué un jeu de données en combinant deux méthodes complémentaires de collecte : le scraping personnalisé et le téléchargement de jeux de données publics.
-	Scraping personnalisé :
-Le Web scraping consiste à extraire automatiquement des données depuis des pages web en simulant la navigation humaine. À l’aide de scripts Python, nous avons pu collecter des contenus
- 
-textuels à partir de sites ciblés pour leur appartenance à des catégories bien définies.
-
-
-
-
-Nous avons notamment ciblé :
-•	The Onion [48], un site satirique reconnu pour ses articles humoristiques et volontairement absurdes, afin d’alimenter la classe satirical.
-•	Al Jazeera [46] , un média d’information international réputé pour son sérieux, afin de constituer la classe real.
-
-Pour ce faire, nous avons utilisé un ensemble d’outils Python :
-
-•	requests pour envoyer des requêtes HTTP et récupérer les pages HTML,
-•	BeautifulSoup pour parser et extraire les données textuelles pertinentes,
-•	Selenium pour les pages dynamiques nécessitant une interaction avec le JavaScript.
-Les scripts développés ont permis de récupérer automatiquement les titres et le corps des articles, en les nettoyant des éléments superflus (menus, publicités, scripts, etc.) afin de conserver uniquement le contenu rédactionnel.
-
-	Téléchargement de jeux de données publics :
-
-Nous avons également enrichi notre corpus avec des jeux de données open-source disponibles sur Kaggle, spécifiquement ceux relatifs à la détection de fausses informations. Ces jeux contenaient déjà une annotation (label) précisant si un article était fake ou real, facilitant ainsi leur intégration dans notre structure.
-
-Au terme de la collecte, nous avons constitué un corpus contenant environ 24 000 articles, répartis entre les trois classes (real, fake, satirical).
-
-Chaque article est représenté sous la forme d’un dictionnaire Python avec au minimum deux clés :
-
-•	text : le contenu brut de l’article,
-•	label : une étiquette catégorisant l’article selon sa nature.
-
-En effet, les données brutes collectées présentaient plusieurs imperfections :
-
-•	Présence de caractères spéciaux corrompus (souvent liés à l’encodage des caractères),
-•	Balises HTML résiduelles provenant des contenus web extraits,
-•	Phrases incomplètes ou répétitives,
- 
-Une phase de prétraitement a donc été mise en place pour préparer les textes à la vectorisation et à l'entraînement du modèle.
-3.3.	Nettoyage et prétraitement des données :
-
-Figure 10: Processus de transformation des données
-Lors de l’analyse exploratoire de notre jeu de données, nous avons remarqué un déséquilibre significatif entre les classes. En particulier, la classe satirique était nettement surreprésentée par rapport aux classes réelle et fausse. Ce type de déséquilibre peut affecter la performance d’un modèle de classification : il risque d’apprendre à prédire la classe majoritaire par défaut, au détriment des classes minoritaires, pourtant tout aussi importantes dans notre cas d’usage.
-Afin de garantir une répartition équitable des exemples et offrir à chaque classe une chance égale d’être correctement apprise par le modèle, nous avons appliqué une stratégie d’équilibrage des classes.
-Plus précisément, nous avons opté pour une méthode d’under-sampling de la classe majoritaire, consistant à réduire le nombre d'exemples dans cette classe pour le ramener au niveau des classes minoritaires. Cette approche, bien que réduisant légèrement la quantité totale de données, permet d’éviter un apprentissage biaisé et améliore considérablement la capacité du modèle à généraliser.
-Ce rééquilibrage a été appliqué avant la phase de vectorisation, afin que le modèle reçoive en entrée des données bien réparties. Grâce à cette étape, nous avons obtenu un jeu de données final équilibre entre les trois catégories (real, fake, satirical), ce qui a contribué à une meilleure robustesse du modèle, notamment dans la détection des cas ambigus.
-Nous avons ensuite visualisé cette répartition équilibrée à l’aide d’un diagramme circulaire, permettant de vérifier visuellement que chaque classe était représentée de manière équitable.
- 
- 	 
-
- 
-Figure 11: Répartition initiale des classes
- 
-Figure 12: Répartition des classes après équilibrage
  
 
+Figure 16:Page de destination
 
-•	Nettoyage textuel :
 
-Après l'étape d'équilibrage des classes, nous avons procédé à un nettoyage approfondi du contenu textuel pour préparer les données à l’entraînement du modèle. Cette phase est cruciale, car les algorithmes d'apprentissage automatique sont très sensibles à la qualité du texte d’entrée.
-1.	Uniformisation de la casse :
-L’ensemble du texte a été converti en minuscules. Cette étape permet d’éviter qu’un même mot, écrit différemment (par exemple “Gouvernement” vs “gouvernement”), ne soit traité comme deux entités distinctes par le modèle.
-2.	Nettoyage de la ponctuation et des caractères spéciaux :
-Nous avons supprimé tous les caractères spéciaux non utiles à l’analyse (tels que les symboles @, #, etc.), sauf ceux qui peuvent porter une information syntaxique utile à la compréhension (comme les points ou les virgules, selon le cas).
-3.	Élimination des doublons :
-Pour éviter les biais liés à la répétition d’un même texte, nous avons retiré les doublons exacts du corpus. Cette réduction de la redondance permet de renforcer la diversité des exemples présentés au modèle.
+2.	Backend (API Serveur) :
+
+Implémenté en Laravel, le backend joue un rôle central dans la gestion des requêtes, la communication avec le modèle de machine learning, ainsi que l’interaction avec la base
+de données. Il reçoit les textes soumis, lance la vérification via le modèle ou l’API Google Fact Check, stocke les résultats et met à jour le statut des requêtes. Le backend assure
+également la sécurité, notamment via l’authentification des utilisateurs.
+3.	Base de Données :
+Une base MySQL est utilisée pour stocker plusieurs types de données : les utilisateurs, les articles soumis, les résultats d’analyse, ainsi que les retours utilisateurs. Cette organisation permet de conserver un historique et d’enrichir progressivement la base de données pour améliorer les performances du modèle lors des réentraînements futurs.
+
+Figure 17:Database MySQL
  
-4.	Correction des erreurs d'encodage :
-Certains textes présentaient des caractères corrompus ou mal encodés (comme des “â€”” à la place des tirets, ou des “Ã©” pour “é”). Nous avons nettoyé ces anomalies pour restaurer une lecture correcte du texte.
-•	Vectorisation :
+Ces composants interagissent via des API REST, garantissant une communication efficace et standardisée. Cette architecture a été choisie pour sa robustesse, sa flexibilité, et la possibilité d’intégrer aisément de nouveaux modules (par exemple, l’ajout futur d’autres modèles ou services de vérification).
+3.	Flux Fonctionnel Utilisateur :
+Le parcours utilisateur est structuré en plusieurs étapes clés :
 
-Pour transformer le texte brut en une représentation exploitable par des modèles d’apprentissage automatique, nous avons opté pour une approche simple mais efficace : la vectorisation via TF-IDF (Term Frequence – Inverse Document Frequency) à l’aide de la bibliothèque Scikit-learn.
+•	Inscription et Authentification :
+L’utilisateur commence par créer un compte via la page d’inscription ou se connecte s’il possède déjà un compte. Ces pages utilisent le système d’authentification Laravel, sécurisé et efficace.
 
-L'application du TfidfVectorizer transforme chaque document (article) en un vecteur numérique de grande dimension, où chaque dimension correspond à un mot du vocabulaire total. La valeur associée à chaque mot dans le vecteur dépend :
-•	Sa fréquence dans le document(TF),
-•	Pondérée par sa rareté dans l’ensemble du corpus (IDF).
-Le produit final de cette opération est une matrice creuse (sparse matrix), c’est-à-dire une matrice majoritairement remplie de zéros. En effet, chaque article ne contient qu’une fraction du vocabulaire total, ce qui rend cette représentation très économe en mémoire.
 
-Ce choix de transformation a été motivé par :
-•	Faible complexité computationnelle : TF-IDF est rapide à exécuter, ce qui est essentiel pour un prototypage agile et un déploiement en environnement web.
-•	Interprétabilité élevée : Contrairement aux embeddings denses, les vecteurs TF-IDF permettent d’identifier facilement quels mots sont les plus influents dans une prédiction.
-•	Compatibilité avec les modèles utilisés : Cette représentation s’intègre naturellement avec des algorithmes linéaires tels que la régression logistique, qui a été retenue pour sa performance et sa simplicité.
-Cette étape de préparation des données fut essentielle pour la réussite du projet. Elle a permis non seulement de rendre les données exploitables par des algorithmes d'apprentissage automatique, mais aussi de réduire considérablement le bruit et les biais potentiels.
-Elle constitue le socle sur lequel repose la fiabilité du modèle que nous avons entraîné. Un jeu de données bien préparé, équilibré et cohérent garantit de meilleures performances de classification, ainsi qu'une meilleure généralisation en conditions réelles.
+Figure 18:Page de Login
+
+•	Accès au Dashboard :
+Après connexion, l’utilisateur est dirigé vers son Dashboard. Ce tableau de bord affiche un historique des analyses passées, incluant la date, le texte soumis, et le résultat obtenu. Si l’utilisateur n’a pas encore d’analyse, une page d’information expliquant l’utilisation de l’application est affichée.
  
-3.	Entraînement et évaluation des modèles :
-Pour évaluer la performance de notre système de classification, nous avons entraîné plusieurs modèles d’apprentissage supervisé sur le même jeu de données prétraité : la régression logistique, le Support Vector Machine (SVM), le Naive Bayes multinomial, et le Random Forest. Cette diversité de modèles nous a permis d’obtenir un aperçu comparatif sur leurs capacités à détecter les fausses, vraies, et satiriques informations.
-Les résultats des différentes évaluations sont résumés dans le tableau suivant, où nous présentons les mesures classiques de précision, rappel, et F1-score pour chaque classe ainsi que l’exactitude globale
-
-
-Figure 13: Evaluation des modeles
-Les résultats obtenus par les différents modèles sont très proches les uns des autres, avec des précisions et rappels généralement supérieurs à 97%. Malgré cette similarité, nous avons choisi de retenir la régression logistique pour notre système de classification. Ce choix s’explique par plusieurs raisons essentielles : tout d’abord, la régression logistique présente une excellente interprétabilité, ce qui facilite la compréhension des décisions du modèle, un aspect crucial dans le contexte sensible de la vérification d’informations. Ensuite, elle offre une robustesse face aux variations des données et des paramètres, ce qui garantit une performance stable dans différents scénarios d’utilisation. Enfin, sa simplicité computationnelle permet une intégration efficace et rapide dans notre pipeline, favorisant ainsi une réponse rapide à l’utilisateur. Ces éléments combinés font de la régression logistique le meilleur compromis entre performance, fiabilité et facilité d’implémentation pour notre projet.
-4.	Intégration dans Clarifyr :
-L’intégration du modèle de classification au sein de Clarifyr a nécessité la mise en place d’un pipeline backend structuré et optimisé afin d’assurer une interaction fluide entre la soumission des données par l’utilisateur et la génération de la prédiction. Dès qu’un utilisateur soumet un texte à vérifier, celui-ci est stocké dans la base de données avec un statut initial « pending », indiquant que la vérification est en cours. Un processus automatisé interroge ensuite en premier lieu l’API Google
  
-Fact Check pour tenter de récupérer une correspondance dans les bases officielles de vérification. Cette étape permet de capitaliser sur des sources externes reconnues pour leur fiabilité.
-Si aucune correspondance n’est trouvée, le texte est alors prétraité : suppression des balises HTML, nettoyage des caractères spéciaux, conversion en minuscules, puis vectorisation avec TfidfVectorizer pour transformer le texte en une représentation numérique exploitable par le modèle. Cette représentation est ensuite envoyée à notre modèle de régression logistique, qui prédit la classe la plus probable (vrai, faux, satirique). Le résultat est sauvegardé dans la base avec une mise à jour du statut (exemple : « verified » ou « classified »), assurant la traçabilité des traitements effectués.
-Enfin, la prédiction est retournée à l’interface utilisateur via un ensemble de contrôleurs API qui gèrent la communication entre la base de données et le front-end. Ce système permet non seulement de répondre rapidement aux demandes, mais aussi d’enregistrer chaque étape pour des besoins d’audit, d’amélioration continue et d’analyse statistique.
-Un autre aspect clé de cette intégration est la gestion du feedback utilisateur. Lorsque la classification proposée semble erronée, l’utilisateur peut signaler son insatisfaction. Ces retours sont collectés et stockés afin d’être exploités ultérieurement pour entraîner à nouveau le modèle, garantissant une amélioration progressive et une meilleure adaptation aux évolutions des discours et des formes de désinformation.
-Le diagramme de classes suivant illustre les principales entités de l'application, notamment les articles soumis, les résultats issus de la vérification, les utilisateurs, et les composants ML :
+Figure 19: Dashboard
 
-Figure 14: Diagramme de Class
+•	Soumission d’Analyse (Page Analyse) :
+L’utilisateur peut soumettre un texte ou un article à analyser via la page dédiée. La saisie se fait dans un formulaire simple. Lors de la validation, la requête est envoyée au backend.
+
+
+Figure 20: Page d'analyse
  
-5.	Limites et améliorations possibles :
-Malgré l’efficacité démontrée par le modèle de régression logistique et son intégration fonctionnelle dans Clarifyr, plusieurs limites inhérentes doivent être soulignées. Premièrement, la diversité linguistique reste un défi important. Les données utilisées proviennent majoritairement de sources anglophones et francophones, ce qui limite la capacité du modèle à traiter correctement les textes en arabe dialectal, amazigh ou autres langues présentes dans le contexte marocain. Ce point constitue un axe d’amélioration primordial pour garantir une couverture plus large et une pertinence accrue dans les environnements multilingues.
-Deuxièmement, la détection des contenus satiriques ou sarcastiques demeure un problème complexe. Ces types de textes jouent souvent sur l’ambiguïté, l’ironie ou l’exagération, rendant leur classification plus délicate. Bien que notre modèle intègre une catégorie spécifique pour le contenu satirique, il peut encore y avoir des confusions avec les vraies ou fausses nouvelles, particulièrement lorsque le contexte manque ou est mal interprété.
-Par ailleurs, l’approche actuelle repose sur un modèle statique entraîné sur un jeu de données figé. Or, la nature de la désinformation évolue rapidement, avec l’apparition régulière de nouveaux schémas, langages et tactiques pour manipuler l’opinion publique. La mise en place d’un mécanisme de réentraînement dynamique, basé sur l’exploitation des retours utilisateurs et l’intégration continue de nouvelles données, représente une piste majeure d’amélioration. Cela garantirait que Clarifyr reste à jour, pertinent et capable d’adapter ses prédictions à un environnement médiatique en constante mutation.
-Enfin, des optimisations techniques comme l’intégration de modèles plus complexes (ex : transformers ou réseaux de neurones profonds) pourraient à terme améliorer la précision, notamment sur des cas ambigus. Cependant, ce choix doit être pondéré face à la complexité, le temps de calcul et la nécessité de transparence dans les décisions du modèle, aspects cruciaux dans un outil de fact-checking.
-6.	Conclusion :
-Ce chapitre décrit la conception et l’intégration du modèle de classification de Clarifyr, qui combine l’API Google Fact Check avec un modèle interne de régression logistique. Cette approche permet une vérification efficace et rapide des informations. Le modèle choisi allie simplicité et performance, garantissant une gestion fluide des requêtes. Enfin, des perspectives d’évolution, comme la prise en charge multilingue et l’amélioration continue, sont envisagées pour renforcer l’efficacité du système face à la désinformation.
+•	Traitement côté backend :
+Le backend enregistre la demande, lance la vérification via l’API Google Fact Check. Si aucune donnée n’est retournée, il applique le modèle ML pour classifier le texte.
+
+
+Figure 21: Structure de fonctionnement
+
+•	Affichage des résultats :
+Les résultats sont affichés à l’utilisateur selon la méthode d’analyse utilisée : si l’API Google Fact Check fournit une réponse, celle-ci est présentée sous forme structurée. Sinon, le modèle de régression logistique prend le relais et affiche une classification (vrai, faux ou satirique) en fonction du contenu analysé.
+ 
+ 
+
+Figure 22: Résultat obtenu par Google Fact Check
+
+
+Figure 23: Résultat obtenu par le model
+
+•	Feedback utilisateur :
+L’utilisateur peut valider ou contester le résultat via une interface simple ; ce retour est enregistré dans la base de données et sera utilisé ultérieurement pour réentraîner le modèle lors d’une session d’apprentissage hors ligne, dans le but d’améliorer sa précision.
+ 
+ 
+
+Figure 24: System de feedback
+4.	Gestion des Données et Suivi des Statuts :
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Figure 25: Structure de la Base de Données de l'Application
+ 
+4.1.	Organisation des données :
+
+L’application s’appuie sur une base de données MySQL structurée autour de plusieurs tables principales. La table users contient les informations relatives à chaque utilisateur inscrit. La table articles soumis enregistre les textes ou liens d’articles que chaque utilisateur soumet pour analyse. Ces deux tables sont liées par une relation permettant d’assurer un historique personnalisé des demandes d’analyse.
+Les résultats des analyses sont stockés dans une table dédiée model_feedback, qui associe chaque article à son verdict, obtenu soit via l’API Google Fact Check, soit par le modèle de machine learning. Enfin, une table retours utilisateurs conserve les feedbacks transmis par les utilisateurs pour signaler d’éventuelles erreurs ou désaccords avec les résultats fournis.
+4.2.	Suivi des statuts :
+
+Chaque article soumis pour analyse est enregistré dans la base de données avec un statut indiquant son état de traitement. Deux statuts principaux sont utilisés : « pending » et « verified ». Lorsqu’un article est soumis, il reçoit d’abord le statut « pending », signifiant qu’il est en attente d’analyse. Le système commence alors par interroger l’API Google Fact Check. Si aucune information pertinente n’est trouvée, l’article est ensuite analysé par le modèle de machine learning. Une fois le traitement terminé, quel que soit le chemin suivi (API ou modèle), le statut est mis à jour en « verified ». Ce mécanisme de suivi permet d’éviter les traitements redondants, d’assurer une traçabilité claire des analyses effectuées, et de simplifier la gestion et la maintenance du système.
+4.3.	Traitement de feedback :
+
+Les feedbacks utilisateurs jouent un rôle clé dans l’amélioration continue du système. Lorsqu’un utilisateur soumet un retour, celui-ci est enregistré et pris en compte dans les futures phases de réentraînement du modèle de machine learning. Cette boucle de rétroaction permet de corriger les erreurs détectées, d’affiner la précision du modèle, et d’enrichir la base de données avec des cas d’usage réels, renforçant ainsi la robustesse et la pertinence de l’application sur le long terme.
+5.	Gestion des Données et Suivi des Statuts :
+
+Dans le pipeline de vérification, le modèle de machine learning intervient comme solution de secours lorsque l’API Google Fact Check ne fournit aucun résultat pertinent. Une fois un article soumis, un processus de prétraitement automatique est lancé : le texte est nettoyé (suppression des caractères
+spéciaux, mise en minuscules, tokenisation), puis vectorisé à l’aide de techniques de transformation textuelle adaptées (comme le TF-IDF), afin d’être compatible avec le modèle. Le système repose sur une régression logistique, un algorithme de classification supervisée reconnu pour sa simplicité, sa rapidité et son efficacité sur des données textuelles linéairement séparables. En se basant sur les caractéristiques
+ statistiques du texte, le modèle prédit une probabilité associée à chaque classe (vrai ou faux), permettant	
+ 
+ainsi de classer le contenu selon sa véracité présumée. Le résultat de cette analyse est ensuite renvoyé au backend, qui le transmet à l’interface utilisateur pour affichage. Par ailleurs, le backend est équipé de mécanismes de gestion des erreurs : en cas d’échec de l’appel à l’API ou de problème dans le pipeline, le
+système bascule automatiquement vers le modèle ML afin de garantir la continuité du service et la fiabilité de l’expérience utilisateur.
+
+6.	Interface Utilisateur et Navigation :
+
+L’interface de l’application web a été conçue pour offrir une navigation fluide et intuitive, centrée sur l’utilisateur. Les autres rois pages principales qui sont accessibles via le menu sont :
+	About Us:
+
+Figure 26: Page 'About Us'
+Cette page présente l’objectif de l’application, la démarche suivie, ainsi que les membres de l’équipe de développement. Elle permet à l’utilisateur de comprendre le fonctionnement global du système et de renforcer la transparence du projet.
+ 
+	Contact Us:
+
+Figure 27:Page 'Contact US'
+Cette page contient un formulaire permettant aux utilisateurs de poser des questions, signaler des problèmes ou proposer des suggestions. Les messages soumis via ce formulaire sont automatiquement redirigés vers une adresse e-mail configurée à l'aide de MailTrap, facilitant ainsi la gestion et le suivi des retours utilisateurs.
+	Profile:
+
+Figure 28: Page 'Profile'
+ 
+Chaque utilisateur dispose d’un espace personnel accessible via la page profil. Cet espace permet de consulter et gérer les informations liées au compte.
+
+
+	La navigation entre les différentes pages est assurée par un système de routes Laravel, associé à des contrôleurs qui gèrent les droits d’accès et l’affichage dynamique du contenu. Cette architecture permet de garantir à la fois sécurité, performance et modularité.
+Enfin, une attention particulière a été portée à la simplicité du design. L’interface est volontairement épurée, avec des éléments clairs et accessibles, dans le but d’être utilisable par tous les profils d’utilisateurs, y compris les moins techniques. Cette approche vise à réduire la charge cognitive, à améliorer la lisibilité du contenu, et à rendre l’expérience globale plus agréable et efficace.
+
+
+7.	Limites Actuelles et Perspectives d’Amélioration :
+
+Malgré le bon fonctionnement général de l’application, certaines limites techniques et fonctionnelles ont été identifiées au cours du développement et des phases de test. L’un des premiers axes d’amélioration concerne les temps de réponse, notamment ceux liés à l’appel à l’API Google Fact Check. Étant donné que cette API repose sur un service externe, elle peut parfois engendrer des délais ou des indisponibilités momentanées, ce qui affecte la fluidité de l’expérience utilisateur. Pour pallier cela, nous envisageons soit une optimisation de la gestion des appels, soit l’implémentation d’un mécanisme de cache ou de priorisation locale.
+En parallèle, l’aspect expérience utilisateur (UX) constitue un autre domaine clé d’amélioration. À ce stade, l’interface reste volontairement simple, mais l’ajout de notifications dynamiques, de messages d’erreur clairs, ou encore d’un support multilingue figure parmi les priorités. En particulier, intégrer l’arabe standard ainsi que la langue marocaine (darija), aussi bien dans l’interface que dans le corpus d’entraînement du modèle, permettrait à l’application de mieux s’adapter à son contexte d’utilisation et de répondre aux besoins d’un public plus large et plus représentatif.
+Concernant la composante machine learning, le modèle actuel — une régression logistique — a été efficace pour une première version, mais montre ses limites en termes de capacité d’apprentissage évolutif. C’est pourquoi une évolution vers un modèle de deep learning est envisagée. Contrairement aux approches classiques, un tel modèle pourrait tirer parti des retours utilisateurs pour affiner ses prédictions de manière autonome, sans nécessiter un réentraînement manuel complet. Cela ouvrirait la voie à un système plus intelligent, plus réactif et plus personnalisable à long terme.
+ 
+Enfin, l’intégration d’un tableau de bord d’administration constitue une perspective concrète à court terme. Ce Dashboard permettrait aux administrateurs de suivre les activités des utilisateurs, de gérer les articles soumis, de consulter les statistiques globales et de surveiller les retours. Il s’agit d’un outil essentiel pour assurer le bon fonctionnement de la plateforme, en renforçant à la fois la transparence, la traçabilité et la gestion opérationnelle du système.
+En somme, ces pistes d’amélioration visent à rendre l’application non seulement plus robuste et performante, mais également plus accessible, évolutive et adaptée aux besoins réels des utilisateurs dans un contexte local et multilingue.
+
+
+8.	Conclusion :
+
+Ce chapitre a présenté la concrétisation technique du projet Clarifyr, depuis l’architecture
+générale jusqu’à l’intégration des différents composants : API externe, modèle d’apprentissage automatique, interface utilisateur et base de données. Grâce à l’usage combiné de technologies modernes telles que Laravel, React.js, MySQL et Google Colab, nous avons pu mettre en place une solution web complète, interactive et évolutive. L’approche hybride implémentée garantit une couverture optimale de la vérification, tout en offrant une expérience utilisateur fluide. Cette base solide ouvre la voie à de futures améliorations, notamment l’enrichissement des sources de données et l’intégration de modèles plus avancés.
