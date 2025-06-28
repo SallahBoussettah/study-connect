@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaPlay, FaPause, FaRedo, FaCog, FaCheck, FaHistory, FaChartBar } from 'react-icons/fa';
+import { FaPlay, FaPause, FaRedo, FaCog, FaCheck, FaHistory, FaChartBar, FaTrash, FaEdit } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'react-toastify';
+import * as studyTaskService from '../../services/studyTaskService';
 
 const StudyTimer = () => {
   const { currentUser } = useAuth();
@@ -11,6 +13,8 @@ const StudyTimer = () => {
   const [cycles, setCycles] = useState(0);
   const [sessionHistory, setSessionHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [taskStats, setTaskStats] = useState(null);
   
   // Timer settings
   const [settings, setSettings] = useState({
@@ -26,9 +30,55 @@ const StudyTimer = () => {
   // Current task
   const [currentTask, setCurrentTask] = useState('');
   const [taskList, setTaskList] = useState([]);
+  const [editingTaskId, setEditingTaskId] = useState(null);
   
   const timerRef = useRef(null);
   const audioRef = useRef(null);
+  
+  // Fetch tasks on component mount
+  useEffect(() => {
+    fetchTasks();
+    fetchTaskStats();
+  }, []);
+  
+  // Fetch tasks from the API
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      const response = await studyTaskService.getUserTasks();
+      if (response.success) {
+        setTaskList(response.data.map(task => ({
+          id: task.id,
+          text: task.title,
+          description: task.description,
+          completed: task.completed,
+          dueDate: task.dueDate,
+          priority: task.priority,
+          estimatedTime: task.estimatedTime,
+          actualTime: task.actualTime
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to fetch tasks:', error);
+      toast.error('Failed to load tasks');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Fetch task statistics
+  const fetchTaskStats = async () => {
+    try {
+      const response = await studyTaskService.getTaskStats();
+      if (response.success) {
+        setTaskStats(response.data);
+        // Update cycles based on completed tasks
+        setCycles(response.data.completedTasks);
+      }
+    } catch (error) {
+      console.error('Failed to fetch task statistics:', error);
+    }
+  };
   
   // Set timer based on mode
   useEffect(() => {
@@ -127,7 +177,7 @@ const StudyTimer = () => {
     }
   };
   
-  const handleTimerComplete = () => {
+  const handleTimerComplete = async () => {
     // Record completed pomodoro
     if (timerMode === 'pomodoro') {
       const newCycles = cycles + 1;
@@ -144,8 +194,34 @@ const StudyTimer = () => {
       
       // Add task to completed list if it exists
       if (currentTask) {
-        setTaskList(prev => [...prev, { id: Date.now(), text: currentTask, completed: true }]);
-        setCurrentTask('');
+        try {
+          // Create a new task in the database
+          const response = await studyTaskService.createTask({
+            title: currentTask,
+            completed: true,
+            actualTime: settings.pomodoro
+          });
+          
+          if (response.success) {
+            setTaskList(prev => [...prev, {
+              id: response.data.id,
+              text: currentTask,
+              completed: true,
+              actualTime: settings.pomodoro
+            }]);
+            setCurrentTask('');
+            
+            // Refresh task stats
+            fetchTaskStats();
+          }
+        } catch (error) {
+          console.error('Failed to save completed task:', error);
+          toast.error('Failed to save task');
+          
+          // Still add to local list even if API fails
+          setTaskList(prev => [...prev, { id: Date.now(), text: currentTask, completed: true }]);
+          setCurrentTask('');
+        }
       }
       
       // Determine next break type
@@ -177,14 +253,85 @@ const StudyTimer = () => {
     }));
   };
   
-  const handleTaskSubmit = (e) => {
+  const handleTaskSubmit = async (e) => {
     e.preventDefault();
     if (!currentTask.trim()) return;
     
-    // Only add to task list if timer is not active
-    if (!isActive && timerMode === 'pomodoro') {
-      setTaskList(prev => [...prev, { id: Date.now(), text: currentTask, completed: false }]);
+    try {
+      if (editingTaskId) {
+        // Update existing task
+        const response = await studyTaskService.updateTask(editingTaskId, {
+          title: currentTask
+        });
+        
+        if (response.success) {
+          setTaskList(prev => prev.map(task => 
+            task.id === editingTaskId ? { ...task, text: currentTask } : task
+          ));
+          toast.success('Task updated successfully');
+        }
+        
+        setEditingTaskId(null);
+      } else {
+        // Create new task
+        const response = await studyTaskService.createTask({
+          title: currentTask,
+          completed: false
+        });
+        
+        if (response.success) {
+          setTaskList(prev => [...prev, {
+            id: response.data.id,
+            text: currentTask,
+            completed: false
+          }]);
+          toast.success('Task created successfully');
+        }
+      }
+      
       setCurrentTask('');
+      fetchTaskStats();
+    } catch (error) {
+      console.error('Failed to save task:', error);
+      toast.error('Failed to save task');
+    }
+  };
+  
+  const handleDeleteTask = async (taskId) => {
+    try {
+      const response = await studyTaskService.deleteTask(taskId);
+      
+      if (response.success) {
+        setTaskList(prev => prev.filter(task => task.id !== taskId));
+        toast.success('Task deleted successfully');
+        fetchTaskStats();
+      }
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+      toast.error('Failed to delete task');
+    }
+  };
+  
+  const handleEditTask = (task) => {
+    setCurrentTask(task.text);
+    setEditingTaskId(task.id);
+  };
+  
+  const handleToggleTaskCompletion = async (taskId, currentStatus) => {
+    try {
+      const response = await studyTaskService.updateTask(taskId, {
+        completed: !currentStatus
+      });
+      
+      if (response.success) {
+        setTaskList(prev => prev.map(task => 
+          task.id === taskId ? { ...task, completed: !task.completed } : task
+        ));
+        fetchTaskStats();
+      }
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      toast.error('Failed to update task');
     }
   };
   
@@ -315,28 +462,85 @@ const StudyTimer = () => {
             </div>
             
             {/* Current Task */}
-            {timerMode === 'pomodoro' && (
-              <div className="mb-6">
-                <h3 className="text-lg font-medium text-secondary-900 mb-2">Current Task</h3>
-                <form onSubmit={handleTaskSubmit} className="flex">
-                  <input
-                    type="text"
-                    value={currentTask}
-                    onChange={(e) => setCurrentTask(e.target.value)}
-                    placeholder="What are you working on?"
-                    className="flex-grow px-4 py-2 border border-secondary-300 rounded-l-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    disabled={isActive && timerMode === 'pomodoro'}
-                  />
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-primary-600 text-white rounded-r-md hover:bg-primary-700 transition-colors"
-                    disabled={isActive && timerMode === 'pomodoro'}
-                  >
-                    <FaCheck />
-                  </button>
-                </form>
-              </div>
-            )}
+            <div className="mb-6">
+              <h3 className="text-lg font-medium text-secondary-900 mb-2">
+                {editingTaskId ? 'Edit Task' : 'Current Task'}
+              </h3>
+              <form onSubmit={handleTaskSubmit} className="flex">
+                <input
+                  type="text"
+                  value={currentTask}
+                  onChange={(e) => setCurrentTask(e.target.value)}
+                  placeholder="What are you working on?"
+                  className="flex-grow px-4 py-2 border border-secondary-300 rounded-l-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  disabled={isActive && timerMode === 'pomodoro' && !editingTaskId}
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-primary-600 text-white rounded-r-md hover:bg-primary-700 transition-colors"
+                  disabled={isActive && timerMode === 'pomodoro' && !editingTaskId}
+                >
+                  <FaCheck />
+                </button>
+              </form>
+              {editingTaskId && (
+                <button 
+                  onClick={() => {
+                    setEditingTaskId(null);
+                    setCurrentTask('');
+                  }}
+                  className="text-secondary-600 hover:text-secondary-800 text-sm mt-2"
+                >
+                  Cancel editing
+                </button>
+              )}
+            </div>
+            
+            {/* Task List */}
+            <div className="mb-6">
+              <h3 className="text-lg font-medium text-secondary-900 mb-2">Tasks</h3>
+              {loading ? (
+                <p className="text-secondary-500">Loading tasks...</p>
+              ) : taskList.length > 0 ? (
+                <ul className="space-y-2">
+                  {taskList.map(task => (
+                    <li key={task.id} className="flex items-center justify-between p-3 border border-secondary-200 rounded-lg">
+                      <div className="flex items-center">
+                        <button 
+                          onClick={() => handleToggleTaskCompletion(task.id, task.completed)}
+                          className={`mr-3 w-5 h-5 rounded border flex items-center justify-center ${
+                            task.completed 
+                              ? 'bg-green-500 border-green-500 text-white' 
+                              : 'border-secondary-300'
+                          }`}
+                        >
+                          {task.completed && <FaCheck size={12} />}
+                        </button>
+                        <span className={`${task.completed ? 'line-through text-secondary-500' : 'text-secondary-900'}`}>
+                          {task.text}
+                        </span>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => handleEditTask(task)}
+                          className="text-secondary-600 hover:text-secondary-800"
+                        >
+                          <FaEdit />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-secondary-500">No tasks yet. Add one above!</p>
+              )}
+            </div>
             
             {/* Settings Panel */}
             {showSettings && (
@@ -446,13 +650,15 @@ const StudyTimer = () => {
             
             <div className="mb-4">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-sm text-secondary-700">Completed Pomodoros</span>
-                <span className="text-sm font-medium text-secondary-900">{cycles} / {settings.dailyGoal}</span>
+                <span className="text-sm text-secondary-700">Completed Tasks</span>
+                <span className="text-sm font-medium text-secondary-900">
+                  {taskStats ? taskStats.completedTasks : 0} / {taskStats ? taskStats.totalTasks : 0}
+                </span>
               </div>
               <div className="w-full bg-secondary-200 rounded-full h-2.5">
                 <div 
                   className="bg-primary-600 h-2.5 rounded-full" 
-                  style={{ width: `${Math.min(100, (cycles / settings.dailyGoal) * 100)}%` }}
+                  style={{ width: `${taskStats && taskStats.totalTasks > 0 ? (taskStats.completedTasks / taskStats.totalTasks) * 100 : 0}%` }}
                 ></div>
               </div>
             </div>
@@ -461,22 +667,27 @@ const StudyTimer = () => {
               <div className="flex justify-between items-center mb-1">
                 <span className="text-sm text-secondary-700">Focus Time</span>
                 <span className="text-sm font-medium text-secondary-900">
-                  {Math.floor(cycles * settings.pomodoro / 60)}h {(cycles * settings.pomodoro) % 60}m
+                  {taskStats ? Math.floor(taskStats.totalStudyTime / 60) : 0}h {taskStats ? taskStats.totalStudyTime % 60 : 0}m
                 </span>
               </div>
             </div>
             
-            {/* Task List */}
+            {/* Completed Tasks */}
             <div>
-              <h3 className="text-md font-medium text-secondary-900 mb-2">Completed Tasks</h3>
-              {taskList.length > 0 ? (
+              <h3 className="text-md font-medium text-secondary-900 mb-2">Recent Completed Tasks</h3>
+              {loading ? (
+                <p className="text-secondary-500 text-sm">Loading...</p>
+              ) : taskList.filter(task => task.completed).length > 0 ? (
                 <ul className="space-y-2">
-                  {taskList.map(task => (
-                    <li key={task.id} className="flex items-center">
-                      <FaCheck className="text-green-500 mr-2" />
-                      <span className="text-secondary-700">{task.text}</span>
-                    </li>
-                  ))}
+                  {taskList
+                    .filter(task => task.completed)
+                    .slice(0, 5)
+                    .map(task => (
+                      <li key={task.id} className="flex items-center">
+                        <FaCheck className="text-green-500 mr-2" />
+                        <span className="text-secondary-700">{task.text}</span>
+                      </li>
+                    ))}
                 </ul>
               ) : (
                 <p className="text-secondary-500 text-sm">No completed tasks yet</p>
