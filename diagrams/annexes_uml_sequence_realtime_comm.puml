@@ -1,0 +1,144 @@
+@startuml annexes_uml_sequence_realtime_comm
+skinparam backgroundColor white
+skinparam sequenceParticipant underline
+skinparam sequenceArrowThickness 1
+skinparam sequenceLifeLineBorderColor gray
+skinparam sequenceGroupBorderThickness 1
+
+title Diagramme de séquence - Communication temps réel
+
+actor "Utilisateur 1" as User1
+actor "Utilisateur 2" as User2
+actor "Utilisateur 3" as User3
+participant "Client 1" as Client1
+participant "Client 2" as Client2
+participant "Client 3" as Client3
+participant "Socket.IO Server" as Socket
+participant "MessageController" as Controller
+participant "MessageService" as Service
+participant "MessageModel" as Model
+database "Base de données" as DB
+
+' Connexion initiale
+User1 -> Client1: Accède à la salle d'étude
+activate Client1
+Client1 -> Socket: socket.connect()
+activate Socket
+Socket --> Client1: Connexion établie
+Client1 -> Socket: socket.join("room_123")
+Socket --> Client1: Confirmation d'entrée dans la salle
+Client1 -> Socket: socket.emit("user_connected", userData)
+Socket -> Socket: Diffuse la présence aux autres membres
+Socket -> Client2: socket.emit("user_joined", userData)
+Socket -> Client3: socket.emit("user_joined", userData)
+Client1 --> User1: Affiche la liste des membres actifs
+deactivate Client1
+deactivate Socket
+
+' Envoi d'un message
+User1 -> Client1: Rédige et envoie un message
+activate Client1
+Client1 -> Socket: socket.emit("send_message", messageData)
+activate Socket
+
+Socket -> Controller: handleMessage(messageData)
+activate Controller
+
+Controller -> Service: saveMessage(messageData)
+activate Service
+
+Service -> Model: create(messageData)
+activate Model
+
+Model -> DB: INSERT INTO messages
+activate DB
+DB --> Model: Confirmation et ID
+deactivate DB
+
+Model --> Service: Message enregistré
+deactivate Model
+
+Service --> Controller: Message avec ID
+deactivate Service
+
+Controller --> Socket: Message validé
+deactivate Controller
+
+Socket -> Client1: socket.emit("message_sent", messageId)
+Socket -> Client2: socket.to("room_123").emit("new_message", message)
+activate Client2
+Socket -> Client3: socket.to("room_123").emit("new_message", message)
+activate Client3
+deactivate Socket
+
+Client1 --> User1: Marque le message comme envoyé
+deactivate Client1
+Client2 --> User2: Affiche le nouveau message
+Client3 --> User3: Affiche le nouveau message
+
+' Notification de lecture
+User2 -> Client2: Consulte le message
+Client2 -> Socket: socket.emit("mark_as_read", messageId)
+activate Socket
+
+Socket -> Controller: markAsRead(messageId, userId)
+activate Controller
+
+Controller -> Service: updateMessageStatus(messageId, userId)
+activate Service
+
+Service -> DB: UPDATE message_statuses SET read_at = NOW()
+activate DB
+DB --> Service: Confirmation
+deactivate DB
+
+Service --> Controller: Statut mis à jour
+deactivate Service
+
+Controller --> Socket: Lecture confirmée
+deactivate Controller
+
+Socket -> Client1: socket.emit("message_read", {messageId, userId})
+activate Client1
+Socket --> Client2: Confirmation
+deactivate Socket
+
+Client1 --> User1: Affiche indicateur de lecture
+deactivate Client1
+Client2 --> User2: Affiche message comme lu
+deactivate Client2
+
+' Indicateur de frappe
+User3 -> Client3: Commence à taper un message
+Client3 -> Socket: socket.emit("typing_start", userData)
+activate Socket
+Socket -> Client1: socket.to("room_123").emit("user_typing", userData)
+activate Client1
+Socket -> Client2: socket.to("room_123").emit("user_typing", userData)
+activate Client2
+Socket --> Client3: Confirmation
+deactivate Socket
+
+Client1 --> User1: Affiche "User3 est en train d'écrire..."
+deactivate Client1
+Client2 --> User2: Affiche "User3 est en train d'écrire..."
+deactivate Client2
+
+' Arrêt de frappe
+User3 -> Client3: Arrête de taper pendant quelques secondes
+Client3 -> Socket: socket.emit("typing_stop", userData)
+activate Socket
+Socket -> Client1: socket.to("room_123").emit("user_stopped_typing", userData)
+activate Client1
+Socket -> Client2: socket.to("room_123").emit("user_stopped_typing", userData)
+activate Client2
+Socket --> Client3: Confirmation
+deactivate Socket
+
+Client1 --> User1: Retire l'indicateur de frappe
+deactivate Client1
+Client2 --> User2: Retire l'indicateur de frappe
+deactivate Client2
+deactivate Client3
+
+@enduml 

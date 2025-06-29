@@ -1,0 +1,118 @@
+@startuml annexes_uml_use_case_full
+skinparam actorStyle awesome
+skinparam handwritten false
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam backgroundColor white
+
+title Diagramme de cas d'utilisation complet - StudyConnect
+
+actor "Étudiant" as Student
+actor "Enseignant" as Teacher
+actor "Administrateur" as Admin
+
+rectangle StudyConnect {
+  ' Gestion des utilisateurs
+  usecase "S'inscrire" as UC1
+  usecase "Se connecter" as UC2
+  usecase "Gérer son profil" as UC3
+  usecase "Récupérer son mot de passe" as UC4
+  usecase "Se déconnecter" as UC5
+  
+  ' Gestion des salles d'étude
+  usecase "Créer une salle d'étude" as UC6
+  usecase "Configurer une salle" as UC7
+  usecase "Rechercher des salles" as UC8
+  usecase "Rejoindre une salle" as UC9
+  usecase "Inviter des membres" as UC10
+  usecase "Gérer les membres" as UC11
+  
+  ' Communication
+  usecase "Envoyer des messages" as UC12
+  usecase "Voir les membres actifs" as UC13
+  usecase "Recevoir des notifications" as UC14
+  usecase "Envoyer des messages privés" as UC15
+  
+  ' Ressources
+  usecase "Partager une ressource" as UC16
+  usecase "Télécharger une ressource" as UC17
+  usecase "Organiser les ressources" as UC18
+  usecase "Rechercher des ressources" as UC19
+  
+  ' Outils d'apprentissage
+  usecase "Créer des flashcards" as UC20
+  usecase "Utiliser le timer d'étude" as UC21
+  usecase "Gérer des listes de tâches" as UC22
+  usecase "Collaborer sur des notes" as UC23
+  
+  ' Administration
+  usecase "Gérer les utilisateurs" as UC24
+  usecase "Modérer le contenu" as UC25
+  usecase "Configurer la plateforme" as UC26
+  usecase "Générer des statistiques" as UC27
+}
+
+' Relations Étudiant
+Student --> UC1
+Student --> UC2
+Student --> UC3
+Student --> UC4
+Student --> UC5
+Student --> UC6
+Student --> UC8
+Student --> UC9
+Student --> UC10
+Student --> UC12
+Student --> UC13
+Student --> UC14
+Student --> UC15
+Student --> UC16
+Student --> UC17
+Student --> UC19
+Student --> UC20
+Student --> UC21
+Student --> UC22
+Student --> UC23
+
+' Relations Enseignant
+Teacher --> UC1
+Teacher --> UC2
+Teacher --> UC3
+Teacher --> UC4
+Teacher --> UC5
+Teacher --> UC6
+Teacher --> UC7
+Teacher --> UC8
+Teacher --> UC9
+Teacher --> UC10
+Teacher --> UC11
+Teacher --> UC12
+Teacher --> UC13
+Teacher --> UC14
+Teacher --> UC15
+Teacher --> UC16
+Teacher --> UC17
+Teacher --> UC18
+Teacher --> UC19
+Teacher --> UC20
+Teacher --> UC21
+Teacher --> UC22
+Teacher --> UC23
+
+' Relations Admin
+Admin --> UC2
+Admin --> UC3
+Admin --> UC5
+Admin --> UC24
+Admin --> UC25
+Admin --> UC26
+Admin --> UC27
+
+' Relations d'extension et d'inclusion
+UC6 ..> UC7 : <<include>>
+UC6 ..> UC10 : <<include>>
+UC10 ..> UC14 : <<include>>
+UC16 ..> UC14 : <<include>>
+
+@enduml 

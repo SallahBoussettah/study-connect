@@ -1,0 +1,71 @@
+@startuml chapterIII_ui_dashboard
+skinparam backgroundColor white
+skinparam handwritten false
+skinparam defaultFontName Arial
+
+salt
+{
+  {+
+    {
+      <b>StudyConnect | Dashboard
+      .
+    }
+    
+    {
+      {#
+        . | <b>Bienvenue, Mohamed | [Notifications] | [Profil] | [Déconnexion]
+      }
+    }
+    
+    {
+      {#
+        {
+          <b>Mes salles d'étude récentes
+          .
+          {#
+            [Mathématiques Avancées] | Dernière activité: il y a 2 heures | [Rejoindre]
+            [Programmation Web] | Dernière activité: il y a 5 minutes | [Rejoindre]
+            [Groupe Projet Final] | Dernière activité: en ce moment | [Rejoindre]
+            [Intelligence Artificielle] | Dernière activité: hier | [Rejoindre]
+          }
+          [Créer une nouvelle salle] | [Voir toutes mes salles]
+        }
+        |
+        {
+          <b>Activité récente
+          .
+          {#
+            Ahmed a partagé un document dans "Programmation Web" | il y a 10 min
+            Sara vous a mentionné dans "Groupe Projet Final" | il y a 30 min
+            Nouvelle ressource disponible dans "Intelligence Artificielle" | il y a 2h
+            Fatima a répondu à votre question dans "Mathématiques Avancées" | hier
+          }
+          [Voir toute l'activité]
+        }
+      }
+      
+      {#
+        {
+          <b>Mes outils d'apprentissage
+          .
+          {#
+            [📝 Mes notes] | [⏱️ Timer d'étude] | [📚 Mes flashcards] | [✅ Mes tâches]
+          }
+        }
+        |
+        {
+          <b>Salles recommandées
+          .
+          {#
+            [Bases de données SQL] | 24 membres | [Rejoindre]
+            [Cybersécurité] | 47 membres | [Rejoindre]
+            [Préparation examens] | 108 membres | [Rejoindre]
+          }
+          [Explorer plus de salles]
+        }
+      }
+    }
+  }
+}
+
+@enduml 

@@ -1,0 +1,69 @@
+@startuml chapterIII_uml_sequence_chat
+skinparam backgroundColor white
+skinparam sequenceParticipant underline
+skinparam sequenceArrowThickness 1
+skinparam sequenceLifeLineBorderColor gray
+skinparam sequenceGroupBorderThickness 1
+
+title Diagramme de séquence - Communication en temps réel
+
+actor "Utilisateur 1" as User1
+actor "Utilisateur 2" as User2
+participant "Interface (Client 1)" as UI1
+participant "Interface (Client 2)" as UI2
+participant "Serveur Socket.IO" as Socket
+participant "MessageService" as Service
+database "Base de données" as DB
+
+User1 -> UI1: Rédige et envoie un message
+activate UI1
+
+UI1 -> Socket: socket.emit("send_message", messageData)
+activate Socket
+
+Socket -> Service: saveMessage(messageData)
+activate Service
+
+Service -> DB: INSERT INTO messages
+activate DB
+DB --> Service: Confirmation et ID
+deactivate DB
+
+Service --> Socket: Message enregistré
+deactivate Service
+
+Socket -> Socket: Identifie les destinataires dans la salle
+Socket -> UI2: socket.to(roomId).emit("receive_message", message)
+activate UI2
+
+UI2 --> User2: Affiche le nouveau message
+deactivate UI2
+
+Socket --> UI1: Confirmation d'envoi
+deactivate Socket
+
+UI1 --> User1: Affiche le message comme envoyé
+deactivate UI1
+
+User2 -> UI2: Consulte le message
+activate UI2
+UI2 -> Socket: socket.emit("mark_as_read", messageId)
+activate Socket
+Socket -> Service: markMessageAsRead(messageId, userId)
+activate Service
+Service -> DB: UPDATE messages SET isRead = true
+activate DB
+DB --> Service: Confirmation
+deactivate DB
+Service --> Socket: Statut mis à jour
+deactivate Service
+Socket -> UI1: socket.to(senderId).emit("message_read", messageId)
+activate UI1
+UI1 --> User1: Affiche confirmation de lecture
+deactivate UI1
+Socket --> UI2: Confirmation
+deactivate Socket
+UI2 --> User2: Affiche message comme lu
+deactivate UI2
+
+@enduml 

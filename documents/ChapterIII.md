@@ -144,6 +144,8 @@ Le diagramme de cas d'utilisation identifie les acteurs du système et leurs int
 
 Ce diagramme offre une vue d'ensemble des fonctionnalités du système du point de vue utilisateur.
 
+![Figure 8: Diagramme de cas d'utilisation de StudyConnect](../diagrams/uml_use_case.png)
+
 ### 4.2. Diagramme de classes
 
 Le diagramme de classes représente la structure statique du système, montrant les classes, leurs attributs, leurs méthodes et les relations entre elles :
@@ -154,6 +156,8 @@ Le diagramme de classes représente la structure statique du système, montrant 
 
 Ce modèle sert de base pour l'implémentation des modèles de données et guide la conception de la base de données.
 
+![Figure 9: Diagramme de classes de StudyConnect](../diagrams/uml_class_diagram.png)
+
 ### 4.3. Diagramme de séquence
 
 Les diagrammes de séquence illustrent les interactions entre les objets dans des scénarios spécifiques :
@@ -163,6 +167,10 @@ Les diagrammes de séquence illustrent les interactions entre les objets dans de
 - **Communication en temps réel** : Échanges entre client, serveur Socket.IO et destinataires
 
 Ces diagrammes permettent de visualiser et d'optimiser les flux de communication entre les composants du système.
+
+![Figure 10: Diagramme de séquence - Création d'une salle d'étude](../diagrams/uml_sequence_room.png)
+
+![Figure 11: Diagramme de séquence - Communication en temps réel](../diagrams/uml_sequence_chat.png)
 
 ### 4.4. Diagramme de composants
 
@@ -175,18 +183,9 @@ Le diagramme de composants montre l'organisation des composants logiciels et leu
 
 Cette vue architecturale facilite la compréhension de la structure globale du système.
 
-### 4.5. Diagramme de déploiement
+![Figure 12: Diagramme de composants de StudyConnect](../diagrams/uml_component.png)
 
-Le diagramme de déploiement illustre la configuration physique du système déployé :
-
-- **Serveurs** : Serveur d'application, serveur de base de données, CDN
-- **Clients** : Navigateurs web, potentielles applications mobiles
-- **Protocoles** : HTTP/HTTPS, WebSockets, SQL
-- **Environnements** : Développement, test, production
-
-Ce diagramme guide les décisions d'infrastructure et de déploiement.
-
-### 4.6. Diagramme de packages
+### 4.5. Diagramme de packages
 
 Le diagramme de packages organise les éléments du système en groupes logiques :
 
@@ -195,6 +194,8 @@ Le diagramme de packages organise les éléments du système en groupes logiques
 - **Dépendances externes** : Bibliothèques tierces et frameworks
 
 Cette organisation facilite la gestion du code et la compréhension des responsabilités de chaque partie du système.
+
+![Figure 13: Diagramme de packages de StudyConnect](../diagrams/uml_package.png)
 
 ## 5. Conception de la base de données
 
@@ -211,6 +212,8 @@ Le modèle conceptuel définit les entités principales et leurs relations à un
 
 Ce modèle sert de fondation pour la conception du schéma relationnel.
 
+![Figure 14: Modèle conceptuel de la base de données](../diagrams/db_conceptual.png)
+
 ### 5.2. Modèle relationnel
 
 Le modèle relationnel traduit le modèle conceptuel en structures de tables concrètes :
@@ -221,6 +224,8 @@ Le modèle relationnel traduit le modèle conceptuel en structures de tables con
 - **Contraintes d'intégrité** : Unicité, non-nullité, vérifications
 
 Ce schéma guide l'implémentation physique de la base de données PostgreSQL.
+
+![Figure 15: Modèle relationnel de la base de données](../diagrams/db_relational.png)
 
 ### 5.3. Optimisation des requêtes
 
@@ -248,10 +253,18 @@ Les maquettes d'interface utilisateur définissent l'apparence et les interactio
 
 Ces maquettes ont été conçues selon les principes de l'UX design, privilégiant l'intuitivité, l'accessibilité et la cohérence visuelle.
 
+![Figure 16: Maquette de la page d'accueil](../diagrams/ui_home.png)
+
+![Figure 17: Maquette du dashboard utilisateur](../diagrams/ui_dashboard.png)
+
+![Figure 18: Maquette d'une salle d'étude](../diagrams/ui_studyroom.png)
+
 ## 7. Conclusion
 
-Ce chapitre a présenté l'analyse détaillée et la conception de StudyConnect, établissant les fondations techniques et fonctionnelles de la plateforme. Les spécifications fonctionnelles définissent clairement les capacités du système, tandis que les spécifications techniques encadrent son développement avec des exigences précises de performance et de sécurité.
+L'analyse et la conception détaillées dans ce chapitre posent les fondations solides pour le développement de la plateforme StudyConnect. Les spécifications fonctionnelles et techniques définissent clairement le périmètre et les exigences du système, tandis que la modélisation UML et la conception de la base de données fournissent le cadre structurel nécessaire à son implémentation.
 
-La modélisation UML offre une vision structurée des différents aspects du système, facilitant la communication entre les membres de l'équipe et guidant l'implémentation. La conception soignée de la base de données assure une gestion efficace des données, essentielle pour une plateforme collaborative. Enfin, les maquettes d'interface utilisateur traduisent les fonctionnalités en expérience concrète, centrée sur les besoins des utilisateurs.
+Les diagrammes UML présentés illustrent les différentes perspectives du système, de l'expérience utilisateur à l'architecture technique, en passant par les interactions entre composants. La conception de la base de données assure quant à elle une gestion optimale des données, essentielle pour les performances et la scalabilité de la plateforme.
 
-Cette phase de conception établit un cadre solide pour le développement de StudyConnect, garantissant que la solution finale répondra efficacement à la problématique de la fragmentation des outils d'apprentissage collaboratif. Le prochain chapitre détaillera les technologies et outils spécifiques utilisés pour l'implémentation de cette vision. 
+Les maquettes d'interface utilisateur complètent cette phase de conception en définissant l'expérience visuelle et interactive que les utilisateurs auront avec StudyConnect. Cette approche centrée sur l'utilisateur garantit que la plateforme sera non seulement fonctionnelle et performante, mais également intuitive et agréable à utiliser.
+
+Cette phase de conception minutieuse permettra d'aborder le développement avec une vision claire et structurée, réduisant les risques de refactoring majeur et assurant l'alignement de la solution avec les besoins identifiés. 

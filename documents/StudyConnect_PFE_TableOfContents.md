@@ -20,20 +20,15 @@ CHAPITRE I : Contexte général du projet	13
 1.	Introduction	14
 2.	Présentation de SAGIM School	14
 3.	Présentation du Projet StudyConnect	16
-4.	Problématique	17
-    4.1. Fragmentation des outils d'étude collaboratifs	17
-    4.2. Difficultés de coordination entre étudiants	17
-    4.3. Manque de solutions adaptées aux besoins académiques	18
-5.	Les objectifs du projet	18
-    5.1. Objectifs fonctionnels	18
-    5.2. Objectifs techniques	19
-6.	La solution proposée	19
-7.	Gestion du projet	20
-    7.1. Diagramme de Gantt	20
-    7.2. Cycle de Développement	21
-8.	Conclusion	22
+4.	Problématique	16
+5.	Les objectifs du projet	17
+6.	La solution proposée	18
+7.	Gestion du projet	19
+    7.1. Diagramme de Gantt	19
+    7.2. Cycle de Développement	20
+8.	Conclusion	21
 
-CHAPITRE II : État de l'art des plateformes d'apprentissage collaboratif	23
+CHAPITRE II : État de l'art des plateformes d'apprentissage collaboratif	22
 1.	Introduction	24
 2.	Évolution des plateformes d'apprentissage en ligne	24
 3.	Analyse des solutions existantes	25

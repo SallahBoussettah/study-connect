@@ -1,0 +1,219 @@
+@startuml annexes_db_logical_model
+skinparam backgroundColor white
+skinparam linetype ortho
+skinparam monochrome false
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+!define TABLE(name) class name << (T,#FFAAAA) >>
+!define PK(x) <b><u>x</u></b>
+!define FK(x) <i>x</i>
+!define NOT_NULL(x) <b>x</b>
+
+title Modèle logique de la base de données - StudyConnect
+
+TABLE(users) {
+  PK(id) : UUID
+  --
+  NOT_NULL(first_name) : VARCHAR(100)
+  NOT_NULL(last_name) : VARCHAR(100)
+  NOT_NULL(email) : VARCHAR(255) <<unique>>
+  NOT_NULL(password) : VARCHAR(255)
+  NOT_NULL(role) : ENUM('student', 'teacher', 'admin')
+  avatar : VARCHAR(255)
+  bio : TEXT
+  institution : VARCHAR(255)
+  major : VARCHAR(100)
+  year_of_study : VARCHAR(50)
+  email_verified : BOOLEAN = false
+  is_active : BOOLEAN = true
+  last_login : TIMESTAMP
+  NOT_NULL(created_at) : TIMESTAMP
+  NOT_NULL(updated_at) : TIMESTAMP
+}
+
+TABLE(study_rooms) {
+  PK(id) : UUID
+  --
+  NOT_NULL(name) : VARCHAR(100)
+  description : TEXT
+  image : VARCHAR(255)
+  NOT_NULL(is_public) : BOOLEAN
+  total_members : INTEGER = 1
+  active_members : INTEGER = 0
+  last_active : TIMESTAMP
+  is_active : BOOLEAN = true
+  FK(created_by) : UUID <<users>>
+  FK(subject_id) : UUID <<subjects>>
+  NOT_NULL(created_at) : TIMESTAMP
+  NOT_NULL(updated_at) : TIMESTAMP
+}
+
+TABLE(resources) {
+  PK(id) : UUID
+  --
+  NOT_NULL(title) : VARCHAR(255)
+  description : TEXT
+  NOT_NULL(file_type) : VARCHAR(50)
+  NOT_NULL(file_path) : VARCHAR(255)
+  file_size : INTEGER
+  downloads : INTEGER = 0
+  NOT_NULL(visibility) : ENUM('public', 'room', 'private')
+  FK(user_id) : UUID <<users>>
+  FK(room_id) : UUID <<study_rooms>>
+  NOT_NULL(created_at) : TIMESTAMP
+  NOT_NULL(updated_at) : TIMESTAMP
+}
+
+TABLE(messages) {
+  PK(id) : UUID
+  --
+  NOT_NULL(content) : TEXT
+  NOT_NULL(timestamp) : TIMESTAMP
+  is_read : BOOLEAN = false
+  is_edited : BOOLEAN = false
+  is_pinned : BOOLEAN = false
+  FK(user_id) : UUID <<users>>
+  FK(room_id) : UUID <<study_rooms>>
+}
+
+TABLE(subjects) {
+  PK(id) : UUID
+  --
+  NOT_NULL(name) : VARCHAR(100)
+  description : TEXT
+}
+
+TABLE(flashcards) {
+  PK(id) : UUID
+  --
+  NOT_NULL(question) : TEXT
+  NOT_NULL(answer) : TEXT
+  difficulty : INTEGER
+  next_review : TIMESTAMP
+  review_count : INTEGER = 0
+  FK(deck_id) : UUID <<flashcard_decks>>
+  NOT_NULL(created_at) : TIMESTAMP
+  NOT_NULL(updated_at) : TIMESTAMP
+}
+
+TABLE(flashcard_decks) {
+  PK(id) : UUID
+  --
+  NOT_NULL(name) : VARCHAR(100)
+  description : TEXT
+  card_count : INTEGER = 0
+  is_public : BOOLEAN = false
+  FK(user_id) : UUID <<users>>
+  NOT_NULL(created_at) : TIMESTAMP
+  NOT_NULL(updated_at) : TIMESTAMP
+}
+
+TABLE(task_lists) {
+  PK(id) : UUID
+  --
+  NOT_NULL(name) : VARCHAR(100)
+  description : TEXT
+  is_shared : BOOLEAN = false
+  FK(user_id) : UUID <<users>>
+  FK(room_id) : UUID <<study_rooms>>
+  NOT_NULL(created_at) : TIMESTAMP
+  NOT_NULL(updated_at) : TIMESTAMP
+}
+
+TABLE(tasks) {
+  PK(id) : UUID
+  --
+  NOT_NULL(title) : VARCHAR(255)
+  description : TEXT
+  due_date : TIMESTAMP
+  NOT_NULL(priority) : ENUM('low', 'medium', 'high')
+  is_completed : BOOLEAN = false
+  FK(list_id) : UUID <<task_lists>>
+  NOT_NULL(created_at) : TIMESTAMP
+  NOT_NULL(updated_at) : TIMESTAMP
+}
+
+TABLE(study_sessions) {
+  PK(id) : UUID
+  --
+  start_time : TIMESTAMP
+  end_time : TIMESTAMP
+  duration : INTEGER
+  NOT_NULL(type) : ENUM('pomodoro', 'free')
+  notes : TEXT
+  FK(user_id) : UUID <<users>>
+  NOT_NULL(created_at) : TIMESTAMP
+}
+
+TABLE(notifications) {
+  PK(id) : UUID
+  --
+  NOT_NULL(type) : ENUM('message', 'invitation', 'resource', 'mention')
+  NOT_NULL(message) : VARCHAR(255)
+  is_read : BOOLEAN = false
+  NOT_NULL(timestamp) : TIMESTAMP
+  link : VARCHAR(255)
+  FK(user_id) : UUID <<users>>
+  FK(creator_id) : UUID <<users>>
+}
+
+TABLE(user_study_rooms) {
+  PK(user_id) : UUID <<users>>
+  PK(room_id) : UUID <<study_rooms>>
+  --
+  NOT_NULL(role) : ENUM('admin', 'moderator', 'member')
+  NOT_NULL(joined_at) : TIMESTAMP
+  last_active : TIMESTAMP
+  is_muted : BOOLEAN = false
+}
+
+TABLE(resource_tags) {
+  PK(id) : UUID
+  --
+  NOT_NULL(name) : VARCHAR(50)
+  color : VARCHAR(7)
+}
+
+TABLE(resource_tag_relations) {
+  PK(tag_id) : UUID <<resource_tags>>
+  PK(resource_id) : UUID <<resources>>
+}
+
+TABLE(message_statuses) {
+  PK(message_id) : UUID <<messages>>
+  PK(user_id) : UUID <<users>>
+  --
+  is_delivered : BOOLEAN = false
+  is_read : BOOLEAN = false
+  delivered_at : TIMESTAMP
+  read_at : TIMESTAMP
+}
+
+TABLE(room_subjects) {
+  PK(room_id) : UUID <<study_rooms>>
+  PK(subject_id) : UUID <<subjects>>
+}
+
+users ||--o{ study_rooms : created_by
+users ||--o{ resources : user_id
+users ||--o{ messages : user_id
+users ||--o{ notifications : user_id
+users ||--o{ flashcard_decks : user_id
+users ||--o{ task_lists : user_id
+users ||--o{ study_sessions : user_id
+users ||--o{ user_study_rooms : user_id
+study_rooms ||--o{ user_study_rooms : room_id
+study_rooms ||--o{ messages : room_id
+study_rooms ||--o{ resources : room_id
+study_rooms ||--o{ room_subjects : room_id
+subjects ||--o{ room_subjects : subject_id
+flashcard_decks ||--o{ flashcards : deck_id
+task_lists ||--o{ tasks : list_id
+resources ||--o{ resource_tag_relations : resource_id
+resource_tags ||--o{ resource_tag_relations : tag_id
+messages ||--o{ message_statuses : message_id
+users ||--o{ message_statuses : user_id
+
+@enduml 

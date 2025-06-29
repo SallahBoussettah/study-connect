@@ -1,0 +1,82 @@
+@startuml chapterIII_uml_class_diagram
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam monochrome false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam backgroundColor white
+
+title Diagramme de classes - StudyConnect
+
+class User {
+  +id: UUID
+  +firstName: String
+  +lastName: String
+  +email: String
+  +password: String
+  +role: Enum
+  +avatar: String
+  +bio: String
+  +createdAt: Date
+  +updatedAt: Date
+  +authenticate(): Boolean
+  +updateProfile(): Boolean
+}
+
+class StudyRoom {
+  +id: UUID
+  +name: String
+  +description: String
+  +isPublic: Boolean
+  +createdAt: Date
+  +updatedAt: Date
+  +addMember(User): Boolean
+  +removeMember(User): Boolean
+  +updateSettings(): Boolean
+}
+
+class Resource {
+  +id: UUID
+  +title: String
+  +description: String
+  +fileType: String
+  +filePath: String
+  +createdAt: Date
+  +updatedAt: Date
+  +upload(): Boolean
+  +download(): File
+}
+
+class Message {
+  +id: UUID
+  +content: String
+  +timestamp: DateTime
+  +isRead: Boolean
+  +send(): Boolean
+  +markAsRead(): Boolean
+}
+
+class Subject {
+  +id: UUID
+  +name: String
+  +description: String
+}
+
+class StudyTool {
+  +id: UUID
+  +type: Enum
+  +settings: JSON
+  +createdAt: Date
+  +updatedAt: Date
+}
+
+User "1" *-- "0..*" StudyRoom : crée >
+User "0..*" -- "0..*" StudyRoom : participe >
+User "1" *-- "0..*" Resource : partage >
+User "1" *-- "0..*" Message : envoie >
+StudyRoom "1" *-- "0..*" Message : contient >
+StudyRoom "1" *-- "0..*" Resource : contient >
+StudyRoom "0..*" -- "0..*" Subject : associé à >
+User "0..*" -- "0..*" StudyTool : utilise >
+
+@enduml 

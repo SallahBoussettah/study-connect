@@ -1,0 +1,98 @@
+@startuml annexes_uml_sequence_resource_sharing
+skinparam backgroundColor white
+skinparam sequenceParticipant underline
+skinparam sequenceArrowThickness 1
+skinparam sequenceLifeLineBorderColor gray
+skinparam sequenceGroupBorderThickness 1
+
+title Diagramme de séquence - Partage de ressource
+
+actor "Utilisateur" as User
+participant "Interface utilisateur" as UI
+participant "ResourceController" as Controller
+participant "ResourceService" as Service
+participant "FileStorageService" as Storage
+participant "ResourceModel" as Model
+participant "NotificationService" as NotifService
+participant "SocketServer" as Socket
+database "Base de données" as DB
+
+User -> UI: Clique sur "Partager une ressource"
+activate UI
+
+UI -> UI: Affiche formulaire de partage
+User -> UI: Sélectionne un fichier
+User -> UI: Remplit les métadonnées (titre, description)
+User -> UI: Définit les paramètres de visibilité
+User -> UI: Soumet le formulaire
+
+UI -> Controller: uploadResource(file, metadata)
+activate Controller
+
+Controller -> Controller: Vérifie l'authentification
+Controller -> Controller: Valide le fichier et les métadonnées
+
+Controller -> Storage: storeFile(file)
+activate Storage
+
+Storage -> Storage: Génère un nom unique
+Storage -> Storage: Traite le fichier (compression, validation)
+Storage --> Controller: {path: filePath, size: fileSize}
+deactivate Storage
+
+Controller -> Service: createResource(resourceData)
+activate Service
+
+Service -> Model: create({...resourceData, filePath, fileSize})
+activate Model
+
+Model -> DB: INSERT INTO resources
+activate DB
+DB --> Model: Confirmation et ID
+deactivate DB
+
+Model --> Service: Ressource créée
+deactivate Model
+
+Service -> Service: Associe les tags et catégories
+Service -> DB: INSERT INTO resource_tags
+activate DB
+DB --> Service: Confirmation
+deactivate DB
+
+Service --> Controller: Ressource créée avec détails
+deactivate Service
+
+Controller -> NotifService: notifyRoomMembers(roomId, 'new_resource')
+activate NotifService
+
+NotifService -> DB: SELECT user_ids FROM user_study_rooms WHERE room_id = ?
+activate DB
+DB --> NotifService: Liste d'utilisateurs
+deactivate DB
+
+loop Pour chaque membre de la salle
+    NotifService -> DB: INSERT INTO notifications
+    activate DB
+    DB --> NotifService: Confirmation
+    deactivate DB
+end
+
+NotifService --> Controller: Notifications envoyées
+deactivate NotifService
+
+Controller -> Socket: emit('new_resource', resourceData)
+activate Socket
+
+Socket -> Socket: Diffuse aux membres connectés de la salle
+Socket --> Controller: Confirmation
+deactivate Socket
+
+Controller --> UI: Succès avec détails de la ressource
+deactivate Controller
+
+UI -> UI: Affiche confirmation
+UI --> User: Met à jour la liste des ressources avec le nouvel élément
+deactivate UI
+
+@enduml 

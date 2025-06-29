@@ -1,0 +1,64 @@
+@startuml chapterIII_uml_sequence_room
+skinparam backgroundColor white
+skinparam sequenceParticipant underline
+skinparam sequenceArrowThickness 1
+skinparam sequenceLifeLineBorderColor gray
+skinparam sequenceGroupBorderThickness 1
+
+title Diagramme de séquence - Création d'une salle d'étude
+
+actor "Utilisateur" as User
+participant "Interface" as UI
+participant "RoomController" as Controller
+participant "RoomService" as Service
+database "Base de données" as DB
+
+User -> UI: Demande la création d'une salle
+activate UI
+
+UI -> UI: Valide les données du formulaire
+UI -> Controller: createRoom(roomData)
+activate Controller
+
+Controller -> Controller: Valide les données
+Controller -> Service: createRoom(validatedData)
+activate Service
+
+Service -> DB: INSERT INTO study_rooms
+activate DB
+DB --> Service: Confirmation et ID
+deactivate DB
+
+Service -> Service: Associe le créateur comme admin
+Service -> DB: INSERT INTO user_study_rooms
+activate DB
+DB --> Service: Confirmation
+deactivate DB
+
+Service --> Controller: Salle créée (avec ID)
+deactivate Service
+
+Controller --> UI: Succès et détails de la salle
+deactivate Controller
+
+UI --> User: Affiche confirmation et redirige vers la nouvelle salle
+deactivate UI
+
+User -> UI: Accède à la salle créée
+activate UI
+UI -> Controller: getRoomDetails(roomId)
+activate Controller
+Controller -> Service: getRoomById(roomId)
+activate Service
+Service -> DB: SELECT FROM study_rooms
+activate DB
+DB --> Service: Données de la salle
+deactivate DB
+Service --> Controller: Données structurées
+deactivate Service
+Controller --> UI: Détails de la salle
+deactivate Controller
+UI --> User: Affiche l'interface de la salle
+deactivate UI
+
+@enduml 

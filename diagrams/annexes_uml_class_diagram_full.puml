@@ -1,0 +1,215 @@
+@startuml annexes_uml_class_diagram_full
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam monochrome false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam backgroundColor white
+
+title Diagramme de classes complet - StudyConnect
+
+class User {
+  +id: UUID
+  +firstName: String
+  +lastName: String
+  +email: String
+  +password: String
+  +role: Enum
+  +avatar: String
+  +bio: String
+  +institution: String
+  +major: String
+  +yearOfStudy: String
+  +emailVerified: Boolean
+  +isActive: Boolean
+  +lastLogin: DateTime
+  +createdAt: DateTime
+  +updatedAt: DateTime
+  +authenticate(): Boolean
+  +updateProfile(): Boolean
+  +resetPassword(): Boolean
+  +validateEmail(): Boolean
+  +getStudyRooms(): Array<StudyRoom>
+}
+
+class StudyRoom {
+  +id: UUID
+  +name: String
+  +description: String
+  +image: String
+  +isPublic: Boolean
+  +totalMembers: Integer
+  +activeMembers: Integer
+  +lastActive: DateTime
+  +isActive: Boolean
+  +createdAt: DateTime
+  +updatedAt: DateTime
+  +addMember(User): Boolean
+  +removeMember(User): Boolean
+  +updateSettings(): Boolean
+  +getMembers(): Array<User>
+  +getResources(): Array<Resource>
+  +getMessages(): Array<Message>
+}
+
+class Resource {
+  +id: UUID
+  +title: String
+  +description: String
+  +fileType: String
+  +filePath: String
+  +fileSize: Integer
+  +downloads: Integer
+  +visibility: Enum
+  +createdAt: DateTime
+  +updatedAt: DateTime
+  +upload(): Boolean
+  +download(): File
+  +updateMetadata(): Boolean
+  +delete(): Boolean
+}
+
+class Message {
+  +id: UUID
+  +content: String
+  +timestamp: DateTime
+  +isRead: Boolean
+  +isEdited: Boolean
+  +isPinned: Boolean
+  +send(): Boolean
+  +edit(): Boolean
+  +delete(): Boolean
+  +markAsRead(): Boolean
+  +pin(): Boolean
+}
+
+class Subject {
+  +id: UUID
+  +name: String
+  +description: String
+  +addStudyRoom(StudyRoom): Boolean
+  +removeStudyRoom(StudyRoom): Boolean
+  +getStudyRooms(): Array<StudyRoom>
+}
+
+class StudyTool {
+  +id: UUID
+  +type: Enum
+  +name: String
+  +settings: JSON
+  +isShared: Boolean
+  +createdAt: DateTime
+  +updatedAt: DateTime
+}
+
+class Flashcard {
+  +id: UUID
+  +question: String
+  +answer: String
+  +difficulty: Integer
+  +nextReview: DateTime
+  +reviewCount: Integer
+  +createdAt: DateTime
+  +updatedAt: DateTime
+}
+
+class FlashcardDeck {
+  +id: UUID
+  +name: String
+  +description: String
+  +cardCount: Integer
+  +isPublic: Boolean
+  +createdAt: DateTime
+  +updatedAt: DateTime
+  +addCard(Flashcard): Boolean
+  +removeCard(Flashcard): Boolean
+  +study(): Boolean
+  +share(): Boolean
+}
+
+class TaskList {
+  +id: UUID
+  +name: String
+  +description: String
+  +isShared: Boolean
+  +createdAt: DateTime
+  +updatedAt: DateTime
+  +addTask(Task): Boolean
+  +removeTask(Task): Boolean
+  +reorderTasks(): Boolean
+  +share(): Boolean
+}
+
+class Task {
+  +id: UUID
+  +title: String
+  +description: String
+  +dueDate: DateTime
+  +priority: Enum
+  +isCompleted: Boolean
+  +createdAt: DateTime
+  +updatedAt: DateTime
+  +complete(): Boolean
+  +updateDetails(): Boolean
+}
+
+class StudySession {
+  +id: UUID
+  +startTime: DateTime
+  +endTime: DateTime
+  +duration: Integer
+  +type: Enum
+  +notes: String
+  +createdAt: DateTime
+  +start(): Boolean
+  +pause(): Boolean
+  +resume(): Boolean
+  +end(): Boolean
+  +addNote(String): Boolean
+}
+
+class Notification {
+  +id: UUID
+  +type: Enum
+  +message: String
+  +isRead: Boolean
+  +timestamp: DateTime
+  +link: String
+  +send(): Boolean
+  +markAsRead(): Boolean
+}
+
+class UserStudyRoom {
+  +userId: UUID
+  +roomId: UUID
+  +role: Enum
+  +joinedAt: DateTime
+  +lastActive: DateTime
+  +isMuted: Boolean
+  +changeRole(Enum): Boolean
+  +mute(): Boolean
+  +unmute(): Boolean
+}
+
+' Associations
+User "1" *-- "0..*" StudyRoom : crée >
+User "0..*" -- "0..*" StudyRoom : participe > 
+User "1" *-- "0..*" Resource : partage >
+User "1" *-- "0..*" Message : envoie >
+User "1" *-- "0..*" Notification : reçoit >
+User "1" *-- "0..*" FlashcardDeck : possède >
+User "1" *-- "0..*" TaskList : gère >
+User "1" *-- "0..*" StudySession : réalise >
+StudyRoom "1" *-- "0..*" Message : contient >
+StudyRoom "1" *-- "0..*" Resource : contient >
+StudyRoom "0..*" -- "0..*" Subject : associé à >
+FlashcardDeck "1" *-- "0..*" Flashcard : contient >
+TaskList "1" *-- "0..*" Task : contient >
+UserStudyRoom -- User
+UserStudyRoom -- StudyRoom
+
+StudyTool <|-- FlashcardDeck
+StudyTool <|-- TaskList
+StudyTool <|-- StudySession
+
+@enduml 

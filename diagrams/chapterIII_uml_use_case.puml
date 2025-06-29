@@ -1,0 +1,62 @@
+@startuml chapterIII_uml_use_case
+skinparam actorStyle awesome
+skinparam handwritten false
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam backgroundColor white
+
+title Diagramme de cas d'utilisation - StudyConnect
+
+actor "Étudiant" as Student
+actor "Enseignant" as Teacher
+actor "Administrateur" as Admin
+
+rectangle StudyConnect {
+  usecase "S'authentifier" as UC1
+  usecase "Gérer son profil" as UC2
+  usecase "Créer une salle d'étude" as UC3
+  usecase "Rejoindre une salle" as UC4
+  usecase "Communiquer en temps réel" as UC5
+  usecase "Partager des ressources" as UC6
+  usecase "Utiliser les outils d'apprentissage" as UC7
+  usecase "Gérer les utilisateurs" as UC8
+  usecase "Administrer la plateforme" as UC9
+}
+
+Student --> UC1
+Student --> UC2
+Student --> UC3
+Student --> UC4
+Student --> UC5
+Student --> UC6
+Student --> UC7
+
+Teacher --> UC1
+Teacher --> UC2
+Teacher --> UC3
+Teacher --> UC4
+Teacher --> UC5
+Teacher --> UC6
+Teacher --> UC7
+
+Admin --> UC1
+Admin --> UC2
+Admin --> UC8
+Admin --> UC9
+
+UC3 ..> UC5 : <<include>>
+UC4 ..> UC5 : <<include>>
+UC3 ..> UC6 : <<include>>
+
+note right of UC7
+  Flashcards, Timer d'étude,
+  Listes de tâches, etc.
+end note
+
+note bottom of UC9
+  Configuration système,
+  Surveillance, Maintenance
+end note
+
+@enduml 

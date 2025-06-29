@@ -1,0 +1,48 @@
+@startuml chapterIII_uml_component
+skinparam componentStyle rectangle
+skinparam backgroundColor white
+skinparam linetype ortho
+skinparam monochrome false
+
+title Diagramme de composants - StudyConnect
+
+package "Client (Frontend)" {
+  [Interface utilisateur] as UI
+  [Services API] as APIServices
+  [Context / State] as State
+  [Socket.IO Client] as SocketClient
+  
+  UI --> State
+  UI --> APIServices
+  UI --> SocketClient
+}
+
+package "Serveur (Backend)" {
+  [API RESTful] as API
+  [Socket.IO Server] as SocketServer
+  [Controllers] as Controllers
+  [Services] as Services
+  [Models] as Models
+  [Middleware] as Middleware
+  
+  API --> Controllers
+  SocketServer --> Controllers
+  Controllers --> Services
+  Services --> Models
+  API ..> Middleware
+}
+
+database "PostgreSQL" as DB
+
+cloud "Services externes" {
+  [Stockage de fichiers] as Storage
+  [Service d'emails] as Email
+}
+
+APIServices --> API : HTTP/HTTPS
+SocketClient --> SocketServer : WebSocket
+Models --> DB : Sequelize ORM
+Services --> Storage : API
+Services --> Email : SMTP
+
+@enduml 

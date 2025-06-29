@@ -1,0 +1,70 @@
+@startuml annexes_uml_sequence_auth
+skinparam backgroundColor white
+skinparam sequenceParticipant underline
+skinparam sequenceArrowThickness 1
+skinparam sequenceLifeLineBorderColor gray
+skinparam sequenceGroupBorderThickness 1
+
+title Diagramme de séquence - Authentification
+
+actor "Utilisateur" as User
+participant "Interface utilisateur" as UI
+participant "AuthController" as Controller
+participant "AuthService" as Service
+participant "UserModel" as Model
+database "Base de données" as DB
+
+User -> UI: Saisit email et mot de passe
+activate UI
+
+UI -> UI: Valide les données du formulaire
+UI -> Controller: login(email, password)
+activate Controller
+
+Controller -> Service: authenticate(email, password)
+activate Service
+
+Service -> Model: findByEmail(email)
+activate Model
+
+Model -> DB: SELECT * FROM users WHERE email = ?
+activate DB
+DB --> Model: Données utilisateur
+deactivate DB
+
+alt Utilisateur non trouvé
+    Model --> Service: null
+    Service --> Controller: {success: false, message: "Utilisateur non trouvé"}
+    Controller --> UI: 401 Unauthorized
+    UI --> User: Affiche message d'erreur
+else Utilisateur trouvé
+    Model --> Service: userData
+    
+    Service -> Service: Vérifie le mot de passe avec bcrypt
+    
+    alt Mot de passe incorrect
+        Service --> Controller: {success: false, message: "Mot de passe incorrect"}
+        Controller --> UI: 401 Unauthorized
+        UI --> User: Affiche message d'erreur
+    else Mot de passe correct
+        Service -> Service: Génère un JWT
+        Service -> Model: updateLastLogin(userId)
+        Model -> DB: UPDATE users SET lastLogin = NOW() WHERE id = ?
+        DB --> Model: Confirmation
+        
+        Service --> Controller: {success: true, token: JWT, user: userData}
+        deactivate Service
+        
+        Controller --> UI: 200 OK avec token et données utilisateur
+        deactivate Controller
+        
+        UI -> UI: Stocke le token dans localStorage
+        UI -> UI: Met à jour le contexte d'authentification
+        UI --> User: Redirige vers le dashboard
+    end
+end
+
+deactivate Model
+deactivate UI
+
+@enduml 

@@ -1,0 +1,224 @@
+@startuml annexes_db_conceptual_model
+skinparam backgroundColor white
+skinparam linetype ortho
+skinparam monochrome false
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+!define TABLE(name) class name << (T,#FFAAAA) >>
+!define PK(x) <b><u>x</u></b>
+!define FK(x) <i>x</i>
+
+title Modèle conceptuel de données - StudyConnect
+
+entity "Utilisateur" as user {
+  PK(id)
+  --
+  prénom
+  nom
+  email
+  mot_de_passe
+  rôle
+  avatar
+  bio
+  institution
+  domaine_étude
+  année_étude
+  email_vérifié
+  actif
+  dernière_connexion
+  date_création
+  date_modification
+}
+
+entity "Salle d'étude" as room {
+  PK(id)
+  --
+  nom
+  description
+  image
+  est_publique
+  nombre_membres
+  membres_actifs
+  dernière_activité
+  est_active
+  FK(créateur_id)
+  FK(sujet_id)
+  date_création
+  date_modification
+}
+
+entity "Resource" as resource {
+  PK(id)
+  --
+  titre
+  description
+  type_fichier
+  chemin_fichier
+  taille
+  téléchargements
+  visibilité
+  FK(utilisateur_id)
+  FK(salle_id)
+  date_création
+  date_modification
+}
+
+entity "Message" as message {
+  PK(id)
+  --
+  contenu
+  horodatage
+  est_lu
+  est_modifié
+  est_épinglé
+  FK(utilisateur_id)
+  FK(salle_id)
+}
+
+entity "Sujet" as subject {
+  PK(id)
+  --
+  nom
+  description
+}
+
+entity "Outil d'étude" as tool {
+  PK(id)
+  --
+  type
+  nom
+  paramètres
+  est_partagé
+  FK(utilisateur_id)
+  date_création
+  date_modification
+}
+
+entity "Flashcard" as flashcard {
+  PK(id)
+  --
+  question
+  réponse
+  difficulté
+  prochaine_révision
+  compteur_révision
+  FK(deck_id)
+  date_création
+  date_modification
+}
+
+entity "Deck de flashcards" as deck {
+  PK(id)
+  --
+  nom
+  description
+  nombre_cartes
+  est_public
+  FK(utilisateur_id)
+  date_création
+  date_modification
+}
+
+entity "Liste de tâches" as tasklist {
+  PK(id)
+  --
+  nom
+  description
+  est_partagé
+  FK(utilisateur_id)
+  FK(salle_id)
+  date_création
+  date_modification
+}
+
+entity "Tâche" as task {
+  PK(id)
+  --
+  titre
+  description
+  date_échéance
+  priorité
+  est_complétée
+  FK(liste_id)
+  date_création
+  date_modification
+}
+
+entity "Session d'étude" as session {
+  PK(id)
+  --
+  heure_début
+  heure_fin
+  durée
+  type
+  notes
+  FK(utilisateur_id)
+  date_création
+}
+
+entity "Notification" as notification {
+  PK(id)
+  --
+  type
+  message
+  est_lue
+  horodatage
+  lien
+  FK(utilisateur_id)
+  FK(créateur_id)
+}
+
+entity "Membre de salle" as member {
+  PK(utilisateur_id, salle_id)
+  --
+  rôle
+  date_adhésion
+  dernière_activité
+  est_muet
+}
+
+entity "Tag de ressource" as tag {
+  PK(id)
+  --
+  nom
+  couleur
+}
+
+entity "Tag-Ressource" as resource_tag {
+  PK(tag_id, ressource_id)
+}
+
+entity "Statut de message" as message_status {
+  PK(message_id, utilisateur_id)
+  --
+  est_livré
+  est_lu
+  heure_livraison
+  heure_lecture
+}
+
+user ||--o{ room : crée
+user ||--o{ resource : partage
+user ||--o{ message : envoie
+user ||--o{ notification : reçoit
+user ||--o{ deck : possède
+user ||--o{ tasklist : gère
+user ||--o{ session : réalise
+user }|--o{ member : est
+room ||--o{ member : contient
+room ||--o{ message : contient
+room ||--o{ resource : contient
+room }o--o{ subject : associé à
+room ||--o{ tasklist : associé à
+deck ||--o{ flashcard : contient
+tasklist ||--o{ task : contient
+resource }o--o{ tag : catégorisé
+tag ||--o{ resource_tag : appartient
+resource ||--o{ resource_tag : possède
+message ||--o{ message_status : a
+user }|--o{ message_status : visualise
+user ||--o{ notification : crée
+
+@enduml 

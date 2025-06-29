@@ -1,0 +1,116 @@
+@startuml chapterIII_uml_package
+skinparam packageStyle rectangle
+skinparam backgroundColor white
+skinparam linetype ortho
+skinparam monochrome false
+
+title Diagramme de packages - StudyConnect
+
+package "Frontend" {
+  package "Components" {
+    package "Auth" {
+      [Login]
+      [Register]
+      [Profile]
+    }
+    
+    package "StudyRoom" {
+      [RoomList]
+      [RoomDetail]
+      [CreateRoom]
+    }
+    
+    package "Chat" {
+      [MessageList]
+      [MessageInput]
+    }
+    
+    package "Resources" {
+      [ResourceManager]
+      [ResourceUploader]
+    }
+    
+    package "Tools" {
+      [Flashcards]
+      [StudyTimer]
+      [TaskList]
+    }
+  }
+  
+  package "Contexts" {
+    [AuthContext]
+    [SocketContext]
+  }
+  
+  package "Hooks" {
+    [useAuth]
+    [useSocket]
+    [useForm]
+  }
+  
+  package "Services" {
+    [APIService]
+    [SocketService]
+  }
+}
+
+package "Backend" {
+  package "Routes" {
+    [authRoutes]
+    [roomRoutes]
+    [resourceRoutes]
+    [userRoutes]
+  }
+  
+  package "Controllers" {
+    [AuthController]
+    [RoomController]
+    [ResourceController]
+    [UserController]
+    [MessageController]
+  }
+  
+  package "Services" as BackendServices {
+    [AuthService]
+    [RoomService]
+    [ResourceService]
+    [UserService]
+    [MessageService]
+  }
+  
+  package "Models" {
+    [User]
+    [StudyRoom]
+    [Resource]
+    [Message]
+    [Subject]
+  }
+  
+  package "Middleware" {
+    [authenticate]
+    [authorize]
+    [validateInput]
+    [errorHandler]
+  }
+  
+  package "Socket" {
+    [socketHandlers]
+    [socketMiddleware]
+  }
+  
+  package "Config" {
+    [database]
+    [server]
+    [socket]
+  }
+  
+  package "Utils" {
+    [validation]
+    [fileUpload]
+    [security]
+  }
+}
+
+Frontend ..> Backend : API Calls
+
+@enduml 

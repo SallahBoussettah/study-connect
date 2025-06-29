@@ -1,0 +1,53 @@
+@startuml annexes_uml_state_message
+skinparam backgroundColor white
+skinparam state {
+  BackgroundColor White
+  BorderColor Gray
+  FontName Arial
+}
+skinparam ArrowColor Black
+skinparam shadowing false
+
+title Diagramme d'états - Cycle de vie d'un message
+
+[*] --> Composé : L'utilisateur commence à rédiger
+
+state Composé {
+  [*] --> Édition
+  Édition --> Brouillon : Pause dans la saisie
+  Brouillon --> Édition : Reprise de la saisie
+  Édition --> Prévisualisation : Demande de prévisualisation
+  Prévisualisation --> Édition : Modification après prévisualisation
+  Édition --> Validé : Contenu validé
+}
+
+Composé --> En_cours_envoi : L'utilisateur clique sur Envoyer
+En_cours_envoi --> Envoyé : Message reçu par le serveur
+En_cours_envoi --> Échec_envoi : Erreur réseau/serveur
+
+Échec_envoi --> En_cours_envoi : Nouvelle tentative
+
+state Envoyé {
+  [*] --> Non_distribué
+  Non_distribué --> Distribué : Message distribué aux destinataires
+  Distribué --> Lu_par_certains : Au moins un destinataire a lu
+  Lu_par_certains --> Lu_par_tous : Tous les destinataires ont lu
+}
+
+state "Modifiable" as Modifiable <<choice>>
+Envoyé --> Modifiable : L'utilisateur modifie
+Modifiable --> En_édition : < 10 minutes
+En_édition --> Modifié : Validation des modifications
+Modifié --> Lu_par_certains : Distribution de la version modifiée
+Modifiable --> Non_modifiable : > 10 minutes
+
+state "Supprimable" as Supprimable <<choice>>
+Envoyé --> Supprimable : L'utilisateur supprime
+Supprimable --> Supprimé_local : > 24 heures (visible uniquement pour l'expéditeur)
+Supprimable --> Supprimé_tous : < 24 heures (supprimé pour tous)
+
+Supprimé_local --> [*]
+Supprimé_tous --> [*]
+Non_modifiable --> [*]
+
+@enduml 

@@ -1,0 +1,87 @@
+@startuml chapterIII_ui_studyroom
+skinparam backgroundColor white
+skinparam handwritten false
+skinparam defaultFontName Arial
+
+salt
+{
+  {+
+    {
+      <b>StudyConnect | Salle: Programmation Web
+      .
+    }
+    
+    {
+      {#
+        . | [Dashboard] | [Notifications] | [Profil] | [Déconnexion]
+      }
+    }
+    
+    {
+      {#
+        {
+          <b>Menu de la salle
+          .
+          [💬 Chat]
+          [📁 Ressources]
+          [👥 Membres]
+          [🔧 Outils]
+          [⚙️ Paramètres]
+        }
+        |
+        {
+          <b>Chat
+          .
+          {#
+            Sara: Bonjour à tous ! | 14:05
+            Ahmed: Salut Sara, tu as avancé sur l'exercice 3? | 14:07
+            Mohamed: J'ai partagé ma solution dans les ressources | 14:10
+            Sara: Super, je vais regarder ça | 14:11
+            Ahmed: @Mohamed merci! Est-ce que tu as utilisé les promesses? | 14:12
+            Mohamed: Oui, j'ai préféré async/await pour la lisibilité | 14:13
+            ...
+            ...
+          }
+          .
+          {
+            [+] Entrez votre message... | [Envoyer]
+          }
+        }
+        |
+        {
+          <b>Membres en ligne (8/12)
+          .
+          {#
+            👤 Ahmed (en ligne)
+            👤 Mohamed (en ligne)
+            👤 Sara (en ligne)
+            👤 Youssef (en ligne)
+            👤 Fatima (en ligne)
+            👤 Karim (absent)
+            👤 Amine (absent)
+            👤 Leila (en ligne)
+            ...
+          }
+          .
+          [Inviter un membre]
+        }
+      }
+      
+      {#
+        {
+          <b>Ressources partagées récemment
+          .
+          {#
+            [📄 Solution_Exercice3.js] | Partagé par Mohamed | il y a 10 min
+            [📄 Notes_Cours_API.pdf] | Partagé par Sara | hier
+            [📄 Exemple_Promesses.js] | Partagé par Ahmed | il y a 2 jours
+            [📄 Documentation_React.pdf] | Partagé par Leila | il y a 3 jours
+          }
+          [Voir toutes les ressources] | [Partager une ressource]
+        }
+      }
+    }
+  }
+}
+
+@enduml 

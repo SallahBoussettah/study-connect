@@ -1,0 +1,97 @@
+@startuml annexes_uml_sequence_room_creation
+skinparam backgroundColor white
+skinparam sequenceParticipant underline
+skinparam sequenceArrowThickness 1
+skinparam sequenceLifeLineBorderColor gray
+skinparam sequenceGroupBorderThickness 1
+
+title Diagramme de séquence - Création d'une salle d'étude
+
+actor "Utilisateur" as User
+participant "Interface utilisateur" as UI
+participant "RoomController" as Controller
+participant "RoomService" as Service
+participant "StudyRoomModel" as RoomModel
+participant "UserStudyRoomModel" as UserRoomModel
+participant "NotificationService" as NotifService
+database "Base de données" as DB
+
+User -> UI: Clique sur "Créer une salle"
+activate UI
+
+UI -> UI: Affiche formulaire de création
+User -> UI: Remplit les détails (nom, description, paramètres)
+User -> UI: Sélectionne des sujets associés
+User -> UI: Sélectionne les membres à inviter
+User -> UI: Soumet le formulaire
+
+UI -> UI: Valide les données
+UI -> Controller: createRoom(roomData)
+activate Controller
+
+Controller -> Controller: Vérifie l'authentification
+Controller -> Controller: Valide les données d'entrée
+
+Controller -> Service: createRoom(validatedData)
+activate Service
+
+Service -> RoomModel: create(roomDetails)
+activate RoomModel
+
+RoomModel -> DB: INSERT INTO study_rooms
+activate DB
+DB --> RoomModel: Confirmation et ID de la salle
+deactivate DB
+
+RoomModel --> Service: Nouvelle salle créée
+deactivate RoomModel
+
+Service -> UserRoomModel: create({userId, roomId, role: 'admin'})
+activate UserRoomModel
+
+UserRoomModel -> DB: INSERT INTO user_study_rooms
+activate DB
+DB --> UserRoomModel: Confirmation
+deactivate DB
+
+UserRoomModel --> Service: Association créée
+deactivate UserRoomModel
+
+loop Pour chaque sujet sélectionné
+    Service -> DB: INSERT INTO room_subjects
+    activate DB
+    DB --> Service: Confirmation
+    deactivate DB
+end
+
+loop Pour chaque membre invité
+    Service -> UserRoomModel: create({invitedUserId, roomId, role: 'member'})
+    activate UserRoomModel
+    UserRoomModel -> DB: INSERT INTO user_study_rooms
+    activate DB
+    DB --> UserRoomModel: Confirmation
+    deactivate DB
+    UserRoomModel --> Service: Membre ajouté
+    deactivate UserRoomModel
+    
+    Service -> NotifService: createNotification(invitedUserId, 'room_invitation')
+    activate NotifService
+    NotifService -> DB: INSERT INTO notifications
+    activate DB
+    DB --> NotifService: Confirmation
+    deactivate DB
+    NotifService --> Service: Notification créée
+    deactivate NotifService
+end
+
+Service --> Controller: Salle créée avec détails et membres
+deactivate Service
+
+Controller --> UI: Succès avec informations de la salle
+deactivate Controller
+
+UI -> UI: Affiche confirmation
+UI --> User: Redirige vers la nouvelle salle
+deactivate UI
+
+@enduml 

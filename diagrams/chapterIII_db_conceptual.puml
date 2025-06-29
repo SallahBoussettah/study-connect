@@ -1,0 +1,82 @@
+@startuml chapterIII_db_conceptual
+skinparam backgroundColor white
+skinparam linetype ortho
+skinparam monochrome false
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title Modèle conceptuel de données - StudyConnect
+
+entity "Utilisateur" as user {
+  *id : UUID
+  --
+  *prénom : string
+  *nom : string
+  *email : string
+  *mot_de_passe : string
+  *rôle : enum
+  avatar : string
+  bio : text
+  institution : string
+  *date_création : datetime
+  *date_modification : datetime
+}
+
+entity "Salle d'étude" as room {
+  *id : UUID
+  --
+  *nom : string
+  description : text
+  image : string
+  *est_publique : boolean
+  *date_création : datetime
+  *date_modification : datetime
+}
+
+entity "Resource" as resource {
+  *id : UUID
+  --
+  *titre : string
+  description : text
+  *type_fichier : string
+  *chemin_fichier : string
+  taille : integer
+  *date_création : datetime
+  *date_modification : datetime
+}
+
+entity "Message" as message {
+  *id : UUID
+  --
+  *contenu : text
+  *horodatage : datetime
+  *est_lu : boolean
+}
+
+entity "Sujet" as subject {
+  *id : UUID
+  --
+  *nom : string
+  description : text
+}
+
+entity "Outil d'étude" as tool {
+  *id : UUID
+  --
+  *type : enum
+  *paramètres : json
+  *date_création : datetime
+  *date_modification : datetime
+}
+
+user ||--o{ room : crée
+user }|--o{ room : participe
+user ||--o{ resource : partage
+user ||--o{ message : envoie
+room ||--o{ message : contient
+room ||--o{ resource : contient
+room }o--o{ subject : associé à
+user }|--o{ tool : utilise
+
+@enduml 

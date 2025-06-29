@@ -1,0 +1,103 @@
+@startuml chapterIII_db_relational
+skinparam backgroundColor white
+skinparam linetype ortho
+skinparam monochrome false
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title Modèle relationnel de la base de données - StudyConnect
+
+entity "users" as users {
+  *id : UUID <<PK>>
+  --
+  *first_name : VARCHAR(100)
+  *last_name : VARCHAR(100)
+  *email : VARCHAR(255) <<unique>>
+  *password : VARCHAR(255)
+  *role : ENUM
+  avatar : VARCHAR(255)
+  bio : TEXT
+  institution : VARCHAR(255)
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
+}
+
+entity "study_rooms" as rooms {
+  *id : UUID <<PK>>
+  --
+  *name : VARCHAR(100)
+  description : TEXT
+  image : VARCHAR(255)
+  *is_public : BOOLEAN
+  *created_by : UUID <<FK>>
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
+}
+
+entity "resources" as resources {
+  *id : UUID <<PK>>
+  --
+  *title : VARCHAR(255)
+  description : TEXT
+  *file_type : VARCHAR(50)
+  *file_path : VARCHAR(255)
+  file_size : INTEGER
+  *user_id : UUID <<FK>>
+  *room_id : UUID <<FK>>
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
+}
+
+entity "messages" as messages {
+  *id : UUID <<PK>>
+  --
+  *content : TEXT
+  *timestamp : TIMESTAMP
+  *is_read : BOOLEAN
+  *user_id : UUID <<FK>>
+  *room_id : UUID <<FK>>
+}
+
+entity "subjects" as subjects {
+  *id : UUID <<PK>>
+  --
+  *name : VARCHAR(100)
+  description : TEXT
+}
+
+entity "study_tools" as tools {
+  *id : UUID <<PK>>
+  --
+  *type : ENUM
+  *settings : JSONB
+  *user_id : UUID <<FK>>
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
+}
+
+entity "user_study_rooms" as user_rooms {
+  *user_id : UUID <<PK, FK>>
+  *room_id : UUID <<PK, FK>>
+  --
+  *role : ENUM
+  *joined_at : TIMESTAMP
+}
+
+entity "room_subjects" as room_subjects {
+  *room_id : UUID <<PK, FK>>
+  *subject_id : UUID <<PK, FK>>
+}
+
+users ||--o{ rooms : created_by
+users ||--o{ user_rooms
+rooms ||--o{ user_rooms
+users ||--o{ resources
+rooms ||--o{ resources
+users ||--o{ messages
+rooms ||--o{ messages
+rooms ||--o{ room_subjects
+subjects ||--o{ room_subjects
+users ||--o{ tools
+
+@enduml 

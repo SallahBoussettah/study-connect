@@ -1,0 +1,53 @@
+@startuml chapterIII_ui_home
+skinparam backgroundColor white
+skinparam handwritten false
+skinparam defaultFontName Arial
+
+salt
+{
+  {+
+    {
+      <b>StudyConnect
+      | Apprendre ensemble, partout
+    } 
+    
+    {
+      {
+        [S'inscrire gratuitement]
+      }
+      
+      {
+        [Se connecter] | Déjà membre?
+      }
+    }
+    
+    {
+      {
+        <b>Collaboration simplifiée
+        Créez des salles d'étude virtuelles pour collaborer 
+        avec vos camarades en temps réel.
+      }
+      {
+        <b>Organisation optimale
+        Centralisez toutes vos ressources et discussions
+        dans un espace unique et structuré.
+      }
+      {
+        <b>Outils d'apprentissage
+        Utilisez nos outils intégrés pour maximiser
+        votre efficacité d'apprentissage.
+      }
+    }
+    
+    {
+      <b>Rejoignez plus de 5000 étudiants qui améliorent
+      <b>leur expérience d'apprentissage avec StudyConnect
+    }
+    
+    {
+      [Commencer maintenant] | [Découvrir les fonctionnalités] 
+    }
+  }
+}
+
+@enduml 
