@@ -134,16 +134,20 @@ CHAPITRE VI : Évaluation et perspectives	103
     2.2. Backend (API Serveur)	106
     2.3. Base de Données	107
 3.	Flux Fonctionnel Utilisateur	108
-4.	Gestion des Données et Suivi des Statuts	112
+    3.1. Inscription et Authentification	108
+    3.2. Navigation dans le Dashboard	109
+    3.3. Gestion des Salles d'Étude	110
+    3.4. Partage de Ressources	111
+4.	Gestion des Données et Fonctionnalités Clés	112
     4.1. Organisation des données	113
-    4.2. Suivi des statuts	113
-    4.3. Traitement de feedback	114
-5.	Interface Utilisateur et Navigation	115
-    5.1. About Us	115
-    5.2. Contact Us	116
-    5.3. Profile	117
-6.	Limites Actuelles et Perspectives d'Amélioration	118
-7.	Conclusion	119
+    4.2. Système d'Étude et Suivi des Tâches	114
+    4.3. Communication en Temps Réel	115
+5.	Interface Utilisateur et Navigation	116
+    5.1. Landing Page et About Us	116
+    5.2. Contact et Features	117
+    5.3. Dashboard et Profile	118
+6.	Limites Actuelles et Perspectives d'Amélioration	119
+7.	Conclusion	120
 
 Conclusion générale	122
 Références	124

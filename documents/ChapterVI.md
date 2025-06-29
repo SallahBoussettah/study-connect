@@ -35,7 +35,7 @@ Le backend de StudyConnect est basé sur Node.js avec Express, suivant une archi
 
 ![Architecture Backend de StudyConnect](../diagrams/backend_architecture.png)
 
-- **API RESTful** : Les endpoints API sont organisés selon les principes REST, offrant des interfaces claires pour les opérations CRUD sur les ressources principales.
+- **API RESTful** : Les endpoints API sont organisés selon les principes REST, offrant des interfaces claires pour les opérations CRUD sur les ressources principales comme les utilisateurs, les salles d'étude, les messages et les ressources partagées.
 
 - **Middleware** : Des middlewares spécifiques gèrent l'authentification, la validation des données et la gestion des erreurs, assurant la sécurité et la robustesse de l'application.
 
@@ -53,7 +53,7 @@ StudyConnect utilise PostgreSQL comme système de gestion de base de données re
 
 ![Schéma de Base de Données de StudyConnect](../diagrams/database_schema.png)
 
-- **Modèles de données** : Les entités principales (User, StudyRoom, Resource, Message) sont modélisées avec des relations clairement définies.
+- **Modèles de données** : Les entités principales (User, StudyRoom, Resource, Message, DirectMessage, Friendship, etc.) sont modélisées avec des relations clairement définies.
 
 - **Relations** : Des relations many-to-many entre utilisateurs et salles d'étude, one-to-many entre utilisateurs et ressources, etc., capturent la complexité des interactions.
 
@@ -71,9 +71,11 @@ Cette section présente les principaux parcours utilisateur dans StudyConnect, i
 
 ![Flux Utilisateur Principal](../diagrams/user_flow.png)
 
-### Inscription et Authentification
+### 3.1. Inscription et Authentification
 
 Le processus d'inscription et d'authentification est conçu pour être simple tout en garantissant la sécurité :
+
+![Page d'Inscription](../diagrams/register_page.png)
 
 1. L'utilisateur accède à la page d'inscription et fournit ses informations (nom, email, mot de passe)
 2. Le frontend valide les données avant envoi
@@ -81,47 +83,63 @@ Le processus d'inscription et d'authentification est conçu pour être simple to
 4. Un token JWT est généré et renvoyé au frontend
 5. L'utilisateur est redirigé vers son tableau de bord
 
+![Page de Connexion](../diagrams/login_page.png)
+
 Ce flux sécurisé permet une entrée rapide dans l'application tout en protégeant les informations sensibles.
 
-### Création et Participation aux Salles d'Étude
+### 3.2. Navigation dans le Dashboard
+
+Le dashboard est le point central de l'expérience utilisateur, offrant un accès à toutes les fonctionnalités principales :
+
+![Dashboard Principal](../diagrams/dashboard_home.png)
+
+1. Après connexion, l'utilisateur accède à son dashboard personnalisé
+2. La barre latérale offre une navigation rapide vers les différentes sections
+3. Le contenu principal affiche un résumé des activités récentes et des statistiques personnelles
+4. Des notifications en temps réel informent l'utilisateur des nouveaux événements
+5. L'accès aux salles d'étude, ressources et contacts est facilité par des raccourcis contextuels
+
+Cette interface centralisée permet une navigation intuitive et efficace dans l'application.
+
+### 3.3. Gestion des Salles d'Étude
 
 Les salles d'étude constituent le cœur fonctionnel de StudyConnect :
+
+![Liste des Salles d'Étude](../diagrams/study_rooms_list.png)
 
 1. L'utilisateur peut créer une nouvelle salle depuis son tableau de bord
 2. Il définit le nom, la description, le sujet et les paramètres de visibilité
 3. La salle est créée et l'utilisateur en devient automatiquement administrateur
 4. D'autres utilisateurs peuvent découvrir la salle via la recherche ou rejoindre via invitation
+
+![Détail d'une Salle d'Étude](../diagrams/study_room_detail.png)
+
 5. Dans la salle, les membres peuvent communiquer en temps réel et partager des ressources
+6. Les administrateurs peuvent gérer les membres et les paramètres de la salle
 
 Ce flux facilite la création d'espaces collaboratifs adaptés aux besoins spécifiques des groupes d'étude.
 
-### Partage et Accès aux Ressources
+### 3.4. Partage de Ressources
 
 Le système de gestion des ressources permet un partage organisé du matériel pédagogique :
+
+![Page de Ressources](../diagrams/resources_page.png)
 
 1. Dans une salle d'étude, l'utilisateur peut uploader une nouvelle ressource
 2. Il fournit un titre, une description et des tags pour faciliter l'organisation
 3. Le fichier est traité par le backend et stocké de manière sécurisée
 4. Les métadonnées sont enregistrées en base de données
+
+![Détail d'une Ressource](../diagrams/resource_detail.png)
+
 5. Les autres membres de la salle peuvent consulter, télécharger ou commenter la ressource
+6. Un système de filtrage et de recherche permet de retrouver facilement les ressources
 
 Ce flux assure un partage structuré et accessible des ressources d'apprentissage.
 
-### Communication en Temps Réel
+## 4. Gestion des Données et Fonctionnalités Clés
 
-La communication instantanée est essentielle pour une collaboration efficace :
-
-1. Dans une salle d'étude, l'utilisateur peut voir les membres actuellement connectés
-2. Il peut envoyer des messages qui sont immédiatement transmis via Socket.IO
-3. Les messages sont persistés en base de données pour les utilisateurs non connectés
-4. Des notifications informent les utilisateurs des nouveaux messages ou activités
-5. Les indicateurs de présence montrent qui est en train de taper un message
-
-Ce flux de communication fluide et réactif reproduit l'expérience d'une session d'étude en présentiel.
-
-## 4. Gestion des Données et Suivi des Statuts
-
-La gestion efficace des données et le suivi des statuts sont essentiels pour maintenir une expérience utilisateur cohérente et informative.
+La gestion efficace des données et les fonctionnalités clés sont essentielles pour maintenir une expérience utilisateur cohérente et informative.
 
 ### 4.1. Organisation des données
 
@@ -139,87 +157,101 @@ StudyConnect implémente une organisation structurée des données pour facilite
 
 Cette organisation facilite la gestion d'un volume croissant de données tout en maintenant leur accessibilité.
 
-### 4.2. Suivi des statuts
+### 4.2. Système d'Étude et Suivi des Tâches
 
-Le suivi des statuts permet aux utilisateurs de rester informés de l'activité dans leurs espaces collaboratifs :
+StudyConnect intègre des outils pour optimiser les sessions d'étude et suivre la progression :
 
-- **Statut de présence** : Des indicateurs visuels montrent quels utilisateurs sont actuellement connectés, absents ou occupés dans chaque salle d'étude.
+![Timer d'Étude](../diagrams/study_timer.png)
 
-- **Statut des messages** : Les messages sont marqués comme envoyés, livrés ou lus, offrant une transparence sur leur réception.
+- **Timer Pomodoro** : Un timer intégré permet aux utilisateurs d'appliquer la technique Pomodoro, alternant périodes de concentration et pauses.
 
-- **Suivi des tâches** : Les listes de tâches collaboratives permettent de suivre l'avancement des objectifs d'étude avec des statuts comme "à faire", "en cours" et "terminé".
+- **Suivi des tâches** : Les utilisateurs peuvent créer et gérer des listes de tâches, individuelles ou partagées avec leur groupe d'étude.
 
-- **Notifications** : Un système de notifications informe les utilisateurs des événements importants comme les nouveaux messages, les invitations ou les partages de ressources.
+![Gestion des Tâches](../diagrams/task_management.png)
 
-Ce suivi des statuts améliore la coordination entre les membres des groupes d'étude et réduit les frictions dans la collaboration.
+- **Flashcards** : Un système de cartes mémoire aide à la mémorisation et à la révision des concepts clés.
 
-### 4.3. Traitement de feedback
+- **Statistiques d'étude** : Des visualisations montrent le temps consacré à différents sujets et l'évolution de la productivité.
 
-StudyConnect intègre des mécanismes pour collecter et traiter le feedback des utilisateurs :
+Ces outils soutiennent efficacement le processus d'apprentissage en fournissant structure et motivation.
 
-- **Formulaires de feedback** : Des formulaires intégrés permettent aux utilisateurs de signaler des problèmes ou de suggérer des améliorations.
+### 4.3. Communication en Temps Réel
 
-- **Analyse des comportements** : Des métriques anonymisées sur l'utilisation des fonctionnalités aident à identifier les points forts et les axes d'amélioration.
+La communication instantanée est essentielle pour une collaboration efficace :
 
-- **Système de votes** : Les utilisateurs peuvent voter pour les fonctionnalités qu'ils souhaiteraient voir implémentées prioritairement.
+![Chat en Temps Réel](../diagrams/real_time_chat.png)
 
-- **Boucle d'amélioration** : Le feedback est régulièrement analysé et intégré dans la planification des futures versions.
+- **Chat textuel** : Un système de messagerie en temps réel permet aux membres d'une salle d'échanger instantanément.
 
-Cette approche centrée sur l'utilisateur assure que StudyConnect évolue en adéquation avec les besoins réels des étudiants.
+- **Indicateurs de présence** : Des indicateurs visuels montrent quels utilisateurs sont actuellement connectés, absents ou occupés.
+
+- **Messages directs** : Les utilisateurs peuvent communiquer en privé en dehors des salles d'étude.
+
+![Notifications](../diagrams/notifications.png)
+
+- **Notifications** : Un système de notifications informe les utilisateurs des nouveaux messages, invitations ou partages de ressources.
+
+- **Historique de messages** : Les conversations sont persistées, permettant de consulter l'historique même après déconnexion.
+
+Cette infrastructure de communication reproduit efficacement l'interaction naturelle d'une session d'étude en présentiel.
 
 ## 5. Interface Utilisateur et Navigation
 
 L'interface utilisateur de StudyConnect est conçue pour être intuitive, esthétique et fonctionnelle, facilitant l'accès aux différentes fonctionnalités de la plateforme.
 
-![Interface Principale de StudyConnect](../diagrams/ui_overview.png)
+### 5.1. Landing Page et About Us
 
-### 5.1. About Us
+La page d'accueil et la section About Us présentent la plateforme aux nouveaux visiteurs :
 
-La page "About Us" présente l'équipe et la vision derrière StudyConnect :
+![Landing Page](../diagrams/landing_page.png)
 
-![Page About Us](../diagrams/about_us_page.png)
+- **Landing Page** : Une présentation claire de la valeur ajoutée de StudyConnect, avec des appels à l'action pour l'inscription et la connexion.
+
+- **Témoignages** : Des retours d'utilisateurs mettent en avant les bénéfices concrets de la plateforme.
+
+![About Us Page](../diagrams/about_page.png)
 
 - **Présentation du projet** : Une introduction claire à la mission et aux objectifs de StudyConnect.
 
 - **Équipe** : Présentation des membres de l'équipe avec leurs rôles et expertises.
 
-- **Histoire du projet** : Récit du développement de StudyConnect, depuis l'idée initiale jusqu'à sa réalisation.
+Ces pages établissent la crédibilité de la plateforme et communiquent sa proposition de valeur.
 
-- **Valeurs** : Mise en avant des principes qui guident le développement de la plateforme, comme la collaboration, l'accessibilité et l'innovation pédagogique.
+### 5.2. Contact et Features
 
-Cette page renforce la connexion entre les utilisateurs et l'équipe, tout en clarifiant la mission de la plateforme.
+Les pages Contact et Features fournissent des informations complémentaires importantes :
 
-### 5.2. Contact Us
-
-La page "Contact Us" offre plusieurs canaux pour communiquer avec l'équipe de StudyConnect :
-
-![Page Contact Us](../diagrams/contact_us_page.png)
+![Contact Page](../diagrams/contact_page.png)
 
 - **Formulaire de contact** : Un formulaire structuré pour envoyer des messages directs à l'équipe.
 
 - **FAQ** : Réponses aux questions fréquemment posées, réduisant le besoin de contact direct pour les problèmes courants.
 
-- **Support technique** : Informations sur comment obtenir de l'aide pour des problèmes techniques.
+![Features Page](../diagrams/features_page.png)
 
-- **Signalement de bugs** : Processus spécifique pour signaler des problèmes rencontrés dans l'application.
+- **Fonctionnalités détaillées** : Présentation approfondie des capacités de la plateforme, avec des exemples visuels.
 
-Cette page assure une communication transparente entre les utilisateurs et l'équipe de développement.
+- **Comparaison** : Mise en perspective des avantages de StudyConnect par rapport aux solutions alternatives.
 
-### 5.3. Profile
+Ces pages complètent l'information disponible pour les utilisateurs potentiels et existants.
 
-La page de profil permet aux utilisateurs de gérer leurs informations et préférences :
+### 5.3. Dashboard et Profile
 
-![Page de Profil](../diagrams/profile_page.png)
+Le dashboard et le profil constituent l'espace personnel de l'utilisateur :
 
-- **Informations personnelles** : Affichage et modification des données de base comme le nom, l'email et la photo de profil.
+![Dashboard Layout](../diagrams/dashboard_layout.png)
 
-- **Préférences** : Options pour personnaliser l'expérience utilisateur, comme les notifications ou le thème visuel.
+- **Dashboard** : Interface principale regroupant les statistiques personnelles, les activités récentes et les raccourcis vers les fonctionnalités fréquemment utilisées.
 
-- **Historique d'activité** : Vue d'ensemble des salles d'étude récemment visitées et des ressources partagées.
+- **Navigation intuitive** : Une barre latérale permet d'accéder rapidement aux différentes sections de l'application.
 
-- **Gestion du compte** : Options pour la sécurité du compte, comme le changement de mot de passe ou la déconnexion des appareils.
+![Profile Page](../diagrams/profile_page.png)
 
-Cette page offre un contrôle centralisé sur l'expérience personnelle dans StudyConnect.
+- **Profil utilisateur** : Page permettant de consulter et modifier les informations personnelles, préférences et paramètres de confidentialité.
+
+- **Paramètres** : Options pour personnaliser l'expérience utilisateur, comme les notifications ou le thème visuel.
+
+Cette organisation de l'interface assure une expérience utilisateur fluide et cohérente.
 
 ## 6. Limites Actuelles et Perspectives d'Amélioration
 
@@ -249,18 +281,16 @@ Sur la base des limitations identifiées et des retours utilisateurs, plusieurs 
 
 - **API publique** : Développement d'une API documentée permettant des intégrations avec d'autres systèmes éducatifs.
 
-- **Analytique d'apprentissage** : Implémentation d'outils de suivi de progression et d'analyse des habitudes d'étude.
+- **Intelligence artificielle** : Implémentation d'assistants d'étude intelligents et de recommandations personnalisées basées sur les habitudes d'apprentissage.
 
-- **Accessibilité améliorée** : Conformité complète aux standards WCAG pour garantir l'accès à tous les utilisateurs, y compris ceux avec des besoins spécifiques.
-
-Ces améliorations sont planifiées selon une feuille de route progressive, priorisant les fonctionnalités les plus demandées par la communauté d'utilisateurs.
+Ces améliorations permettront à StudyConnect de renforcer sa position comme plateforme d'apprentissage collaboratif de référence.
 
 ## 7. Conclusion
 
-Ce chapitre a présenté l'évaluation technique et fonctionnelle de StudyConnect, détaillant son architecture, ses flux utilisateur, sa gestion des données et son interface. L'analyse a démontré que la plateforme répond efficacement à son objectif principal : offrir un environnement collaboratif intégré pour l'apprentissage à distance.
+L'évaluation approfondie de StudyConnect a confirmé la pertinence de l'approche adoptée pour répondre aux défis de l'apprentissage collaboratif à distance. L'architecture technique robuste, les flux utilisateurs intuitifs et les fonctionnalités spécialisées constituent une base solide pour une plateforme éducative efficace.
 
-L'architecture technique, combinant React.js pour le frontend, Node.js avec Express pour le backend et PostgreSQL pour la persistance des données, offre une base solide et évolutive. Les flux fonctionnels utilisateur ont été conçus pour être intuitifs et efficaces, facilitant la collaboration entre étudiants.
+Les tests ont démontré que StudyConnect répond aux besoins essentiels des étudiants en matière de collaboration, de partage de ressources et de communication. Les retours utilisateurs ont été majoritairement positifs, soulignant particulièrement l'intuitivité de l'interface et l'utilité des outils d'étude intégrés.
 
-L'évaluation a également mis en lumière certaines limitations actuelles, notamment l'absence de communication audio/vidéo intégrée et les optimisations nécessaires pour de grands volumes de données. Ces points, ainsi que les retours utilisateurs, ont permis d'établir une feuille de route claire pour les futures évolutions de la plateforme.
+Les limites identifiées représentent moins des obstacles que des opportunités d'évolution. La feuille de route établie pour les futures versions permettra d'enrichir progressivement l'expérience utilisateur et d'élargir le champ d'application de la plateforme.
 
-StudyConnect représente une avancée significative dans le domaine des outils d'apprentissage collaboratif, offrant une solution intégrée qui répond aux besoins spécifiques des étudiants dans un contexte d'éducation de plus en plus numérique. Les perspectives d'amélioration identifiées ouvrent la voie à un enrichissement continu de l'expérience utilisateur, consolidant la position de StudyConnect comme plateforme de référence pour la collaboration étudiante à distance. 
+StudyConnect s'inscrit dans une vision à long terme de transformation de l'apprentissage collaboratif, où la technologie devient un facilitateur transparent de l'interaction humaine et du partage de connaissances. Cette première version constitue une étape importante vers la réalisation de cette vision. 
