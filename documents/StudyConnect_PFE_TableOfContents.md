@@ -124,25 +124,21 @@ CHAPITRE V : Implémentation	71
 
 CHAPITRE VI : Évaluation et perspectives	103
 1.	Introduction	104
-2.	Architecture Technique de l'Application	105
-    2.1. Frontend (Interface Utilisateur)	105
-    2.2. Backend (API Serveur)	106
-    2.3. Base de Données	107
-3.	Flux Fonctionnel Utilisateur	108
-    3.1. Inscription et Authentification	108
-    3.2. Navigation dans le Dashboard	109
-    3.3. Gestion des Salles d'Étude	110
-    3.4. Partage de Ressources	111
-4.	Gestion des Données et Fonctionnalités Clés	112
-    4.1. Organisation des données	113
-    4.2. Système d'Étude et Suivi des Tâches	114
-    4.3. Communication en Temps Réel	115
-5.	Interface Utilisateur et Navigation	116
-    5.1. Landing Page et About Us	116
-    5.2. Contact et Features	117
-    5.3. Dashboard et Profile	118
-6.	Limites Actuelles et Perspectives d'Amélioration	119
-7.	Conclusion	120
+2.	Flux Fonctionnel Utilisateur	105
+    2.1. Inscription et Authentification	105
+    2.2. Navigation dans le Dashboard	106
+    2.3. Gestion des Salles d'Étude	107
+    2.4. Partage de Ressources	108
+3.	Gestion des Données et Fonctionnalités Clés	109
+    3.1. Organisation des données	109
+    3.2. Système d'Étude et Suivi des Tâches	110
+    3.3. Communication en Temps Réel	111
+4.	Interface Utilisateur et Navigation	112
+    4.1. Landing Page et About Us	112
+    4.2. Contact et Features	113
+    4.3. Dashboard et Profile	114
+5.	Limites Actuelles et Perspectives d'Amélioration	115
+6.	Conclusion	116
 
 Conclusion générale	122
 Références	124
