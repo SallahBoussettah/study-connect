@@ -14,17 +14,52 @@ Enfin, ce chapitre pose les bases pour la suite de ce rapport. Il prépare le le
 
 ## 2. Présentation de SAGIM School
 
-SAGIM School, établissement d'enseignement supérieur de référence, a été créé avec la vision de former des professionnels hautement qualifiés dans les domaines des technologies de l'information, du développement web et de l'ingénierie logicielle.
+SAGIM est une école privée d'informatique et de gestion située à Marrakech, qui se distingue par son engagement dans la formation professionnelle de qualité. Fondée il y a plus de 20 ans, elle a été parmi les premiers établissements en matière de formation professionnelle privée au Maroc. SAGIM est une école accréditée dont les diplômes sont signés et reconnus par l'État.
 
-Depuis sa création, SAGIM School s'est affirmée comme un centre d'excellence pour l'enseignement des technologies numériques au Maroc, conciliant une formation académique rigoureuse et une approche pratique orientée vers les besoins du marché.
+L'école SAGIM se définit comme un établissement "humaniste et sérieux" qui prépare ses futurs lauréats aux métiers de l'informatique et de la gestion dans les grands domaines de demain. Sa pédagogie met particulièrement l'accent sur la professionnalisation des étudiants. Un diplômé de SAGIM réunit les qualités d'un informaticien, d'un comptable et d'un manager ouvert sur l'avenir.
 
-Durant ses premières années, l'école proposait des formations ciblées dans le domaine du développement web. Progressivement, son offre s'est élargie pour couvrir un spectre plus large de compétences technologiques, incluant le développement mobile, l'intelligence artificielle et la cybersécurité.
+### 2.1. Offre de formation
 
-Dès son origine, SAGIM School s'est engagée à maintenir des liens étroits avec l'industrie, permettant d'adapter continuellement ses programmes aux évolutions du secteur technologique. La création de partenariats stratégiques avec des entreprises leaders a constitué une étape cruciale dans cette démarche.
+SAGIM propose une large gamme de formations structurées en plusieurs catégories :
 
-En 2018, dans le cadre d'une modernisation de son approche pédagogique, l'école a adopté une méthodologie d'apprentissage par projets, favorisant l'acquisition de compétences pratiques. Cette même année, elle a créé le Centre d'Innovation Technologique (CIT), un espace dédié à l'expérimentation et au prototypage.
+**Études professionnelles :**
+- Qualification d'Opérateur de saisie
+- Technicien en gestion informatisée
+- Technicien spécialisé en développement informatique
+- Technicien spécialisé financier comptable
+- Technicien animateur de crèche et de garderie
+- Technicien spécialisé en gestion des entreprises
 
-Ces initiatives reflètent l'engagement de SAGIM School envers l'excellence académique et l'innovation pédagogique. L'établissement occupe aujourd'hui une place majeure dans la formation des talents numériques à l'échelle nationale.
+**Études supérieures :**
+- Licence professionnelle en management et gestion des PME
+- Licence professionnelle en informatique et réseaux
+- Master en management et stratégie d'entreprise
+- Master en informatique
+
+**Formations courtes :**
+- Informatique : Bureautique, Programmation, Site web, Logiciels de gestion
+- Langues : Français, Anglais, Allemand, Espagnol
+- Économie et gestion : Comptabilité, Gestion, Fiscalité
+
+L'école propose également des cours de soutien scolaire et universitaire dans diverses disciplines.
+
+### 2.2. Points forts et valeurs
+
+SAGIM se distingue par plusieurs atouts majeurs :
+- 20 ans d'expérience dans la formation aux métiers de l'informatique et de la gestion
+- Des programmes alignés avec les besoins des entreprises pour assurer l'insertion professionnelle
+- Une pédagogie de qualité, active et stimulante, centrée sur la maîtrise des compétences professionnelles
+- Des professeurs de haut niveau, majoritairement des cadres professionnels avec une expérience significative
+- Des stages de fin d'études assurés pour tous les étudiants
+- Un accompagnement personnalisé des apprenants
+
+L'ambition de SAGIM est de donner à tous ses apprenants les codes de réussite incontournables permettant de réussir dans un secteur exigeant qui demande expertise et compréhension des enjeux économiques, financiers et stratégiques de l'entreprise.
+
+### 2.3. Impact et rayonnement
+
+SAGIM accompagne chaque année plus de 300 apprenants de tous âges dans leur développement professionnel. L'école a su développer un réseau de partenariats avec des entreprises pour faciliter l'insertion professionnelle de ses lauréats.
+
+Les témoignages d'anciens étudiants et de professeurs confirment la qualité de l'enseignement dispensé et le sérieux de l'établissement. Plusieurs diplômés occupent aujourd'hui des postes de cadres dans des entreprises du secteur informatique et de la gestion.
 
 ![Figure 1: Organigramme SAGIM School](../diagrams/organigramme_sagim.png)
 
