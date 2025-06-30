@@ -163,17 +163,21 @@ StudyConnect intègre des outils pour optimiser les sessions d'étude et suivre 
 
 ![Timer d'Étude](../diagrams/study_timer.png)
 
-- **Timer Pomodoro** : Un timer intégré permet aux utilisateurs d'appliquer la technique Pomodoro, alternant périodes de concentration et pauses.
+#### Timer Pomodoro et Gestion des Tâches
 
-- **Suivi des tâches** : Les utilisateurs peuvent créer et gérer des listes de tâches, individuelles ou partagées avec leur groupe d'étude.
+- **Timer configurable** : Sessions de travail et pauses personnalisables selon la technique Pomodoro
+- **Gestion des tâches** : Création, suivi et complétion des tâches pendant les sessions d'étude
+- **Statistiques** : Visualisation du temps d'étude et du taux de complétion des tâches
 
 ![Gestion des Tâches](../diagrams/task_management.png)
 
-- **Flashcards** : Un système de cartes mémoire aide à la mémorisation et à la révision des concepts clés.
+#### Système de Flashcards
 
-- **Statistiques d'étude** : Des visualisations montrent le temps consacré à différents sujets et l'évolution de la productivité.
+- **Organisation par decks** : Création de jeux de cartes par sujet d'étude
+- **Mode d'étude interactif** : Système de cartes recto-verso avec suivi de maîtrise
+- **Filtrage et recherche** : Accès rapide aux contenus pertinents
 
-Ces outils soutiennent efficacement le processus d'apprentissage en fournissant structure et motivation.
+Ces outils complémentaires favorisent un apprentissage structuré et efficace au sein de la plateforme collaborative.
 
 ### 3.3. Communication en Temps Réel
 
