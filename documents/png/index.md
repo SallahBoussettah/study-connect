@@ -12,6 +12,7 @@ Ce dossier contient les diagrammes de flux pour le projet StudyConnect au format
 | [resource_flow.txt](./resource_flow.txt) | Flux de gestion des ressources dans les salles | Chapitre VI, section 2.4 |
 | [main_resources_flow.txt](./main_resources_flow.txt) | Flux de gestion des ressources publiques avec approbation | Chapitre VI, section 2.4 |
 | [communication_flow.txt](./communication_flow.txt) | Flux de communication en temps réel | Chapitre VI, section 3.3 |
+| [data_organization.txt](./data_organization.txt) | Structure organisationnelle des données dans StudyConnect | Chapitre VI, section 2.4 |
 
 ## Instructions d'utilisation
 

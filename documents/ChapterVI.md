@@ -115,25 +115,47 @@ Cette approche à deux niveaux permet :
 - Une valorisation du contenu créé par les étudiants
 - Un contrôle de qualité par le corps enseignant
 
-## 3. Gestion des Données et Fonctionnalités Clés
+## 3. Gestion des Données et Structure de Base de Données
 
-La gestion efficace des données et les fonctionnalités clés sont essentielles pour maintenir une expérience utilisateur cohérente et informative.
+Cette section présente l'organisation des données dans StudyConnect et les principales structures de la base de données qui soutiennent les fonctionnalités de la plateforme.
 
-### 3.1. Organisation des données
+### 3.1. Modèle de Données
 
-StudyConnect implémente une organisation structurée des données pour faciliter l'accès et la maintenance :
+StudyConnect implémente une organisation structurée des données pour faciliter l'accès, la maintenance et les performances :
 
 ![Organisation des Données](../diagrams/data_organization.png)
 
-- **Hiérarchie des ressources** : Les ressources sont organisées par salle d'étude, puis par catégorie et type de fichier, facilitant la navigation et la recherche.
+#### Structure de la Base de Données
 
-- **Métadonnées enrichies** : Chaque ressource est associée à des métadonnées comme l'auteur, la date de création, les tags et la description, améliorant la découvrabilité.
+La base de données PostgreSQL de StudyConnect est organisée autour des entités principales suivantes :
 
+![Modèle Relationnel](../diagrams/chapterIII_db_relational.png)
+
+```
+[EMPLACEMENT POUR CAPTURE D'ÉCRAN DE LA TABLE USERS]
+Figure 3.1 : Table des utilisateurs dans PostgreSQL
+```
+
+```
+[EMPLACEMENT POUR CAPTURE D'ÉCRAN DE LA TABLE STUDY_ROOMS]
+Figure 3.2 : Table des salles d'étude dans PostgreSQL
+```
+
+```
+[EMPLACEMENT POUR CAPTURE D'ÉCRAN DE LA TABLE RESOURCES]
+Figure 3.3 : Table des ressources dans PostgreSQL
+```
+
+Les relations entre ces tables permettent de maintenir l'intégrité des données tout en offrant une flexibilité pour les requêtes complexes nécessaires aux fonctionnalités collaboratives.
+
+#### Caractéristiques Clés du Modèle de Données
+
+- **Relations many-to-many** : Implémentées via des tables de jonction comme `user_study_rooms` pour gérer les appartenances multiples.
+- **Métadonnées enrichies** : Chaque ressource est associée à des métadonnées comme l'auteur, la date de création, les tags et la description.
 - **Versionnement** : Un système simple de versionnement permet de suivre les modifications des ressources partagées.
+- **Permissions granulaires** : Les droits d'accès sont définis au niveau des salles et des ressources individuelles.
 
-- **Permissions granulaires** : Les droits d'accès sont définis au niveau des salles et des ressources individuelles, permettant un contrôle précis du partage.
-
-Cette organisation facilite la gestion d'un volume croissant de données tout en maintenant leur accessibilité.
+Cette organisation facilite la gestion d'un volume croissant de données tout en maintenant leur accessibilité et leur sécurité.
 
 ### 3.2. Système d'Étude et Suivi des Tâches
 

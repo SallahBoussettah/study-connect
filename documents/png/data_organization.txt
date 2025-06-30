@@ -1,0 +1,40 @@
+flowchart TD
+    classDef primaryEntity fill:#4f46e5,stroke:#312e81,color:white,stroke-width:2px
+    classDef secondaryEntity fill:#3b82f6,stroke:#1e40af,color:white,stroke-width:1.5px
+    classDef tertiaryEntity fill:#60a5fa,stroke:#2563eb,color:white,stroke-width:1px
+    classDef metadata fill:#93c5fd,stroke:#3b82f6,color:#1e3a8a,stroke-width:1px
+    
+    User[Utilisateur]:::primaryEntity
+    StudyRoom[Salle d'Étude]:::primaryEntity
+    Resource[Ressource]:::primaryEntity
+    
+    User --> |crée| StudyRoom
+    User --> |partage| Resource
+    StudyRoom --> |contient| Resource
+    
+    Resource --> ResourceTypes[Types de Ressources]:::secondaryEntity
+    ResourceTypes --> Documents[Documents]:::tertiaryEntity
+    ResourceTypes --> Images[Images]:::tertiaryEntity
+    ResourceTypes --> Videos[Vidéos]:::tertiaryEntity
+    ResourceTypes --> Links[Liens]:::tertiaryEntity
+    
+    Resource --> Metadata[Métadonnées]:::secondaryEntity
+    Metadata --> Author[Auteur]:::metadata
+    Metadata --> CreationDate[Date de Création]:::metadata
+    Metadata --> Tags[Tags]:::metadata
+    Metadata --> Description[Description]:::metadata
+    Metadata --> FileSize[Taille du Fichier]:::metadata
+    Metadata --> Version[Version]:::metadata
+    
+    StudyRoom --> RoomHierarchy[Hiérarchie des Salles]:::secondaryEntity
+    RoomHierarchy --> Subject[Sujet]:::tertiaryEntity
+    RoomHierarchy --> Category[Catégorie]:::tertiaryEntity
+    
+    StudyRoom --> AccessControl[Contrôle d'Accès]:::secondaryEntity
+    AccessControl --> Public[Public]:::tertiaryEntity
+    AccessControl --> Private[Privé]:::tertiaryEntity
+    AccessControl --> Permissions[Permissions]:::tertiaryEntity
+    
+    Permissions --> Owner[Propriétaire]:::metadata
+    Permissions --> Moderator[Modérateur]:::metadata
+    Permissions --> Member[Membre]:::metadata 

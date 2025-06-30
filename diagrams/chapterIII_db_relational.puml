@@ -15,10 +15,15 @@ entity "users" as users {
   *last_name : VARCHAR(100)
   *email : VARCHAR(255) <<unique>>
   *password : VARCHAR(255)
-  *role : ENUM
+  *role : ENUM('student', 'teacher', 'admin')
   avatar : VARCHAR(255)
   bio : TEXT
   institution : VARCHAR(255)
+  major : VARCHAR(100)
+  year_of_study : VARCHAR(50)
+  email_verified : BOOLEAN
+  is_active : BOOLEAN
+  last_login : TIMESTAMP
   *created_at : TIMESTAMP
   *updated_at : TIMESTAMP
 }
@@ -30,7 +35,12 @@ entity "study_rooms" as rooms {
   description : TEXT
   image : VARCHAR(255)
   *is_public : BOOLEAN
+  total_members : INTEGER
+  active_members : INTEGER
+  last_active : TIMESTAMP
+  is_active : BOOLEAN
   *created_by : UUID <<FK>>
+  subject_id : UUID <<FK>>
   *created_at : TIMESTAMP
   *updated_at : TIMESTAMP
 }
@@ -40,11 +50,18 @@ entity "resources" as resources {
   --
   *title : VARCHAR(255)
   description : TEXT
-  *file_type : VARCHAR(50)
-  *file_path : VARCHAR(255)
+  *type : ENUM('PDF', 'etc')
+  url : VARCHAR(255)
+  file_path : VARCHAR(255)
   file_size : INTEGER
-  *user_id : UUID <<FK>>
-  *room_id : UUID <<FK>>
+  original_filename : VARCHAR(255)
+  status : ENUM('pending', 'approved', 'rejected')
+  *uploaded_by : UUID <<FK>>
+  room_id : UUID <<FK>>
+  subject_id : UUID <<FK>>
+  reviewed_by : UUID <<FK>>
+  reviewed_at : TIMESTAMP
+  review_notes : TEXT
   *created_at : TIMESTAMP
   *updated_at : TIMESTAMP
 }
@@ -53,17 +70,33 @@ entity "messages" as messages {
   *id : UUID <<PK>>
   --
   *content : TEXT
-  *timestamp : TIMESTAMP
-  *is_read : BOOLEAN
-  *user_id : UUID <<FK>>
+  *sender_id : UUID <<FK>>
   *room_id : UUID <<FK>>
+  is_system : BOOLEAN
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
+}
+
+entity "direct_messages" as direct_messages {
+  *id : UUID <<PK>>
+  --
+  *content : TEXT
+  *sender_id : UUID <<FK>>
+  *receiver_id : UUID <<FK>>
+  is_read : BOOLEAN
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
 }
 
 entity "subjects" as subjects {
   *id : UUID <<PK>>
   --
   *name : VARCHAR(100)
+  *category : VARCHAR(100)
   description : TEXT
+  icon : VARCHAR(255)
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
 }
 
 entity "study_tools" as tools {
@@ -77,11 +110,15 @@ entity "study_tools" as tools {
 }
 
 entity "user_study_rooms" as user_rooms {
-  *user_id : UUID <<PK, FK>>
-  *room_id : UUID <<PK, FK>>
+  *id : UUID <<PK>>
+  *user_id : UUID <<FK>>
+  *room_id : UUID <<FK>>
   --
-  *role : ENUM
+  *role : ENUM('owner', 'moderator', 'member')
   *joined_at : TIMESTAMP
+  last_active : TIMESTAMP
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
 }
 
 entity "room_subjects" as room_subjects {
@@ -89,15 +126,48 @@ entity "room_subjects" as room_subjects {
   *subject_id : UUID <<PK, FK>>
 }
 
+entity "notifications" as notifications {
+  *id : UUID <<PK>>
+  --
+  *user_id : UUID <<FK>>
+  *message : VARCHAR(255)
+  *type : ENUM('info', 'success', 'warning', 'error')
+  link : VARCHAR(255)
+  is_read : BOOLEAN
+  related_id : UUID
+  related_type : VARCHAR(50)
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
+}
+
+entity "user_preferences" as user_preferences {
+  *id : UUID <<PK>>
+  --
+  *user_id : UUID <<FK>>
+  notification_email : BOOLEAN
+  notification_push : BOOLEAN
+  theme : VARCHAR(50)
+  language : VARCHAR(50)
+  timezone : VARCHAR(100)
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
+}
+
 users ||--o{ rooms : created_by
 users ||--o{ user_rooms
 rooms ||--o{ user_rooms
-users ||--o{ resources
+users ||--o{ resources : uploaded_by
+resources }--o| users : reviewed_by
 rooms ||--o{ resources
-users ||--o{ messages
+users ||--o{ messages : sender_id
 rooms ||--o{ messages
+users ||--o{ direct_messages : sender_id
+users ||--o{ direct_messages : receiver_id
 rooms ||--o{ room_subjects
 subjects ||--o{ room_subjects
 users ||--o{ tools
+users ||--o{ notifications
+users ||--o| user_preferences
+subjects ||--o{ rooms
 
 @enduml 

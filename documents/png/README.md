@@ -8,7 +8,7 @@ Ce dossier contient plusieurs diagrammes au format Mermaid qui peuvent être uti
 2. **auth_flow.txt** - Flux détaillé d'authentification et d'autorisation
 3. **study_room_flow.txt** - Flux détaillé de la gestion des salles d'étude
 4. **resource_flow.txt** - Flux de gestion des ressources dans les salles d'étude
-5. **main_resources_flow.txt** - Flux de gestion des ressources publiques avec processus d'approbation
+5. **main_resources_flow.txt** - Flux de gestion des ressources publiques avec processus d'approbation (montre à la fois l'implémentation actuelle et les évolutions futures)
 6. **communication_flow.txt** - Flux de communication en temps réel
 
 ## Comment utiliser ces diagrammes dans Excalidraw
@@ -38,10 +38,12 @@ Une fois le diagramme généré dans Excalidraw, vous pouvez:
   - Orange pour les décisions/validations
   - Gris pour les processus système
   - Violet pour les actions d'approbation/modération
+  - Cyan pour les fonctionnalités futures (non encore implémentées)
 
 - **Ajoutez des icônes** pour améliorer la compréhension visuelle
 - **Regroupez les éléments connexes** à l'aide de la fonctionnalité de groupe d'Excalidraw
 - **Ajustez l'épaisseur des flèches** pour indiquer l'importance des flux
+- **Utilisez des sous-graphes** pour distinguer les fonctionnalités actuelles des évolutions futures
 
 ## Intégration dans la documentation
 
