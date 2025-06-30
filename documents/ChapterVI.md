@@ -63,21 +63,38 @@ Ce flux facilite la création d'espaces collaboratifs adaptés aux besoins spéc
 
 ### 2.4. Partage de Ressources
 
-Le système de gestion des ressources permet un partage organisé du matériel pédagogique :
+Le système de gestion des ressources permet un partage organisé du matériel pédagogique à travers deux canaux principaux :
 
 ![Page de Ressources](../diagrams/resources_page.png)
+
+#### Ressources dans les salles d'étude
 
 1. Dans une salle d'étude, l'utilisateur peut uploader une nouvelle ressource
 2. Il fournit un titre, une description et des tags pour faciliter l'organisation
 3. Le fichier est traité par le backend et stocké de manière sécurisée
 4. Les métadonnées sont enregistrées en base de données
+5. La ressource est immédiatement disponible pour tous les membres de la salle
+
+#### Ressources publiques avec processus d'approbation
+
+![Page Principale des Ressources](../diagrams/main_resources_page.png)
+
+1. Depuis la page principale des ressources, tout étudiant peut uploader une ressource destinée à être partagée publiquement
+2. L'étudiant remplit un formulaire détaillé avec titre, description, sujet, niveau et tags
+3. La ressource est soumise à un processus d'approbation et marquée comme "En attente"
+4. Les administrateurs et enseignants reçoivent une notification de nouvelle ressource à examiner
+5. Après examen, ils peuvent approuver, demander des modifications ou rejeter la ressource
+6. Une fois approuvée, la ressource devient disponible publiquement pour tous les utilisateurs de la plateforme
 
 ![Détail d'une Ressource](../diagrams/resource_detail.png)
 
-5. Les autres membres de la salle peuvent consulter, télécharger ou commenter la ressource
-6. Un système de filtrage et de recherche permet de retrouver facilement les ressources
+Cette approche à deux niveaux permet :
+- Un partage rapide et flexible au sein des groupes d'étude
+- Une bibliothèque de ressources publiques de qualité contrôlée
+- Une valorisation du contenu créé par les étudiants
+- Un contrôle de qualité par le corps enseignant
 
-Ce flux assure un partage structuré et accessible des ressources d'apprentissage.
+Le système de filtrage et de recherche permet de retrouver facilement les ressources selon différents critères : sujet, type de fichier, date d'ajout, popularité ou statut d'approbation.
 
 ## 3. Gestion des Données et Fonctionnalités Clés
 

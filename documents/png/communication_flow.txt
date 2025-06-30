@@ -1,0 +1,62 @@
+flowchart TD
+    Login[Connexion Utilisateur] --> SocketConnection[Connexion Socket.IO]
+    
+    SocketConnection --> JoinRooms[Rejoindre les Salles]
+    SocketConnection --> UpdatePresence[Mise à jour Présence]
+    SocketConnection --> ListenNotifications[Écoute des Notifications]
+    
+    JoinRooms --> StudyRoomChat[Chat de Salle d'Étude]
+    JoinRooms --> DirectChat[Chat Direct]
+    
+    UpdatePresence --> OnlineStatus[Statut En Ligne]
+    UpdatePresence --> TypingIndicator[Indicateur de Frappe]
+    UpdatePresence --> ActivityStatus[Statut d'Activité]
+    
+    StudyRoomChat --> SendRoomMessage[Envoyer Message de Salle]
+    StudyRoomChat --> ReceiveRoomMessage[Recevoir Message de Salle]
+    
+    DirectChat --> SendDirectMessage[Envoyer Message Direct]
+    DirectChat --> ReceiveDirectMessage[Recevoir Message Direct]
+    
+    SendRoomMessage --> MessageValidation{Validation?}
+    MessageValidation -->|Succès| MessageProcessing[Traitement du Message]
+    MessageValidation -->|Erreur| SendRoomMessage
+    
+    MessageProcessing --> StoreMessage[Stockage en BDD]
+    StoreMessage --> BroadcastMessage[Diffusion aux Membres]
+    
+    BroadcastMessage --> ReceiveRoomMessage
+    
+    SendDirectMessage --> DirectValidation{Validation?}
+    DirectValidation -->|Succès| DirectProcessing[Traitement du Message]
+    DirectValidation -->|Erreur| SendDirectMessage
+    
+    DirectProcessing --> StoreDirectMessage[Stockage en BDD]
+    StoreDirectMessage --> EmitDirectMessage[Émission au Destinataire]
+    
+    EmitDirectMessage --> ReceiveDirectMessage
+    
+    ReceiveRoomMessage --> DisplayMessage[Affichage du Message]
+    ReceiveDirectMessage --> DisplayMessage
+    
+    DisplayMessage --> ReadReceipt[Accusé de Lecture]
+    DisplayMessage --> ReplyOption[Option de Réponse]
+    
+    ListenNotifications --> NewMessage[Nouveau Message]
+    ListenNotifications --> FriendRequest[Demande d'Ami]
+    ListenNotifications --> RoomInvite[Invitation de Salle]
+    ListenNotifications --> ResourceShare[Partage de Ressource]
+    
+    NewMessage --> NotificationDisplay[Affichage de Notification]
+    FriendRequest --> NotificationDisplay
+    RoomInvite --> NotificationDisplay
+    ResourceShare --> NotificationDisplay
+    
+    NotificationDisplay --> NotificationAction[Action sur Notification]
+    
+    subgraph "Légende"
+        UserAction[Action Utilisateur]
+        SystemProcess([Processus Système])
+        RealTimeEvent([Événement Temps Réel])
+        Decision{Décision}
+    end 

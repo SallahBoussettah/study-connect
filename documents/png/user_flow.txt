@@ -1,0 +1,36 @@
+flowchart TD
+    Start([Accès à StudyConnect]) --> Landing[Landing Page]
+    Landing --> Register[Page d'Inscription]
+    Landing --> Login[Page de Connexion]
+    
+    Register --> FormValidation{Validation du formulaire}
+    FormValidation -->|Succès| TokenGeneration[Génération JWT]
+    FormValidation -->|Erreur| Register
+    
+    Login --> AuthValidation{Validation des identifiants}
+    AuthValidation -->|Succès| TokenGeneration
+    AuthValidation -->|Erreur| Login
+    
+    TokenGeneration --> Dashboard[Dashboard Principal]
+    
+    Dashboard --> StudyRooms[Salles d'Étude]
+    Dashboard --> Resources[Ressources]
+    Dashboard --> Friends[Amis]
+    Dashboard --> Profile[Profil]
+    Dashboard --> StudyTools[Outils d'Étude]
+    
+    StudyRooms --> CreateRoom[Créer une Salle]
+    StudyRooms --> JoinRoom[Rejoindre une Salle]
+    
+    CreateRoom --> RoomDetail[Détail de la Salle]
+    JoinRoom --> RoomDetail
+    
+    RoomDetail --> Chat[Chat en Temps Réel]
+    RoomDetail --> ShareResources[Partager des Ressources]
+    
+    Resources --> UploadResource[Uploader une Ressource]
+    Resources --> BrowseResources[Parcourir les Ressources]
+    
+    StudyTools --> Timer[Timer Pomodoro]
+    StudyTools --> Tasks[Gestion des Tâches]
+    StudyTools --> Flashcards[Flashcards] 

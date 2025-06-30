@@ -1,0 +1,46 @@
+flowchart TD
+    Dashboard[Dashboard] --> Resources[Page des Ressources]
+    StudyRoom[Salle d'Étude] --> RoomResources[Ressources de la Salle]
+    
+    Resources --> UploadResource[Uploader une Ressource]
+    Resources --> BrowseResources[Parcourir les Ressources]
+    Resources --> SearchResources[Rechercher des Ressources]
+    Resources --> FilterResources[Filtrer les Ressources]
+    
+    RoomResources --> UploadResource
+    RoomResources --> RoomSpecificResources[Ressources Spécifiques à la Salle]
+    
+    UploadResource --> ResourceForm[Formulaire de Ressource]
+    ResourceForm --> FillMetadata[Remplir les Métadonnées]
+    FillMetadata --> SelectFile[Sélectionner le Fichier]
+    SelectFile --> UploadValidation{Validation?}
+    UploadValidation -->|Succès| ProcessingFile[Traitement du Fichier]
+    UploadValidation -->|Erreur| ResourceForm
+    
+    ProcessingFile --> ResourceCreated[Ressource Créée]
+    
+    BrowseResources --> ResourceCategories[Catégories de Ressources]
+    SearchResources --> SearchResults[Résultats de Recherche]
+    FilterResources --> FilteredResults[Résultats Filtrés]
+    
+    ResourceCategories --> ResourcesList[Liste de Ressources]
+    SearchResults --> ResourcesList
+    FilteredResults --> ResourcesList
+    RoomSpecificResources --> ResourcesList
+    
+    ResourcesList --> ResourceDetail[Détail de la Ressource]
+    ResourceCreated --> ResourceDetail
+    
+    ResourceDetail --> DownloadResource[Télécharger]
+    ResourceDetail --> PreviewResource[Prévisualiser]
+    ResourceDetail --> CommentResource[Commenter]
+    ResourceDetail --> ShareResource[Partager]
+    ResourceDetail --> EditResource[Modifier]
+    ResourceDetail --> DeleteResource[Supprimer]
+    
+    EditResource --> ResourceForm
+    
+    ShareResource --> SelectRecipients[Sélectionner Destinataires]
+    SelectRecipients --> ShareValidation{Validation?}
+    ShareValidation -->|Succès| ResourceShared[Ressource Partagée]
+    ShareValidation -->|Erreur| SelectRecipients 

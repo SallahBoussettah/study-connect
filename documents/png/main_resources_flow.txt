@@ -1,0 +1,59 @@
+flowchart TD
+    Dashboard[Dashboard] --> MainResources[Page Principale des Ressources]
+    
+    MainResources --> UploadPublicResource[Uploader une Ressource Publique]
+    MainResources --> BrowsePublicResources[Parcourir les Ressources Publiques]
+    MainResources --> SearchPublicResources[Rechercher des Ressources]
+    MainResources --> FilterPublicResources[Filtrer les Ressources]
+    
+    UploadPublicResource --> ResourceForm[Formulaire de Ressource]
+    ResourceForm --> FillMetadata[Remplir les Métadonnées]
+    FillMetadata --> SelectFile[Sélectionner le Fichier]
+    SelectFile --> UploadValidation{Validation?}
+    UploadValidation -->|Succès| ProcessingFile[Traitement du Fichier]
+    UploadValidation -->|Erreur| ResourceForm
+    
+    ProcessingFile --> PendingResource[Ressource en Attente d'Approbation]
+    PendingResource --> NotifyReviewers[Notification aux Approbateurs]
+    
+    NotifyReviewers --> ReviewProcess[Processus d'Examen]
+    
+    ReviewProcess --> ApprovalDecision{Décision?}
+    ApprovalDecision -->|Approuvé| ApprovedResource[Ressource Approuvée]
+    ApprovalDecision -->|Modifications Requises| RequestChanges[Demande de Modifications]
+    ApprovalDecision -->|Rejeté| RejectedResource[Ressource Rejetée]
+    
+    RequestChanges --> NotifyAuthor[Notification à l'Auteur]
+    NotifyAuthor --> EditResource[Modifier la Ressource]
+    EditResource --> ResourceForm
+    
+    ApprovedResource --> PublicResource[Ressource Publique]
+    RejectedResource --> NotifyRejection[Notification de Rejet]
+    
+    BrowsePublicResources --> ResourceCategories[Catégories de Ressources]
+    SearchPublicResources --> SearchResults[Résultats de Recherche]
+    FilterPublicResources --> FilteredResults[Résultats Filtrés]
+    
+    ResourceCategories --> PublicResourcesList[Liste de Ressources Publiques]
+    SearchResults --> PublicResourcesList
+    FilteredResults --> PublicResourcesList
+    
+    PublicResourcesList --> ResourceDetail[Détail de la Ressource]
+    PublicResource --> ResourceDetail
+    
+    ResourceDetail --> DownloadResource[Télécharger]
+    ResourceDetail --> PreviewResource[Prévisualiser]
+    ResourceDetail --> CommentResource[Commenter]
+    ResourceDetail --> RateResource[Noter]
+    
+    subgraph "Rôles d'Utilisateurs"
+        Student[Étudiant]
+        Teacher[Enseignant]
+        Admin[Administrateur]
+    end
+    
+    Student --> UploadPublicResource
+    Student --> BrowsePublicResources
+    
+    Teacher --> ReviewProcess
+    Admin --> ReviewProcess 

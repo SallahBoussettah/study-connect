@@ -1,0 +1,48 @@
+flowchart TD
+    Start([Accès à StudyConnect]) --> Landing[Landing Page]
+    Landing --> Register[Page d'Inscription]
+    Landing --> Login[Page de Connexion]
+    
+    Register --> RegisterForm[Formulaire d'Inscription]
+    RegisterForm --> InputValidation{Validation\ndes entrées}
+    InputValidation -->|Invalide| RegisterErrors[Affichage des erreurs]
+    RegisterErrors --> RegisterForm
+    InputValidation -->|Valide| EmailCheck{Email\ndisponible?}
+    
+    EmailCheck -->|Non| EmailError[Email déjà utilisé]
+    EmailError --> RegisterForm
+    EmailCheck -->|Oui| PasswordHash[Hashage du mot de passe]
+    
+    PasswordHash --> CreateUser[Création de l'utilisateur]
+    CreateUser --> GenerateJWT[Génération du JWT]
+    GenerateJWT --> StoreToken[Stockage du token]
+    StoreToken --> RedirectDashboard[Redirection vers Dashboard]
+    
+    Login --> LoginForm[Formulaire de Connexion]
+    LoginForm --> CredentialsCheck{Vérification\ndes identifiants}
+    CredentialsCheck -->|Invalide| LoginError[Identifiants incorrects]
+    LoginError --> LoginForm
+    CredentialsCheck -->|Valide| UserActive{Compte\nactif?}
+    
+    UserActive -->|Non| AccountError[Compte désactivé]
+    AccountError --> LoginForm
+    UserActive -->|Oui| GenerateJWT
+    
+    RedirectDashboard --> Dashboard[Dashboard]
+    
+    Dashboard --> ProtectedRoute{Route\nprotégée?}
+    ProtectedRoute -->|Oui| TokenCheck{Token\nvalide?}
+    ProtectedRoute -->|Non| ShowContent[Affichage du contenu]
+    
+    TokenCheck -->|Non| RedirectLogin[Redirection vers Login]
+    TokenCheck -->|Oui| RoleCheck{Rôle\nsuffisant?}
+    
+    RoleCheck -->|Non| AccessDenied[Accès refusé]
+    RoleCheck -->|Oui| ShowContent
+    
+    subgraph "Légende"
+        UserAction[Action Utilisateur]
+        SystemProcess([Processus Système])
+        Decision{Décision}
+        Error[Erreur]
+    end 

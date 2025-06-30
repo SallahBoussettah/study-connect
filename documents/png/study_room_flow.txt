@@ -1,0 +1,44 @@
+flowchart TD
+    Dashboard[Dashboard] --> StudyRooms[Liste des Salles d'Étude]
+    
+    StudyRooms --> CreateRoom[Créer une Salle]
+    StudyRooms --> JoinRoom[Rejoindre une Salle]
+    StudyRooms --> SearchRoom[Rechercher une Salle]
+    
+    CreateRoom --> RoomForm[Formulaire de Création]
+    RoomForm --> ValidateRoom{Validation}
+    ValidateRoom -->|Succès| NewRoom[Nouvelle Salle Créée]
+    ValidateRoom -->|Erreur| RoomForm
+    
+    JoinRoom --> RoomAccess{Accès?}
+    RoomAccess -->|Public| RoomJoined[Salle Rejointe]
+    RoomAccess -->|Privé| RequestAccess[Demande d'Accès]
+    RequestAccess --> WaitApproval{Approbation?}
+    WaitApproval -->|Approuvé| RoomJoined
+    WaitApproval -->|Refusé| StudyRooms
+    
+    SearchRoom --> SearchResults[Résultats de Recherche]
+    SearchResults --> JoinRoom
+    
+    NewRoom --> RoomDetail[Détail de la Salle]
+    RoomJoined --> RoomDetail
+    
+    RoomDetail --> Chat[Chat en Temps Réel]
+    RoomDetail --> Members[Gestion des Membres]
+    RoomDetail --> Resources[Ressources de la Salle]
+    RoomDetail --> Settings[Paramètres de la Salle]
+    
+    Chat --> SendMessage[Envoyer un Message]
+    Chat --> ViewHistory[Voir l'Historique]
+    
+    Members --> InviteMember[Inviter un Membre]
+    Members --> RemoveMember[Retirer un Membre]
+    Members --> AssignRole[Assigner un Rôle]
+    
+    Resources --> UploadResource[Ajouter une Ressource]
+    Resources --> ViewResource[Consulter une Ressource]
+    Resources --> OrganizeResource[Organiser les Ressources]
+    
+    Settings --> EditRoom[Modifier la Salle]
+    Settings --> DeleteRoom[Supprimer la Salle]
+    Settings --> PrivacySettings[Paramètres de Confidentialité] 
