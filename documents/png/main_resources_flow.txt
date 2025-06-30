@@ -38,13 +38,26 @@ flowchart TD
     SearchResults --> PublicResourcesList
     FilteredResults --> PublicResourcesList
     
-    PublicResourcesList --> ResourceDetail[Détail de la Ressource]
-    PublicResource --> ResourceDetail
+    PublicResourcesList --> DirectActions[Actions Directes]
+    PublicResource --> PublicResourcesList
     
-    ResourceDetail --> DownloadResource[Télécharger]
-    ResourceDetail --> PreviewResource[Prévisualiser]
-    ResourceDetail --> CommentResource[Commenter]
-    ResourceDetail --> RateResource[Noter]
+    DirectActions --> DownloadResource[Télécharger]
+    DirectActions --> MoreOptions[Options Avancées]
+    
+    MoreOptions --> ShareResource[Partager]
+    MoreOptions --> ReportResource[Signaler]
+    MoreOptions --> DeleteResource[Supprimer]
+    
+    subgraph "Version Actuelle"
+        DirectActions
+    end
+    
+    subgraph "Évolutions Futures"
+        FutureDetail[Page de Détail]
+        FutureDetail --> PreviewResource[Prévisualiser]
+        FutureDetail --> CommentResource[Commenter]
+        FutureDetail --> RateResource[Noter]
+    end
     
     subgraph "Rôles d'Utilisateurs"
         Student[Étudiant]

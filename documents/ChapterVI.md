@@ -86,15 +86,34 @@ Le système de gestion des ressources permet un partage organisé du matériel p
 5. Après examen, ils peuvent approuver, demander des modifications ou rejeter la ressource
 6. Une fois approuvée, la ressource devient disponible publiquement pour tous les utilisateurs de la plateforme
 
-![Détail d'une Ressource](../diagrams/resource_detail.png)
+#### Interface actuelle de gestion des ressources
+
+L'interface actuelle de gestion des ressources présente une liste claire des ressources avec les informations essentielles :
+
+- Nom et type de document
+- Auteur/contributeur
+- Date d'ajout
+- Taille du fichier
+- Actions disponibles (téléchargement, options avancées)
+
+Les utilisateurs peuvent accéder directement aux ressources via le bouton de téléchargement, sans avoir à naviguer vers une page de détail intermédiaire, ce qui optimise l'efficacité pour les utilisations fréquentes.
+
+Le système de filtrage et de recherche permet de retrouver facilement les ressources selon différents critères : sujet, type de fichier, date d'ajout, ou statut d'approbation.
+
+#### Évolutions prévues pour la gestion des ressources
+
+Dans les versions futures, l'expérience utilisateur sera enrichie avec :
+
+- Une page de détail pour chaque ressource permettant la prévisualisation du contenu
+- Un système de commentaires et d'évaluation par les pairs
+- Des métadonnées enrichies pour améliorer la découvrabilité
+- Des statistiques d'utilisation pour identifier les ressources les plus pertinentes
 
 Cette approche à deux niveaux permet :
 - Un partage rapide et flexible au sein des groupes d'étude
 - Une bibliothèque de ressources publiques de qualité contrôlée
 - Une valorisation du contenu créé par les étudiants
 - Un contrôle de qualité par le corps enseignant
-
-Le système de filtrage et de recherche permet de retrouver facilement les ressources selon différents critères : sujet, type de fichier, date d'ajout, popularité ou statut d'approbation.
 
 ## 3. Gestion des Données et Fonctionnalités Clés
 
