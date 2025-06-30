@@ -99,13 +99,13 @@ const AboutPage = () => {
                   How StudyConnect Began
                 </h2>
                 <p className="text-lg text-secondary-600">
-                  StudyConnect was born from my personal experience as a student, recognizing that while learning together is powerful, finding and connecting with study partners isn't always easy.
+                  StudyConnect was born from our personal experiences as students, recognizing that while learning together is powerful, finding and connecting with study partners isn't always easy.
                 </p>
                 <p className="text-lg text-secondary-600">
-                  In 2025, I started developing StudyConnect with a vision to create a platform that breaks down the barriers to collaborative learning and makes it accessible to everyone.
+                  In 2025, we started developing StudyConnect with a vision to create a platform that breaks down the barriers to collaborative learning and makes it accessible to everyone.
                 </p>
                 <p className="text-lg text-secondary-600">
-                  As a solo developer, I'm committed to building and evolving StudyConnect into a tool that truly enhances the way students connect, collaborate, and learn together.
+                  As a team of two dedicated students, we're committed to building and evolving StudyConnect into a tool that truly enhances the way students connect, collaborate, and learn together.
                 </p>
               </div>
             </div>

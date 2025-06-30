@@ -75,7 +75,7 @@ const ContactPage = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-secondary-900">Our Location</h3>
-                      <p className="text-secondary-600">123 Education Street, San Francisco, CA 94107</p>
+                      <p className="text-secondary-600">Menara Marrakech, Marrakech, Morocco</p>
                     </div>
                   </div>
                   
@@ -96,7 +96,7 @@ const ContactPage = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-secondary-900">Call Us</h3>
-                      <p className="text-secondary-600">+1 (555) 123-4567</p>
+                      <p className="text-secondary-600">+212 661 234 567</p>
                     </div>
                   </div>
                 </div>
