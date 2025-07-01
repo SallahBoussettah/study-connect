@@ -6,40 +6,156 @@ import * as studyTaskService from '../../services/studyTaskService';
 
 const StudyTimer = () => {
   const { currentUser } = useAuth();
-  const [timerMode, setTimerMode] = useState('pomodoro'); // pomodoro, shortBreak, longBreak
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
-  const [isActive, setIsActive] = useState(false);
+  const [timerMode, setTimerMode] = useState(() => {
+    // Initialize from localStorage or default to 'pomodoro'
+    return localStorage.getItem('timerMode') || 'pomodoro';
+  });
+  
+  const [timeLeft, setTimeLeft] = useState(() => {
+    // Initialize from localStorage or default based on mode
+    const savedTime = localStorage.getItem('timeLeft');
+    if (savedTime) {
+      return parseInt(savedTime, 10);
+    }
+    // Default to 25 minutes
+    return 25 * 60;
+  });
+  
+  const [isActive, setIsActive] = useState(() => {
+    // Initialize from localStorage or default to false
+    return localStorage.getItem('isActive') === 'true';
+  });
+  
   const [showSettings, setShowSettings] = useState(false);
-  const [cycles, setCycles] = useState(0);
+  const [cycles, setCycles] = useState(() => {
+    // Initialize from localStorage or default to 0
+    return parseInt(localStorage.getItem('cycles') || '0', 10);
+  });
+  
   const [sessionHistory, setSessionHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [loading, setLoading] = useState(false);
   const [taskStats, setTaskStats] = useState(null);
   
   // Timer settings
-  const [settings, setSettings] = useState({
-    pomodoro: 25,
-    shortBreak: 5,
-    longBreak: 15,
-    autoStartBreaks: true,
-    autoStartPomodoros: false,
-    longBreakInterval: 4,
-    dailyGoal: 8
+  const [settings, setSettings] = useState(() => {
+    // Try to load settings from localStorage
+    const savedSettings = localStorage.getItem('timerSettings');
+    if (savedSettings) {
+      return JSON.parse(savedSettings);
+    }
+    // Default settings
+    return {
+      pomodoro: 25,
+      shortBreak: 5,
+      longBreak: 15,
+      autoStartBreaks: true,
+      autoStartPomodoros: false,
+      longBreakInterval: 4,
+      dailyGoal: 8
+    };
   });
   
   // Current task
-  const [currentTask, setCurrentTask] = useState('');
+  const [currentTask, setCurrentTask] = useState(() => {
+    // Initialize from localStorage or default to empty string
+    return localStorage.getItem('currentTask') || '';
+  });
+  
   const [taskList, setTaskList] = useState([]);
   const [editingTaskId, setEditingTaskId] = useState(null);
   
   const timerRef = useRef(null);
   const audioRef = useRef(null);
+  // Flag to track if a task was already completed for current timer
+  const taskCompletedRef = useRef(false);
+  
+  // Create a ref to track if this is the initial mount
+  const isInitialMount = useRef(true);
+  
+  // Add a ref to track the start time of the current session
+  const sessionStartTimeRef = useRef(null);
+  
+  // Add state for tracking total focus time today
+  const [todayFocusTime, setTodayFocusTime] = useState(() => {
+    // Try to load today's focus time from localStorage
+    const savedFocusTime = localStorage.getItem('todayFocusTime');
+    const savedFocusDate = localStorage.getItem('focusTimeDate');
+    const today = new Date().toDateString();
+    
+    // If we have saved focus time and it's from today, use it
+    if (savedFocusTime && savedFocusDate === today) {
+      return parseInt(savedFocusTime, 10);
+    }
+    
+    // Otherwise reset to 0 for a new day
+    return 0;
+  });
   
   // Fetch tasks on component mount
   useEffect(() => {
     fetchTasks();
     fetchTaskStats();
+    
+    // Set document title on initial mount
+    document.title = `StudyConnect - ${formatTime(timeLeft)}`;
+    
+    // Check if we need to reset the focus time for a new day
+    const today = new Date().toDateString();
+    const savedFocusDate = localStorage.getItem('focusTimeDate');
+    
+    if (savedFocusDate !== today) {
+      // It's a new day, reset focus time
+      setTodayFocusTime(0);
+      localStorage.setItem('focusTimeDate', today);
+      localStorage.setItem('todayFocusTime', '0');
+    }
+    
+    // If timer was active before refresh, restart it
+    if (localStorage.getItem('isActive') === 'true') {
+      // If it was a pomodoro session, track the time
+      if (localStorage.getItem('timerMode') === 'pomodoro') {
+        sessionStartTimeRef.current = Date.now();
+      }
+      
+      // Small delay to ensure everything is initialized
+      setTimeout(() => {
+        setIsActive(true);
+      }, 300);
+    }
   }, []);
+  
+  // Persist timer state and focus time to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('timerMode', timerMode);
+    localStorage.setItem('timeLeft', timeLeft.toString());
+    localStorage.setItem('isActive', isActive.toString());
+    localStorage.setItem('cycles', cycles.toString());
+    localStorage.setItem('currentTask', currentTask);
+    localStorage.setItem('todayFocusTime', todayFocusTime.toString());
+    localStorage.setItem('focusTimeDate', new Date().toDateString());
+  }, [timerMode, timeLeft, isActive, cycles, currentTask, todayFocusTime]);
+  
+  // Track focus time when timer is active
+  useEffect(() => {
+    // If starting a pomodoro session, record the start time
+    if (isActive && timerMode === 'pomodoro') {
+      sessionStartTimeRef.current = Date.now();
+    } 
+    // If stopping a pomodoro session, calculate and add the focus time
+    else if (!isActive && sessionStartTimeRef.current && timerMode === 'pomodoro') {
+      const focusTimeToAdd = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000 / 60);
+      if (focusTimeToAdd > 0) {
+        setTodayFocusTime(prev => prev + focusTimeToAdd);
+      }
+      sessionStartTimeRef.current = null;
+    }
+  }, [isActive, timerMode]);
+  
+  // Persist settings to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('timerSettings', JSON.stringify(settings));
+  }, [settings]);
   
   // Fetch tasks from the API
   const fetchTasks = async () => {
@@ -80,8 +196,15 @@ const StudyTimer = () => {
     }
   };
   
-  // Set timer based on mode
+  // Set timer based on mode - but only when mode changes, not on initial render
   useEffect(() => {
+    // Skip timer reset on the first render to preserve localStorage state
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    
+    // After initial mount, when timer mode changes, reset the timer
     let time;
     switch(timerMode) {
       case 'shortBreak':
@@ -93,20 +216,19 @@ const StudyTimer = () => {
       default:
         time = settings.pomodoro * 60;
     }
+    
+    // Reset timeLeft when mode changes (but not on initial mount)
     setTimeLeft(time);
-    setIsActive(false);
     
-    // Clear existing timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    
+    // Update document title
     document.title = `StudyConnect - ${formatTime(time)}`;
     
+    // Reset task completed flag when changing to pomodoro mode
+    if (timerMode === 'pomodoro') {
+      taskCompletedRef.current = false;
+    }
+    
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
       document.title = 'StudyConnect';
     };
   }, [timerMode, settings]);
@@ -150,6 +272,19 @@ const StudyTimer = () => {
   };
   
   const handleStartPause = () => {
+    // If we're pausing a pomodoro, track the focus time
+    if (isActive && timerMode === 'pomodoro' && sessionStartTimeRef.current) {
+      const focusTimeToAdd = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000 / 60);
+      if (focusTimeToAdd > 0) {
+        setTodayFocusTime(prev => prev + focusTimeToAdd);
+      }
+      sessionStartTimeRef.current = null;
+    }
+    // If we're starting a pomodoro, set the start time
+    else if (!isActive && timerMode === 'pomodoro') {
+      sessionStartTimeRef.current = Date.now();
+    }
+    
     setIsActive(!isActive);
     
     // If starting timer and there's no current task, create a default one
@@ -159,6 +294,15 @@ const StudyTimer = () => {
   };
   
   const handleReset = () => {
+    // If we're resetting an active pomodoro, track the focus time
+    if (isActive && timerMode === 'pomodoro' && sessionStartTimeRef.current) {
+      const focusTimeToAdd = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000 / 60);
+      if (focusTimeToAdd > 0) {
+        setTodayFocusTime(prev => prev + focusTimeToAdd);
+      }
+      sessionStartTimeRef.current = null;
+    }
+    
     let time;
     switch(timerMode) {
       case 'shortBreak':
@@ -174,6 +318,11 @@ const StudyTimer = () => {
     setIsActive(false);
     if (timerRef.current) {
       clearInterval(timerRef.current);
+    }
+    
+    // Reset task completed flag when manually resetting timer
+    if (timerMode === 'pomodoro') {
+      taskCompletedRef.current = false;
     }
   };
   
@@ -192,9 +341,21 @@ const StudyTimer = () => {
       };
       setSessionHistory(prev => [...prev, newSession]);
       
-      // Add task to completed list if it exists
-      if (currentTask) {
+      // Add completed focus time - but only if we're not already tracking it via sessionStartTimeRef
+      // This prevents double counting when the timer completes naturally
+      if (!sessionStartTimeRef.current) {
+        setTodayFocusTime(prev => prev + settings.pomodoro);
+      } else {
+        // If we were tracking time with sessionStartTimeRef, just reset it
+        sessionStartTimeRef.current = null;
+      }
+      
+      // Add task to completed list if it exists and hasn't been completed yet
+      if (currentTask && !taskCompletedRef.current) {
         try {
+          // Set flag to prevent duplicate task creation
+          taskCompletedRef.current = true;
+          
           // Create a new task in the database
           const response = await studyTaskService.createTask({
             title: currentTask,
@@ -224,18 +385,51 @@ const StudyTimer = () => {
         }
       }
       
-      // Determine next break type
+      // Reset session start time since we're stopping the timer
+      sessionStartTimeRef.current = null;
+      
+      // First stop the current timer
+      setIsActive(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      
+      // Determine next break type and switch to it
       if (newCycles % settings.longBreakInterval === 0) {
         setTimerMode('longBreak');
-        if (settings.autoStartBreaks) setIsActive(true);
+        // Only start the break timer after a short delay to ensure the mode change is processed
+        if (settings.autoStartBreaks) {
+          setTimeout(() => setIsActive(true), 300);
+        }
       } else {
         setTimerMode('shortBreak');
-        if (settings.autoStartBreaks) setIsActive(true);
+        // Only start the break timer after a short delay to ensure the mode change is processed
+        if (settings.autoStartBreaks) {
+          setTimeout(() => setIsActive(true), 300);
+        }
       }
     } else {
-      // Break is over, back to pomodoro
+      // Break is over
+      // First stop the current timer
+      setIsActive(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      
+      // Switch back to pomodoro mode
       setTimerMode('pomodoro');
-      if (settings.autoStartPomodoros) setIsActive(true);
+      
+      // Reset task completed flag for the new pomodoro session
+      taskCompletedRef.current = false;
+      
+      // Only start the pomodoro timer after a short delay to ensure the mode change is processed
+      if (settings.autoStartPomodoros) {
+        setTimeout(() => {
+          setIsActive(true);
+          // Start tracking focus time for the new pomodoro
+          sessionStartTimeRef.current = Date.now();
+        }, 300);
+      }
     }
   };
   
@@ -380,7 +574,25 @@ const StudyTimer = () => {
             <div className="flex justify-center mb-8">
               <div className="inline-flex rounded-md shadow-sm">
                 <button
-                  onClick={() => setTimerMode('pomodoro')}
+                  onClick={() => {
+                    // Stop any running timer before switching modes
+                    if (isActive) {
+                      // If we're switching from an active pomodoro, track the focus time
+                      if (timerMode !== 'pomodoro' && sessionStartTimeRef.current) {
+                        const focusTimeToAdd = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000 / 60);
+                        if (focusTimeToAdd > 0) {
+                          setTodayFocusTime(prev => prev + focusTimeToAdd);
+                        }
+                        sessionStartTimeRef.current = null;
+                      }
+                      
+                      setIsActive(false);
+                      if (timerRef.current) {
+                        clearInterval(timerRef.current);
+                      }
+                    }
+                    setTimerMode('pomodoro');
+                  }}
                   className={`px-4 py-2 text-sm font-medium rounded-l-lg ${
                     timerMode === 'pomodoro' 
                       ? 'bg-primary-600 text-white' 
@@ -390,7 +602,25 @@ const StudyTimer = () => {
                   Pomodoro
                 </button>
                 <button
-                  onClick={() => setTimerMode('shortBreak')}
+                  onClick={() => {
+                    // Stop any running timer before switching modes
+                    if (isActive) {
+                      // If we're switching from an active pomodoro, track the focus time
+                      if (timerMode === 'pomodoro' && sessionStartTimeRef.current) {
+                        const focusTimeToAdd = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000 / 60);
+                        if (focusTimeToAdd > 0) {
+                          setTodayFocusTime(prev => prev + focusTimeToAdd);
+                        }
+                        sessionStartTimeRef.current = null;
+                      }
+                      
+                      setIsActive(false);
+                      if (timerRef.current) {
+                        clearInterval(timerRef.current);
+                      }
+                    }
+                    setTimerMode('shortBreak');
+                  }}
                   className={`px-4 py-2 text-sm font-medium ${
                     timerMode === 'shortBreak' 
                       ? 'bg-green-600 text-white' 
@@ -400,7 +630,25 @@ const StudyTimer = () => {
                   Short Break
                 </button>
                 <button
-                  onClick={() => setTimerMode('longBreak')}
+                  onClick={() => {
+                    // Stop any running timer before switching modes
+                    if (isActive) {
+                      // If we're switching from an active pomodoro, track the focus time
+                      if (timerMode === 'pomodoro' && sessionStartTimeRef.current) {
+                        const focusTimeToAdd = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000 / 60);
+                        if (focusTimeToAdd > 0) {
+                          setTodayFocusTime(prev => prev + focusTimeToAdd);
+                        }
+                        sessionStartTimeRef.current = null;
+                      }
+                      
+                      setIsActive(false);
+                      if (timerRef.current) {
+                        clearInterval(timerRef.current);
+                      }
+                    }
+                    setTimerMode('longBreak');
+                  }}
                   className={`px-4 py-2 text-sm font-medium rounded-r-lg ${
                     timerMode === 'longBreak' 
                       ? 'bg-blue-600 text-white' 
@@ -603,31 +851,49 @@ const StudyTimer = () => {
                       className="w-full px-3 py-2 border border-secondary-300 rounded-md"
                     />
                   </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="autoStartBreaks"
-                      name="autoStartBreaks"
-                      checked={settings.autoStartBreaks}
-                      onChange={handleSettingChange}
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
-                    />
-                    <label htmlFor="autoStartBreaks" className="ml-2 block text-sm text-secondary-700">
-                      Auto-start Breaks
+                  <div>
+                    <label className="block text-sm font-medium text-secondary-700 mb-1">
+                      Daily Goal (hours)
                     </label>
+                    <input
+                      type="number"
+                      name="dailyGoal"
+                      min="1"
+                      max="24"
+                      value={settings.dailyGoal}
+                      onChange={handleSettingChange}
+                      className="w-full px-3 py-2 border border-secondary-300 rounded-md"
+                    />
                   </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="autoStartPomodoros"
-                      name="autoStartPomodoros"
-                      checked={settings.autoStartPomodoros}
-                      onChange={handleSettingChange}
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
-                    />
-                    <label htmlFor="autoStartPomodoros" className="ml-2 block text-sm text-secondary-700">
-                      Auto-start Pomodoros
-                    </label>
+                  <div className="md:col-span-2 mt-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex items-center h-10 mt-1">
+                        <input
+                          type="checkbox"
+                          id="autoStartBreaks"
+                          name="autoStartBreaks"
+                          checked={settings.autoStartBreaks}
+                          onChange={handleSettingChange}
+                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
+                        />
+                        <label htmlFor="autoStartBreaks" className="ml-2 block text-sm text-secondary-700">
+                          Auto-start Breaks
+                        </label>
+                      </div>
+                      <div className="flex items-center h-10 mt-1">
+                        <input
+                          type="checkbox"
+                          id="autoStartPomodoros"
+                          name="autoStartPomodoros"
+                          checked={settings.autoStartPomodoros}
+                          onChange={handleSettingChange}
+                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
+                        />
+                        <label htmlFor="autoStartPomodoros" className="ml-2 block text-sm text-secondary-700">
+                          Auto-start Pomodoros
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -667,8 +933,17 @@ const StudyTimer = () => {
               <div className="flex justify-between items-center mb-1">
                 <span className="text-sm text-secondary-700">Focus Time</span>
                 <span className="text-sm font-medium text-secondary-900">
-                  {taskStats ? Math.floor(taskStats.totalStudyTime / 60) : 0}h {taskStats ? taskStats.totalStudyTime % 60 : 0}m
+                  {Math.floor(todayFocusTime / 60)}h {todayFocusTime % 60}m
                 </span>
+              </div>
+              <div className="w-full bg-secondary-200 rounded-full h-2.5">
+                <div 
+                  className="bg-green-500 h-2.5 rounded-full" 
+                  style={{ width: `${Math.min((todayFocusTime / (settings.dailyGoal * 60)) * 100, 100)}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-end mt-1">
+                <span className="text-xs text-secondary-500">Goal: {settings.dailyGoal}h</span>
               </div>
             </div>
             
