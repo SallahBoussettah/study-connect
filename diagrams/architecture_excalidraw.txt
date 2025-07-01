@@ -1,0 +1,49 @@
+# StudyConnect Architecture Diagram
+
+## Frontend Layer
+- React.js
+- Context API (Auth, Chat, Notification)
+- Tailwind CSS
+- Socket.IO Client
+- Axios
+
+## Backend Layer
+- Node.js
+- Express.js
+- Socket.IO Server
+- JWT Authentication
+- Middleware (auth, error, upload)
+
+## Database Layer
+- PostgreSQL
+- Sequelize ORM
+
+## Storage Layer
+- File System Storage
+- Resource Management
+
+## External Services
+- SMTP for emails
+- Cloud Hosting
+
+## Architecture Flow
+1. Client makes requests to backend via REST API or Socket.IO
+2. Backend processes requests through controllers
+3. Data is stored/retrieved from PostgreSQL database
+4. Real-time updates sent via Socket.IO
+5. Files stored in file system with metadata in database
+
+## Key Components
+- Authentication System
+- Study Room Management
+- Real-time Chat
+- Resource Sharing
+- User Presence Tracking
+- Notification System
+
+## Security Features
+- JWT Authentication
+- Password Hashing
+- Role-based Access Control
+- Input Validation
+- HTTPS Encryption 

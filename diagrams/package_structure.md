@@ -1,0 +1,121 @@
+# StudyConnect Project Structure
+
+## Backend
+- config
+  - database
+  - db
+  - config
+- controllers
+  - authController
+  - studyRoomController
+  - resourceController
+  - messageController
+  - friendshipController
+  - notificationController
+  - studyTaskController
+  - subjectController
+  - presenceController
+  - dashboardController
+  - directMessageController
+- models
+  - User
+  - StudyRoom
+  - Resource
+  - Message
+  - Subject
+  - UserSubject
+  - UserStudyRoom
+  - Friendship
+  - Notification
+  - DirectMessage
+  - Event
+  - UserEvent
+  - UserPresence
+  - StudyTask
+- middleware
+  - auth
+  - error
+  - upload
+- routes
+  - authRoutes
+  - studyRoomRoutes
+  - resourceRoutes
+  - messageRoutes
+  - friendRoutes
+  - notificationRoutes
+  - studyTaskRoutes
+  - subjectRoutes
+  - presenceRoutes
+  - dashboardRoutes
+  - directMessageRoutes
+- socket
+  - socketHandlers
+  - chatNamespace
+  - presenceTracking
+  - friendsStatus
+- utils
+  - cache
+- server.js
+
+## Frontend
+- src
+  - components
+    - chat
+      - MessageList
+      - ChatWindow
+      - ChatContainer
+      - MinimizedChat
+      - OnlineFriends
+    - common
+      - Navbar
+      - Footer
+      - ProtectedRoute
+    - resources
+      - ResourceCard
+      - ResourceUpload
+      - ResourceList
+    - landing
+      - Hero
+      - Features
+      - Testimonials
+    - layouts
+      - DashboardLayout
+      - MainLayout
+  - contexts
+    - AuthContext
+    - ChatContext
+    - NotificationContext
+  - hooks
+    - useNavigation
+    - useAuth
+    - useChat
+  - pages
+    - dashboard
+      - DashboardHome
+      - StudyRooms
+      - StudyRoomDetail
+      - CreateStudyRoom
+      - Resources
+      - Profile
+      - Friends
+      - StudyTimer
+      - AdminDashboard
+    - studyRoom
+      - StudyRoomResources
+    - LoginPage
+    - RegisterPage
+    - LandingPage
+    - AboutPage
+    - ContactPage
+    - PricingPage
+    - FeaturesPage
+    - NotFoundPage
+  - services
+    - api
+    - socketService
+    - studyTaskService
+  - styles
+    - tailwind.config
+    - global.css
+  - App.jsx
+  - index.jsx 

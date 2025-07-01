@@ -1,0 +1,32 @@
+FRONTEND
+- React.js
+- Context API
+- Tailwind CSS
+- Socket.IO Client
+- Axios
+↓↑ HTTP/WebSocket
+
+BACKEND
+- Node.js
+- Express.js
+- Socket.IO Server
+- JWT Auth
+- Controllers
+- Middleware
+↓↑        ↓↑
+
+DATABASE      STORAGE
+- PostgreSQL  - File System
+- Sequelize   - Resources
+
+EXTERNAL SERVICES
+- Email (SMTP)
+- Cloud Hosting
+
+KEY FEATURES
+- Authentication
+- Real-time Chat
+- Study Rooms
+- Resource Sharing
+- User Presence
+- Notifications 

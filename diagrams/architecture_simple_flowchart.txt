@@ -1,0 +1,17 @@
+```mermaid
+flowchart TD
+    Client[Client Browsers] <--> Frontend
+    
+    Frontend[FRONTEND\nReact.js\nContext API\nTailwind CSS\nSocket.IO Client\nAxios] <--> |HTTP/WebSocket| Backend
+    
+    Backend[BACKEND\nNode.js\nExpress.js\nSocket.IO Server\nJWT Auth\nControllers\nMiddleware] --> DB
+    Backend --> Storage
+    
+    DB[(DATABASE\nPostgreSQL\nSequelize)] 
+    
+    Storage[(STORAGE\nFile System\nResources)]
+    
+    Backend --> External[EXTERNAL SERVICES\nEmail (SMTP)\nCloud Hosting]
+    
+    Features[KEY FEATURES\nAuthentication\nReal-time Chat\nStudy Rooms\nResource Sharing\nUser Presence\nNotifications]
+``` 

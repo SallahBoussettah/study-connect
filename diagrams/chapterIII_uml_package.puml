@@ -3,79 +3,124 @@ skinparam packageStyle rectangle
 skinparam backgroundColor white
 skinparam linetype ortho
 skinparam monochrome false
+skinparam shadowing false
+skinparam padding 5
+skinparam defaultFontSize 12
 
 title Diagramme de packages - StudyConnect
 
 package "Frontend" {
   package "Components" {
-    package "Auth" {
-      [Login]
-      [Register]
-      [Profile]
-    }
-    
-    package "StudyRoom" {
-      [RoomList]
-      [RoomDetail]
-      [CreateRoom]
-    }
-    
-    package "Chat" {
+    package "chat" {
       [MessageList]
-      [MessageInput]
+      [ChatWindow]
+      [ChatContainer]
+      [MinimizedChat]
+      [OnlineFriends]
     }
     
-    package "Resources" {
-      [ResourceManager]
-      [ResourceUploader]
+    package "common" {
+      [Navbar]
+      [Footer]
+      [ProtectedRoute]
     }
     
-    package "Tools" {
-      [Flashcards]
-      [StudyTimer]
-      [TaskList]
+    package "resources" {
+      [ResourceCard]
+      [ResourceUpload]
+      [ResourceList]
+    }
+    
+    package "landing" {
+      [Hero]
+      [Features]
+      [Testimonials]
+    }
+    
+    package "layouts" {
+      [DashboardLayout]
+      [MainLayout]
     }
   }
   
   package "Contexts" {
     [AuthContext]
-    [SocketContext]
+    [ChatContext]
+    [NotificationContext]
   }
   
   package "Hooks" {
-    [useAuth]
-    [useSocket]
-    [useForm]
+    [useNavigation]
+    [useAuth] -> [AuthContext]
+    [useChat] -> [ChatContext]
   }
   
   package "Services" {
-    [APIService]
-    [SocketService]
+    [api]
+    [socketService]
+    [studyTaskService]
+  }
+
+  package "Pages" {
+    package "dashboard" {
+      [DashboardHome]
+      [StudyRooms]
+      [StudyRoomDetail]
+      [CreateStudyRoom]
+      [Resources]
+      [Profile]
+      [Friends]
+      [StudyTimer]
+      [AdminDashboard]
+    }
+    
+    package "studyRoom" {
+      [StudyRoomResources]
+    }
+    
+    [LoginPage]
+    [RegisterPage]
+    [LandingPage]
+    [AboutPage]
+    [ContactPage]
+    [PricingPage]
+    [FeaturesPage]
+    [NotFoundPage]
+  }
+
+  package "Styles" {
+    [tailwind.config]
+    [global.css]
   }
 }
 
 package "Backend" {
   package "Routes" {
     [authRoutes]
-    [roomRoutes]
+    [studyRoomRoutes]
     [resourceRoutes]
-    [userRoutes]
+    [messageRoutes]
+    [friendRoutes]
+    [notificationRoutes]
+    [studyTaskRoutes]
+    [subjectRoutes]
+    [presenceRoutes]
+    [dashboardRoutes]
+    [directMessageRoutes]
   }
   
   package "Controllers" {
-    [AuthController]
-    [RoomController]
-    [ResourceController]
-    [UserController]
-    [MessageController]
-  }
-  
-  package "Services" as BackendServices {
-    [AuthService]
-    [RoomService]
-    [ResourceService]
-    [UserService]
-    [MessageService]
+    [authController]
+    [studyRoomController]
+    [resourceController]
+    [messageController]
+    [friendshipController]
+    [notificationController]
+    [studyTaskController]
+    [subjectController]
+    [presenceController]
+    [dashboardController]
+    [directMessageController]
   }
   
   package "Models" {
@@ -84,33 +129,45 @@ package "Backend" {
     [Resource]
     [Message]
     [Subject]
+    [UserSubject]
+    [UserStudyRoom]
+    [Friendship]
+    [Notification]
+    [DirectMessage]
+    [Event]
+    [UserEvent]
+    [UserPresence]
+    [StudyTask]
   }
   
   package "Middleware" {
-    [authenticate]
-    [authorize]
-    [validateInput]
-    [errorHandler]
+    [auth]
+    [error]
+    [upload]
   }
   
   package "Socket" {
     [socketHandlers]
-    [socketMiddleware]
+    [chatNamespace]
+    [presenceTracking]
+    [friendsStatus]
   }
   
   package "Config" {
     [database]
-    [server]
-    [socket]
+    [db]
+    [config]
   }
   
   package "Utils" {
-    [validation]
-    [fileUpload]
-    [security]
+    [cache]
   }
+  
+  [server.js]
 }
 
+' Main connections
 Frontend ..> Backend : API Calls
+Frontend ..> Backend : Socket.IO
 
 @enduml 

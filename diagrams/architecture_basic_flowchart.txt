@@ -1,0 +1,34 @@
+```mermaid
+flowchart TD
+    Client[Client Browsers] <--> Frontend
+    Frontend[FRONTEND] <--> Backend
+    Backend[BACKEND] --> DB[(DATABASE)]
+    Backend --> Storage[(STORAGE)]
+    
+    subgraph Frontend Components
+    F1[React.js]
+    F2[Context API]
+    F3[Tailwind CSS]
+    F4[Socket.IO Client]
+    F5[Axios]
+    end
+    
+    subgraph Backend Components
+    B1[Node.js]
+    B2[Express.js]
+    B3[Socket.IO Server]
+    B4[JWT Auth]
+    B5[Controllers]
+    B6[Middleware]
+    end
+    
+    subgraph Database
+    D1[PostgreSQL]
+    D2[Sequelize ORM]
+    end
+    
+    subgraph Storage
+    S1[File System]
+    S2[Resources]
+    end
+``` 

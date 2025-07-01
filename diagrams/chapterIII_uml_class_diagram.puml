@@ -5,78 +5,182 @@ skinparam monochrome false
 skinparam linetype ortho
 skinparam packageStyle rectangle
 skinparam backgroundColor white
+skinparam nodesep 50
+skinparam ranksep 80
+
+' Completely remove all connections and just position classes
+hide empty members
+hide circle
 
 title Diagramme de classes - StudyConnect
 
+' Row 1 - Core entities
 class User {
   +id: UUID
   +firstName: String
   +lastName: String
   +email: String
-  +password: String
-  +role: Enum
-  +avatar: String
-  +bio: String
-  +createdAt: Date
-  +updatedAt: Date
-  +authenticate(): Boolean
-  +updateProfile(): Boolean
-}
-
-class StudyRoom {
-  +id: UUID
-  +name: String
-  +description: String
-  +isPublic: Boolean
-  +createdAt: Date
-  +updatedAt: Date
-  +addMember(User): Boolean
-  +removeMember(User): Boolean
-  +updateSettings(): Boolean
-}
-
-class Resource {
-  +id: UUID
-  +title: String
-  +description: String
-  +fileType: String
-  +filePath: String
-  +createdAt: Date
-  +updatedAt: Date
-  +upload(): Boolean
-  +download(): File
-}
-
-class Message {
-  +id: UUID
-  +content: String
-  +timestamp: DateTime
-  +isRead: Boolean
-  +send(): Boolean
-  +markAsRead(): Boolean
+  +role: Enum {student, teacher, admin}
 }
 
 class Subject {
   +id: UUID
   +name: String
-  +description: String
+  +code: String
 }
 
-class StudyTool {
+class StudyRoom {
   +id: UUID
-  +type: Enum
-  +settings: JSON
-  +createdAt: Date
-  +updatedAt: Date
+  +name: String
+  +createdBy: UUID
+  +subjectId: UUID
 }
 
-User "1" *-- "0..*" StudyRoom : crée >
-User "0..*" -- "0..*" StudyRoom : participe >
-User "1" *-- "0..*" Resource : partage >
-User "1" *-- "0..*" Message : envoie >
-StudyRoom "1" *-- "0..*" Message : contient >
-StudyRoom "1" *-- "0..*" Resource : contient >
-StudyRoom "0..*" -- "0..*" Subject : associé à >
-User "0..*" -- "0..*" StudyTool : utilise >
+class UserPreference {
+  +id: UUID
+  +userId: UUID
+  +theme: Enum {light, dark}
+}
+
+class StudyTask {
+  +id: UUID
+  +title: String
+  +priority: Enum {low, medium, high}
+  +status: Enum {pending, in_progress, completed}
+  +userId: UUID
+  +subjectId: UUID
+}
+
+' Row 2 - Junction tables
+class UserSubject {
+  +id: UUID
+  +userId: UUID
+  +subjectId: UUID
+  +proficiency: Enum {beginner, intermediate, advanced}
+}
+
+class UserStudyRoom {
+  +id: UUID
+  +userId: UUID
+  +roomId: UUID
+  +role: Enum {member, moderator, owner}
+}
+
+class Notification {
+  +id: UUID
+  +userId: UUID
+  +type: Enum {message, friend_request, system, resource}
+  +relatedId: UUID
+}
+
+class DirectMessage {
+  +id: UUID
+  +content: Text
+  +senderId: UUID
+  +receiverId: UUID
+}
+
+class UserEvent {
+  +id: UUID
+  +userId: UUID
+  +eventId: UUID
+  +status: Enum {attending, maybe, declined}
+}
+
+' Row 3 - More entities
+class Message {
+  +id: UUID
+  +content: Text
+  +senderId: UUID
+  +roomId: UUID
+}
+
+class Resource {
+  +id: UUID
+  +title: String
+  +fileType: Enum {pdf, doc, image, video, audio, other}
+  +uploadedBy: UUID
+  +roomId: UUID
+  +subjectId: UUID
+}
+
+class Event {
+  +id: UUID
+  +title: String
+  +startTime: DateTime
+  +endTime: DateTime
+  +createdBy: UUID
+  +roomId: UUID
+}
+
+class UserPresence {
+  +id: UUID
+  +userId: UUID
+  +roomId: UUID
+  +status: Enum {online, away, busy, offline}
+}
+
+' Row 4 - Remaining entities
+class Friendship {
+  +id: UUID
+  +senderId: UUID
+  +receiverId: UUID
+  +status: Enum {pending, accepted, rejected, blocked}
+}
+
+class StudyRoomRequest {
+  +id: UUID
+  +userId: UUID
+  +roomId: UUID
+  +status: Enum {pending, accepted, rejected}
+}
+
+class StudySession {
+  +id: UUID
+  +userId: UUID
+  +duration: Integer
+  +subjectId: UUID
+}
+
+' Layout grid using hidden relationships
+' Row 1 layout
+User -[hidden]right-> Subject
+Subject -[hidden]right-> StudyRoom
+StudyRoom -[hidden]right-> UserPreference
+UserPreference -[hidden]right-> StudyTask
+
+' Row 2 layout
+UserSubject -[hidden]right-> UserStudyRoom
+UserStudyRoom -[hidden]right-> Notification
+Notification -[hidden]right-> DirectMessage
+DirectMessage -[hidden]right-> UserEvent
+
+' Row 3 layout
+Message -[hidden]right-> Resource
+Resource -[hidden]right-> Event
+Event -[hidden]right-> UserPresence
+
+' Row 4 layout
+Friendship -[hidden]right-> StudyRoomRequest
+StudyRoomRequest -[hidden]right-> StudySession
+
+' Connect rows
+User -[hidden]down-> UserSubject
+UserSubject -[hidden]down-> Message
+Message -[hidden]down-> Friendship
+
+Subject -[hidden]down-> UserStudyRoom
+UserStudyRoom -[hidden]down-> Resource
+Resource -[hidden]down-> StudyRoomRequest
+
+StudyRoom -[hidden]down-> Notification
+Notification -[hidden]down-> Event
+Event -[hidden]down-> StudySession
+
+UserPreference -[hidden]down-> DirectMessage
+DirectMessage -[hidden]down-> UserPresence
+
+StudyTask -[hidden]down-> UserEvent
+UserEvent -[hidden]down-> UserPresence
 
 @enduml 

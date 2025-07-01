@@ -1,0 +1,68 @@
+```mermaid
+flowchart TD
+    %% Main Components
+    Client[Client Browsers]
+    Frontend[Frontend Layer]
+    Backend[Backend Layer]
+    DB[(Database Layer)]
+    Storage[(Storage Layer)]
+    External[External Services]
+    
+    %% Connections
+    Client <--> Frontend
+    Frontend <--> |HTTP/WebSocket| Backend
+    Backend --> DB
+    Backend --> Storage
+    Backend --> External
+    
+    %% Frontend Details
+    Frontend --> FE1[React.js]
+    Frontend --> FE2[Context API]
+    Frontend --> FE3[Tailwind CSS]
+    Frontend --> FE4[Socket.IO Client]
+    Frontend --> FE5[Axios]
+    
+    %% Backend Details
+    Backend --> BE1[Node.js]
+    Backend --> BE2[Express.js]
+    Backend --> BE3[Socket.IO Server]
+    Backend --> BE4[JWT Auth]
+    Backend --> BE5[Controllers]
+    Backend --> BE6[Middleware]
+    
+    %% Database Details
+    DB --> DB1[PostgreSQL]
+    DB --> DB2[Sequelize ORM]
+    
+    %% Storage Details
+    Storage --> S1[File System]
+    Storage --> S2[Resources]
+    
+    %% External Services
+    External --> EX1[Email SMTP]
+    External --> EX2[Cloud Hosting]
+    
+    %% Key Features
+    Features[Key Features]
+    Features --> F1[Authentication]
+    Features --> F2[Real-time Chat]
+    Features --> F3[Study Rooms]
+    Features --> F4[Resource Sharing]
+    Features --> F5[User Presence]
+    Features --> F6[Notifications]
+    
+    %% Styling
+    classDef frontend fill:#ff9999,stroke:#333,stroke-width:2px
+    classDef backend fill:#99ccff,stroke:#333,stroke-width:2px
+    classDef database fill:#99ff99,stroke:#333,stroke-width:2px
+    classDef storage fill:#ffff99,stroke:#333,stroke-width:2px
+    classDef external fill:#cc99ff,stroke:#333,stroke-width:2px
+    classDef features fill:#ffcc99,stroke:#333,stroke-width:2px
+    
+    class Frontend,FE1,FE2,FE3,FE4,FE5 frontend
+    class Backend,BE1,BE2,BE3,BE4,BE5,BE6 backend
+    class DB,DB1,DB2 database
+    class Storage,S1,S2 storage
+    class External,EX1,EX2 external
+    class Features,F1,F2,F3,F4,F5,F6 features
+``` 

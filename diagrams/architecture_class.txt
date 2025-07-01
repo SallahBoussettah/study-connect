@@ -1,0 +1,48 @@
+```mermaid
+classDiagram
+    class Frontend {
+        +React.js
+        +Context API
+        +Tailwind CSS
+        +Socket.IO Client
+        +Axios
+    }
+    
+    class Backend {
+        +Node.js
+        +Express.js
+        +Socket.IO Server
+        +JWT Auth
+        +Controllers
+        +Middleware
+    }
+    
+    class Database {
+        +PostgreSQL
+        +Sequelize ORM
+    }
+    
+    class Storage {
+        +File System
+        +Resources
+    }
+    
+    class ExternalServices {
+        +Email (SMTP)
+        +Cloud Hosting
+    }
+    
+    class KeyFeatures {
+        +Authentication
+        +Real-time Chat
+        +Study Rooms
+        +Resource Sharing
+        +User Presence
+        +Notifications
+    }
+    
+    Frontend <--> Backend : HTTP/WebSocket
+    Backend --> Database : CRUD
+    Backend --> Storage : Store/Retrieve
+    Backend --> ExternalServices : Use
+``` 

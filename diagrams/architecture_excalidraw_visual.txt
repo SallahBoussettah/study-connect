@@ -1,0 +1,61 @@
+// Client Layer
+[Client Browsers] <---> [Frontend Layer]
+
+// Frontend Layer (React.js Application)
++----------------------------------+
+|        FRONTEND LAYER            |
+|----------------------------------|
+| - React.js                       |
+| - Context API                    |
+|   - AuthContext                  |
+|   - ChatContext                  |
+|   - NotificationContext          |
+| - Tailwind CSS                   |
+| - Socket.IO Client               |
+| - Axios HTTP Client              |
++----------------------------------+
+             |
+             | HTTP/WebSocket
+             v
++----------------------------------+
+|         BACKEND LAYER            |
+|----------------------------------|
+| - Node.js                        |
+| - Express.js                     |
+| - Socket.IO Server               |
+| - Controllers                    |
+| - Routes                         |
+| - Middleware                     |
+|   - Authentication               |
+|   - Error Handling               |
+|   - File Upload                  |
++----------------------------------+
+        /           \
+       /             \
+      v               v
++------------+    +------------------+
+| DATABASE   |    | STORAGE          |
+|------------|    |------------------|
+| PostgreSQL |    | File System      |
+| Sequelize  |    | Resource Files   |
++------------+    +------------------+
+
+// External Services
+[SMTP Email Service] <--- [Backend Layer]
+[Cloud Hosting] <--- [Entire Application]
+
+// Key Features
+* Authentication & Authorization
+* Real-time Communication
+* Study Room Management
+* Resource Sharing
+* User Presence Tracking
+* Notifications
+
+// Data Flow
+1. User interacts with React frontend
+2. Frontend makes API calls to backend
+3. Backend processes request through controllers
+4. Data stored/retrieved from PostgreSQL
+5. Real-time updates via Socket.IO
+6. Files stored in filesystem with metadata in DB 
