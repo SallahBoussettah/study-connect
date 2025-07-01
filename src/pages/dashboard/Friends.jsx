@@ -9,6 +9,7 @@ import { friendshipService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
 import { useLocation } from 'react-router-dom';
+import { getUserAvatar } from '../../utils/avatarUtils.jsx';
 
 const Friends = () => {
   const { currentUser } = useAuth();
@@ -233,11 +234,6 @@ const Friends = () => {
     });
   };
 
-  // Generate avatar placeholder if no avatar is available
-  const getAvatarPlaceholder = (firstName, lastName) => {
-    return `https://ui-avatars.com/api/?name=${firstName}+${lastName}&background=random&color=fff`;
-  };
-
   return (
     <div>
       <div className="mb-8">
@@ -323,9 +319,30 @@ const Friends = () => {
                       <div className="flex items-center">
                         <div className="w-16 h-16 rounded-full overflow-hidden mr-4">
                           <img 
-                            src={friend.avatar || getAvatarPlaceholder(friend.firstName, friend.lastName)} 
+                            src={getUserAvatar(friend)} 
                             alt={`${friend.firstName} ${friend.lastName}`}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // If image fails to load, replace with initials
+                              const parent = e.target.parentNode;
+                              if (parent) {
+                                // Clear the parent node
+                                while (parent.firstChild) {
+                                  parent.removeChild(parent.firstChild);
+                                }
+                                
+                                // Create a div for initials
+                                const initialsDiv = document.createElement('div');
+                                initialsDiv.className = "flex items-center justify-center h-full w-full bg-blue-500 rounded-full text-white text-2xl font-bold";
+                                
+                                // Get initials from profile data
+                                const initials = `${friend.firstName?.charAt(0) || ''}${friend.lastName?.charAt(0) || ''}`;
+                                initialsDiv.textContent = initials;
+                                
+                                // Append to parent
+                                parent.appendChild(initialsDiv);
+                              }
+                            }}
                           />
                         </div>
                         <div>
@@ -438,9 +455,30 @@ const Friends = () => {
                         <div className="flex items-center">
                           <div className="w-12 h-12 rounded-full overflow-hidden mr-4">
                             <img 
-                              src={request.sender.avatar || getAvatarPlaceholder(request.sender.firstName, request.sender.lastName)} 
+                              src={getUserAvatar(request.sender)} 
                               alt={`${request.sender.firstName} ${request.sender.lastName}`}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // If image fails to load, replace with initials
+                                const parent = e.target.parentNode;
+                                if (parent) {
+                                  // Clear the parent node
+                                  while (parent.firstChild) {
+                                    parent.removeChild(parent.firstChild);
+                                  }
+                                  
+                                  // Create a div for initials
+                                  const initialsDiv = document.createElement('div');
+                                  initialsDiv.className = "flex items-center justify-center h-full w-full bg-blue-500 rounded-full text-white text-2xl font-bold";
+                                  
+                                  // Get initials from profile data
+                                  const initials = `${request.sender.firstName?.charAt(0) || ''}${request.sender.lastName?.charAt(0) || ''}`;
+                                  initialsDiv.textContent = initials;
+                                  
+                                  // Append to parent
+                                  parent.appendChild(initialsDiv);
+                                }
+                              }}
                             />
                           </div>
                           <div>
@@ -488,9 +526,30 @@ const Friends = () => {
                         <div className="flex items-center">
                           <div className="w-12 h-12 rounded-full overflow-hidden mr-4">
                             <img 
-                              src={request.receiver.avatar || getAvatarPlaceholder(request.receiver.firstName, request.receiver.lastName)} 
+                              src={getUserAvatar(request.receiver)} 
                               alt={`${request.receiver.firstName} ${request.receiver.lastName}`}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // If image fails to load, replace with initials
+                                const parent = e.target.parentNode;
+                                if (parent) {
+                                  // Clear the parent node
+                                  while (parent.firstChild) {
+                                    parent.removeChild(parent.firstChild);
+                                  }
+                                  
+                                  // Create a div for initials
+                                  const initialsDiv = document.createElement('div');
+                                  initialsDiv.className = "flex items-center justify-center h-full w-full bg-blue-500 rounded-full text-white text-2xl font-bold";
+                                  
+                                  // Get initials from profile data
+                                  const initials = `${request.receiver.firstName?.charAt(0) || ''}${request.receiver.lastName?.charAt(0) || ''}`;
+                                  initialsDiv.textContent = initials;
+                                  
+                                  // Append to parent
+                                  parent.appendChild(initialsDiv);
+                                }
+                              }}
                             />
                           </div>
                           <div>
@@ -563,9 +622,30 @@ const Friends = () => {
                       <div className="flex items-center">
                         <div className="w-12 h-12 rounded-full overflow-hidden mr-4">
                           <img 
-                            src={user.avatar || getAvatarPlaceholder(user.firstName, user.lastName)} 
+                            src={getUserAvatar(user)} 
                             alt={`${user.firstName} ${user.lastName}`}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // If image fails to load, replace with initials
+                              const parent = e.target.parentNode;
+                              if (parent) {
+                                // Clear the parent node
+                                while (parent.firstChild) {
+                                  parent.removeChild(parent.firstChild);
+                                }
+                                
+                                // Create a div for initials
+                                const initialsDiv = document.createElement('div');
+                                initialsDiv.className = "flex items-center justify-center h-full w-full bg-blue-500 rounded-full text-white text-2xl font-bold";
+                                
+                                // Get initials from profile data
+                                const initials = `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`;
+                                initialsDiv.textContent = initials;
+                                
+                                // Append to parent
+                                parent.appendChild(initialsDiv);
+                              }
+                            }}
                           />
                         </div>
                         <div>

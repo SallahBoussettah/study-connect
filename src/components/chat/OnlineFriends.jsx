@@ -1,6 +1,7 @@
 import React from 'react';
 import { FaUserFriends, FaTimes, FaChevronUp, FaChevronDown } from 'react-icons/fa';
 import { useChat } from '../../contexts/ChatContext';
+import { getAvatarUrl } from '../../utils/avatarUtils.jsx';
 
 const OnlineFriends = () => {
   const { onlineFriends, openChat, unreadCounts, isOnlineFriendsOpen, toggleOnlineFriends } = useChat();
@@ -46,9 +47,34 @@ const OnlineFriends = () => {
                       <div className="relative">
                         <div className="w-10 h-10 rounded-full overflow-hidden">
                           <img 
-                            src={friend.avatar || getAvatarPlaceholder(friend.name)} 
+                            src={friend.avatar ? getAvatarUrl(friend.avatar) : getAvatarPlaceholder(friend.name)} 
                             alt={friend.name}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // If image fails to load, replace with initials
+                              const parent = e.target.parentNode;
+                              if (parent) {
+                                // Clear the parent node
+                                while (parent.firstChild) {
+                                  parent.removeChild(parent.firstChild);
+                                }
+                                
+                                // Create a div for initials
+                                const initialsDiv = document.createElement('div');
+                                initialsDiv.className = "flex items-center justify-center h-full w-full bg-blue-500 rounded-full text-white text-2xl font-bold";
+                                
+                                // Get initials from name
+                                const nameParts = friend.name.split(' ');
+                                const initials = nameParts.length > 1 
+                                  ? `${nameParts[0].charAt(0)}${nameParts[1].charAt(0)}`
+                                  : nameParts[0].charAt(0);
+                                
+                                initialsDiv.textContent = initials;
+                                
+                                // Append to parent
+                                parent.appendChild(initialsDiv);
+                              }
+                            }}
                           />
                         </div>
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>

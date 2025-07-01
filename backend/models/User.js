@@ -75,6 +75,10 @@ module.exports = (sequelize, DataTypes) => {
     yearOfStudy: {
       type: DataTypes.STRING(50)
     },
+    interests: {
+      type: DataTypes.JSON,
+      defaultValue: []
+    },
     emailVerified: {
       type: DataTypes.BOOLEAN,
       defaultValue: false

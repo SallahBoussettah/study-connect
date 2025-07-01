@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaComments, FaCircle } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
+import { getAvatarUrl, getAvatarPlaceholder } from '../../utils/avatarUtils.jsx';
 
 const ConversationsDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -128,9 +129,34 @@ const ConversationsDropdown = () => {
                         <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold overflow-hidden">
                           {conversation.avatar ? (
                             <img 
-                              src={conversation.avatar} 
+                              src={getAvatarUrl(conversation.avatar)} 
                               alt={conversation.friendName} 
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // If image fails to load, replace with initials
+                                const parent = e.target.parentNode;
+                                if (parent) {
+                                  // Clear the parent node
+                                  while (parent.firstChild) {
+                                    parent.removeChild(parent.firstChild);
+                                  }
+                                  
+                                  // Create a div for initials
+                                  const initialsDiv = document.createElement('div');
+                                  initialsDiv.className = "flex items-center justify-center h-full w-full bg-blue-500 rounded-full text-white text-lg font-bold";
+                                  
+                                  // Get initials from name
+                                  const nameParts = conversation.friendName.split(' ');
+                                  const initials = nameParts.length > 1 
+                                    ? `${nameParts[0].charAt(0)}${nameParts[1].charAt(0)}`
+                                    : conversation.friendName.charAt(0);
+                                  
+                                  initialsDiv.textContent = initials;
+                                  
+                                  // Append to parent
+                                  parent.appendChild(initialsDiv);
+                                }
+                              }}
                             />
                           ) : (
                             conversation.friendName?.charAt(0)

@@ -41,7 +41,7 @@ connectDB();
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors(config.cors));
+app.use(cors());
 
 // Static file serving for uploads
 // Note: In production, you'd want to put this behind authentication

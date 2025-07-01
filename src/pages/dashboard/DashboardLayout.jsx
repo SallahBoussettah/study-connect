@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationDropdown from '../../components/common/NotificationDropdown';
 import ConversationsDropdown from '../../components/common/ConversationsDropdown';
+import { getAvatarUrl } from '../../utils/avatarUtils.jsx';
 
 const DashboardLayout = () => {
   const { currentUser, logout } = useAuth();
@@ -44,6 +45,54 @@ const DashboardLayout = () => {
     });
   }
 
+  // Function to render user avatar
+  const renderUserAvatar = (size = 'md') => {
+    if (!currentUser) return null;
+    
+    const sizeClasses = size === 'lg' ? 'w-10 h-10' : 'w-8 h-8';
+    const marginClass = 'mr-3';
+    
+    if (currentUser.avatar) {
+      return (
+        <div className={`${sizeClasses} rounded-full overflow-hidden ${marginClass}`}>
+          <img 
+            src={getAvatarUrl(currentUser.avatar)}
+            alt={`${currentUser.firstName} ${currentUser.lastName}`}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // If image fails to load, replace with initials
+              const parent = e.target.parentNode;
+              if (parent) {
+                // Clear the parent node
+                while (parent.firstChild) {
+                  parent.removeChild(parent.firstChild);
+                }
+                
+                // Create a div for initials
+                const initialsDiv = document.createElement('div');
+                initialsDiv.className = "flex items-center justify-center h-full w-full bg-primary-500 rounded-full text-white text-xs font-bold";
+                
+                // Get initials
+                const initials = `${currentUser.firstName?.charAt(0) || ''}${currentUser.lastName?.charAt(0) || ''}`;
+                initialsDiv.textContent = initials;
+                
+                // Append to parent
+                parent.appendChild(initialsDiv);
+              }
+            }}
+          />
+        </div>
+      );
+    }
+    
+    // Fallback to initials if no avatar
+    return (
+      <div className={`${sizeClasses} rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold text-xs ${marginClass}`}>
+        {currentUser.firstName?.charAt(0)}{currentUser.lastName?.charAt(0)}
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-screen bg-secondary-50">
       {/* Mobile sidebar backdrop */}
@@ -77,10 +126,8 @@ const DashboardLayout = () => {
           {/* User info */}
           <div className="p-4 border-b border-secondary-200">
             <div className="flex items-center">
-              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold">
-                {currentUser?.firstName?.charAt(0)}{currentUser?.lastName?.charAt(0)}
-              </div>
-              <div className="ml-3">
+              {renderUserAvatar('lg')}
+              <div className="ml-2">
                 <p className="text-sm font-medium text-secondary-900">
                   {currentUser?.firstName} {currentUser?.lastName}
                 </p>
@@ -145,9 +192,7 @@ const DashboardLayout = () => {
               <ConversationsDropdown />
               
               <div className="hidden md:flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold text-xs">
-                  {currentUser?.firstName?.charAt(0)}{currentUser?.lastName?.charAt(0)}
-                </div>
+                {renderUserAvatar()}
                 <span className="text-sm font-medium text-secondary-700">
                   {currentUser?.firstName}
                 </span>

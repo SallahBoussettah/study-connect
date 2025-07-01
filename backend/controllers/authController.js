@@ -1,5 +1,7 @@
 const { User } = require('../models');
 const config = require('../config/config');
+const path = require('path');
+const fs = require('fs');
 
 /**
  * @desc    Register new user
@@ -109,7 +111,8 @@ exports.updateProfile = async (req, res, next) => {
       bio: req.body.bio,
       institution: req.body.institution,
       major: req.body.major,
-      yearOfStudy: req.body.yearOfStudy
+      yearOfStudy: req.body.yearOfStudy,
+      interests: req.body.interests
     };
 
     // Remove undefined fields
@@ -126,6 +129,67 @@ exports.updateProfile = async (req, res, next) => {
       data: user
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Upload user avatar
+ * @route   POST /api/auth/avatar
+ * @access  Private
+ */
+exports.uploadAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please upload an image file'
+      });
+    }
+
+    // Get the file path
+    const filePath = req.file.path;
+    
+    // Create a URL path that can be used by the frontend
+    // Convert backslashes to forward slashes for consistent URL paths
+    const relativePath = filePath.split('uploads')[1].replace(/\\/g, '/');
+    const avatarUrl = `/uploads${relativePath}`;
+    
+    // Update user's avatar field
+    const user = await User.findByPk(req.user.id);
+    
+    // If user already has an avatar, delete the old file
+    if (user.avatar && user.avatar !== avatarUrl) {
+      try {
+        const oldAvatarPath = path.join(__dirname, '..', user.avatar.replace(/^\//, ''));
+        if (fs.existsSync(oldAvatarPath)) {
+          fs.unlinkSync(oldAvatarPath);
+          console.log(`Deleted old avatar: ${oldAvatarPath}`);
+        }
+      } catch (err) {
+        console.error('Error deleting old avatar:', err);
+        // Continue even if deletion fails
+      }
+    }
+    
+    await user.update({ avatar: avatarUrl });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        avatar: avatarUrl
+      }
+    });
+  } catch (error) {
+    console.error('Error uploading avatar:', error);
+    // If there was an error, delete the uploaded file
+    if (req.file) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (err) {
+        console.error('Error deleting file after failed upload:', err);
+      }
+    }
     next(error);
   }
 };

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FaTimes, FaMinus, FaPaperPlane, FaSpinner } from 'react-icons/fa';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { getAvatarUrl, getAvatarPlaceholder } from '../../utils/avatarUtils.jsx';
 
 const ChatWindow = ({ friendId, friendName: propFriendName, friendAvatar: propFriendAvatar }) => {
   const { messages, loading, sendMessage, closeChat, minimizeChat, chatFriendDetails } = useChat();
@@ -32,11 +33,6 @@ const ChatWindow = ({ friendId, friendName: propFriendName, friendAvatar: propFr
       hour: '2-digit', 
       minute: '2-digit'
     });
-  };
-
-  // Generate avatar placeholder
-  const getAvatarPlaceholder = (name) => {
-    return `https://ui-avatars.com/api/?name=${name.replace(/\s+/g, '+')}&background=random&color=fff`;
   };
 
   // Handle send message
@@ -125,9 +121,34 @@ const ChatWindow = ({ friendId, friendName: propFriendName, friendAvatar: propFr
         <div className="flex items-center">
           <div className="w-8 h-8 rounded-full overflow-hidden mr-2">
             <img 
-              src={friendAvatar || getAvatarPlaceholder(friendName)} 
+              src={friendAvatar ? getAvatarUrl(friendAvatar) : getAvatarPlaceholder(friendName, '')} 
               alt={friendName}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                // If image fails to load, replace with initials
+                const parent = e.target.parentNode;
+                if (parent) {
+                  // Clear the parent node
+                  while (parent.firstChild) {
+                    parent.removeChild(parent.firstChild);
+                  }
+                  
+                  // Create a div for initials
+                  const initialsDiv = document.createElement('div');
+                  initialsDiv.className = "flex items-center justify-center h-full w-full bg-blue-500 rounded-full text-white text-2xl font-bold";
+                  
+                  // Get initials from name
+                  const nameParts = friendName.split(' ');
+                  const initials = nameParts.length > 1 
+                    ? `${nameParts[0].charAt(0)}${nameParts[1].charAt(0)}`
+                    : nameParts[0].charAt(0);
+                  
+                  initialsDiv.textContent = initials;
+                  
+                  // Append to parent
+                  parent.appendChild(initialsDiv);
+                }
+              }}
             />
           </div>
           <div className="font-medium truncate">{friendName}</div>
@@ -168,9 +189,34 @@ const ChatWindow = ({ friendId, friendName: propFriendName, friendAvatar: propFr
                 {message.sender.id !== currentUser.id && (
                   <div className="w-6 h-6 rounded-full overflow-hidden mr-2 flex-shrink-0">
                     <img 
-                      src={message.sender.avatar || getAvatarPlaceholder(message.sender.name)} 
+                      src={message.sender.avatar ? getAvatarUrl(message.sender.avatar) : getAvatarPlaceholder(message.sender.name, '')} 
                       alt={message.sender.name}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // If image fails to load, replace with initials
+                        const parent = e.target.parentNode;
+                        if (parent) {
+                          // Clear the parent node
+                          while (parent.firstChild) {
+                            parent.removeChild(parent.firstChild);
+                          }
+                          
+                          // Create a div for initials
+                          const initialsDiv = document.createElement('div');
+                          initialsDiv.className = "flex items-center justify-center h-full w-full bg-blue-500 rounded-full text-white text-lg font-bold";
+                          
+                          // Get initials from name
+                          const nameParts = message.sender.name.split(' ');
+                          const initials = nameParts.length > 1 
+                            ? `${nameParts[0].charAt(0)}${nameParts[1].charAt(0)}`
+                            : nameParts[0].charAt(0);
+                          
+                          initialsDiv.textContent = initials;
+                          
+                          // Append to parent
+                          parent.appendChild(initialsDiv);
+                        }
+                      }}
                     />
                   </div>
                 )}

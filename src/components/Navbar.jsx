@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaBars, FaTimes, FaUser, FaSignOutAlt, FaCog, FaChartBar } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
+import { getAvatarUrl } from '../utils/avatarUtils.jsx';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -29,6 +30,51 @@ const Navbar = () => {
     setShowProfileMenu(false);
   };
 
+  // Function to render user avatar
+  const renderUserAvatar = () => {
+    if (!currentUser) return null;
+    
+    if (currentUser.avatar) {
+      return (
+        <div className="w-8 h-8 rounded-full overflow-hidden mr-2">
+          <img 
+            src={getAvatarUrl(currentUser.avatar)}
+            alt={`${currentUser.firstName} ${currentUser.lastName}`}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // If image fails to load, replace with initials
+              const parent = e.target.parentNode;
+              if (parent) {
+                // Clear the parent node
+                while (parent.firstChild) {
+                  parent.removeChild(parent.firstChild);
+                }
+                
+                // Create a div for initials
+                const initialsDiv = document.createElement('div');
+                initialsDiv.className = "flex items-center justify-center h-full w-full bg-primary-500 rounded-full text-white text-xs font-bold";
+                
+                // Get initials
+                const initials = `${currentUser.firstName?.charAt(0) || ''}${currentUser.lastName?.charAt(0) || ''}`;
+                initialsDiv.textContent = initials;
+                
+                // Append to parent
+                parent.appendChild(initialsDiv);
+              }
+            }}
+          />
+        </div>
+      );
+    }
+    
+    // Fallback to initials if no avatar
+    return (
+      <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold text-xs mr-2">
+        {currentUser.firstName?.charAt(0)}{currentUser.lastName?.charAt(0)}
+      </div>
+    );
+  };
+
   return (
     <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-3' : 'bg-transparent py-5'}`}>
       <div className="container-custom">
@@ -53,9 +99,7 @@ const Navbar = () => {
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
                   className="flex items-center space-x-2 focus:outline-none"
                 >
-                  <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold text-xs">
-                    {currentUser.firstName?.charAt(0)}{currentUser.lastName?.charAt(0)}
-                  </div>
+                  {renderUserAvatar()}
                   <span className="text-secondary-700">{currentUser.firstName}</span>
                 </button>
                 
@@ -126,9 +170,7 @@ const Navbar = () => {
             {currentUser ? (
               <div className="space-y-3">
                 <div className="flex items-center space-x-2 py-2">
-                  <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold text-xs">
-                    {currentUser.firstName?.charAt(0)}{currentUser.lastName?.charAt(0)}
-                  </div>
+                  {renderUserAvatar()}
                   <span className="text-secondary-700">{currentUser.firstName} {currentUser.lastName}</span>
                 </div>
                 <Link to="/dashboard" className="block py-2 text-secondary-700 hover:text-primary-600">

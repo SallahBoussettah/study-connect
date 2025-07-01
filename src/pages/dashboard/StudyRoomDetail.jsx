@@ -12,6 +12,7 @@ import { studyRoomService, messageService, resourceService, friendshipService, d
 import socketService from '../../services/socketService';
 import ResourceModal from '../../components/resources/ResourceModal';
 import { toast } from 'react-toastify';
+import { getAvatarUrl, getAvatarPlaceholder } from '../../utils/avatarUtils.jsx';
 
 const StudyRoomDetail = () => {
   const { roomId } = useParams();
@@ -499,30 +500,65 @@ const StudyRoomDetail = () => {
 
   // Get avatar for uploader
   const getUploaderAvatar = (resource) => {
-    // Check if uploader object has avatar
-    if (resource.uploader && resource.uploader.avatar) {
-      return (
-        <img 
-          src={resource.uploader.avatar} 
-          alt="uploader" 
-          className="w-5 h-5 rounded-full mr-1" 
-        />
-      );
-    }
-    
-    // If we have uploader name, show first letter
-    const uploaderName = getUploaderName(resource);
-    if (uploaderName && uploaderName !== 'Unknown User') {
-      return (
-        <div className="w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center mr-1 text-xs text-primary-600">
-          {uploaderName.charAt(0)}
-        </div>
-      );
+    // Check if uploader object exists with first and last name
+    if (resource.uploader) {
+      const uploaderName = getUploaderName(resource);
+      
+      // If uploader has avatar, use it with our utility
+      if (resource.uploader.avatar) {
+        return (
+          <img 
+            src={getAvatarUrl(resource.uploader.avatar)} 
+            alt={uploaderName} 
+            className="w-5 h-5 rounded-full mr-2"
+            onError={(e) => {
+              // If image fails to load, replace with initials
+              const parent = e.target.parentNode;
+              if (parent) {
+                // Clear the parent node
+                while (parent.firstChild) {
+                  parent.removeChild(parent.firstChild);
+                }
+                
+                // Create a div for initials
+                const initialsDiv = document.createElement('div');
+                initialsDiv.className = "w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center mr-2 text-xs text-primary-600";
+                
+                // Get initials from name
+                const nameParts = uploaderName.split(' ');
+                const initials = nameParts.length > 1 
+                  ? `${nameParts[0].charAt(0)}${nameParts[1].charAt(0)}`
+                  : uploaderName.charAt(0);
+                
+                initialsDiv.textContent = initials;
+                
+                // Append to parent
+                parent.appendChild(initialsDiv);
+              }
+            }}
+          />
+        );
+      }
+      
+      // If we have uploader name but no avatar, show first letter
+      if (uploaderName && uploaderName !== 'Unknown User') {
+        // Get initials from name
+        const nameParts = uploaderName.split(' ');
+        const initials = nameParts.length > 1 
+          ? `${nameParts[0].charAt(0)}${nameParts[1].charAt(0)}`
+          : uploaderName.charAt(0);
+          
+        return (
+          <div className="w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center mr-2 text-xs text-primary-600">
+            {initials}
+          </div>
+        );
+      }
     }
     
     // Default case
     return (
-      <div className="w-5 h-5 rounded-full bg-secondary-200 flex items-center justify-center mr-1 text-xs text-secondary-600">
+      <div className="w-5 h-5 rounded-full bg-secondary-200 flex items-center justify-center mr-2 text-xs text-secondary-600">
         ?
       </div>
     );
@@ -1087,13 +1123,40 @@ const StudyRoomDetail = () => {
                     <div className={`w-2 h-2 rounded-full mr-2 ${status.isOnline ? 'bg-green-500' : 'bg-secondary-300'}`}></div>
                     <div className="flex items-center">
                       {member.avatar ? (
-                        <img 
-                          src={member.avatar} 
-                          alt={member.name} 
-                          className="w-6 h-6 rounded-full mr-2"
-                        />
+                        <div className="w-8 h-8 rounded-full overflow-hidden mr-3">
+                          <img 
+                            src={getAvatarUrl(member.avatar)} 
+                            alt={member.name} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // If image fails to load, replace with initials
+                              const parent = e.target.parentNode;
+                              if (parent) {
+                                // Clear the parent node
+                                while (parent.firstChild) {
+                                  parent.removeChild(parent.firstChild);
+                                }
+                                
+                                // Create a div for initials
+                                const initialsDiv = document.createElement('div');
+                                initialsDiv.className = "flex items-center justify-center h-full w-full bg-blue-500 rounded-full text-white text-lg font-bold";
+                                
+                                // Get initials from name
+                                const nameParts = member.name.split(' ');
+                                const initials = nameParts.length > 1 
+                                  ? `${nameParts[0].charAt(0)}${nameParts[1].charAt(0)}`
+                                  : member.name.charAt(0);
+                                
+                                initialsDiv.textContent = initials;
+                                
+                                // Append to parent
+                                parent.appendChild(initialsDiv);
+                              }
+                            }}
+                          />
+                        </div>
                       ) : (
-                        <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center mr-2 text-xs text-primary-600 font-bold">
+                        <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold mr-3">
                           {member.name.charAt(0)}
                         </div>
                       )}
@@ -1176,14 +1239,37 @@ const StudyRoomDetail = () => {
                           messages.map(message => (
                             <div key={message.id} className={`flex ${message.isSystem ? 'justify-center' : 'items-start'}`}>
                               {!message.isSystem && (
-                                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center mr-3 flex-shrink-0">
-                                  {message.sender.avatar ? (
-                                    <img src={message.sender.avatar} alt={message.sender.name} className="w-full h-full rounded-full" />
-                                  ) : (
-                                    <span className="text-primary-600 text-xs font-bold">
-                                      {message.sender.name.charAt(0)}
-                                    </span>
-                                  )}
+                                <div className="w-8 h-8 rounded-full overflow-hidden mr-3">
+                                  <img 
+                                    src={getAvatarUrl(message.sender.avatar)} 
+                                    alt={message.sender.name} 
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      // If image fails to load, replace with initials
+                                      const parent = e.target.parentNode;
+                                      if (parent) {
+                                        // Clear the parent node
+                                        while (parent.firstChild) {
+                                          parent.removeChild(parent.firstChild);
+                                        }
+                                        
+                                        // Create a div for initials
+                                        const initialsDiv = document.createElement('div');
+                                        initialsDiv.className = "flex items-center justify-center h-full w-full bg-blue-500 rounded-full text-white text-lg font-bold";
+                                        
+                                        // Get initials from name
+                                        const nameParts = message.sender.name.split(' ');
+                                        const initials = nameParts.length > 1 
+                                          ? `${nameParts[0].charAt(0)}${nameParts[1].charAt(0)}`
+                                          : message.sender.name.charAt(0);
+                                        
+                                        initialsDiv.textContent = initials;
+                                        
+                                        // Append to parent
+                                        parent.appendChild(initialsDiv);
+                                      }
+                                    }}
+                                  />
                                 </div>
                               )}
                               <div className={message.isSystem ? 'bg-secondary-100 text-secondary-600 text-sm py-1 px-3 rounded-md' : 'flex-grow'}>
@@ -1430,17 +1516,41 @@ const StudyRoomDetail = () => {
                     <li key={friend.id} className="py-3 flex items-center justify-between">
                       <div className="flex items-center">
                         {friend.avatar ? (
-                          <img 
-                            src={friend.avatar} 
-                            alt={`${friend.firstName} ${friend.lastName}`}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
+                          <div className="w-8 h-8 rounded-full overflow-hidden mr-3">
+                            <img 
+                              src={getAvatarUrl(friend.avatar)} 
+                              alt={`${friend.firstName} ${friend.lastName}`} 
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // If image fails to load, replace with initials
+                                const parent = e.target.parentNode;
+                                if (parent) {
+                                  // Clear the parent node
+                                  while (parent.firstChild) {
+                                    parent.removeChild(parent.firstChild);
+                                  }
+                                  
+                                  // Create a div for initials
+                                  const initialsDiv = document.createElement('div');
+                                  initialsDiv.className = "flex items-center justify-center h-full w-full bg-blue-500 rounded-full text-white text-lg font-bold";
+                                  
+                                  // Get initials from name
+                                  const initials = `${friend.firstName?.charAt(0) || ''}${friend.lastName?.charAt(0) || ''}`;
+                                  
+                                  initialsDiv.textContent = initials;
+                                  
+                                  // Append to parent
+                                  parent.appendChild(initialsDiv);
+                                }
+                              }}
+                            />
+                          </div>
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center">
-                            {friend.firstName.charAt(0).toUpperCase()}{friend.lastName.charAt(0).toUpperCase()}
+                          <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold mr-3">
+                            {friend.firstName?.charAt(0) || ''}{friend.lastName?.charAt(0) || ''}
                           </div>
                         )}
-                        <div className="ml-3">
+                        <div className="ml-1">
                           <p className="text-sm font-medium text-secondary-900">{friend.firstName} {friend.lastName}</p>
                         </div>
                       </div>

@@ -154,6 +154,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('userInfo');
     setCurrentUser(null);
   };
+  
+  const updateCurrentUser = (userData) => {
+    // Update user data in state and localStorage
+    setCurrentUser(userData);
+    localStorage.setItem('userInfo', JSON.stringify(userData));
+  };
 
   const value = {
     currentUser,
@@ -162,6 +168,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    updateCurrentUser,
     api
   };
 
