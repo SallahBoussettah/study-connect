@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaPlus, FaEdit, FaTrash, FaRandom, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaCheck, FaTimes, FaGraduationCap, FaGlobe, FaUser, FaUsers } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaRandom, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaCheck, FaTimes, FaGraduationCap, FaGlobe, FaUser, FaUsers, FaShareAlt } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -54,6 +54,15 @@ const Flashcards = () => {
     answer: ''
   });
 
+  // Share modal state
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [deckToShare, setDeckToShare] = useState(null);
+  const [friends, setFriends] = useState([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
+  const [sharingStatus, setSharingStatus] = useState({});
+  const [shareWithEmail, setShareWithEmail] = useState('');
+  const [canEditShared, setCanEditShared] = useState(false);
+
   // Fetch user's decks
   const fetchDecks = async () => {
     setLoading(true);
@@ -83,6 +92,13 @@ const Flashcards = () => {
   // Initial fetch of decks
   useEffect(() => {
     fetchDecks();
+    
+    // Check URL parameters for tab selection
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'shared') {
+      setActiveTab('shared');
+    }
   }, [api]);
   
   // Filter decks based on search query
@@ -449,6 +465,146 @@ const Flashcards = () => {
     }
   };
   
+  // Open share modal
+  const openShareModal = (deck) => {
+    setDeckToShare(deck);
+    setShareModalOpen(true);
+    fetchFriends();
+  };
+
+  // Close share modal
+  const closeShareModal = () => {
+    setShareModalOpen(false);
+    setDeckToShare(null);
+    setSharingStatus({});
+    setShareWithEmail('');
+    setCanEditShared(false);
+  };
+
+  // Fetch friends list
+  const fetchFriends = async () => {
+    setLoadingFriends(true);
+    try {
+      const response = await api.get('/friends');
+      setFriends(response.data.data || []);
+      
+      // If we have a deck to share, check which friends already have it shared
+      if (deckToShare) {
+        try {
+          // Get existing shares for this deck
+          const sharesResponse = await api.get(`/flashcards/decks/${deckToShare.id}/shares`);
+          const existingShares = sharesResponse.data.data || [];
+          
+          // Mark friends who already have this deck shared
+          const initialSharingStatus = {};
+          existingShares.forEach(share => {
+            const friendId = share.sharedWithId;
+            initialSharingStatus[friendId] = 'already-shared';
+          });
+          
+          setSharingStatus(initialSharingStatus);
+        } catch (error) {
+          console.error('Error fetching deck shares:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching friends:', error);
+      toast.error('Failed to load friends list');
+      setFriends([]);
+    } finally {
+      setLoadingFriends(false);
+    }
+  };
+
+  // Share deck with a friend
+  const shareWithFriend = async (friendId) => {
+    // Don't do anything if already shared
+    if (sharingStatus[friendId] === 'already-shared') {
+      return;
+    }
+    
+    try {
+      setSharingStatus(prev => ({ ...prev, [friendId]: 'loading' }));
+      
+      // Create a unique sharing token for this share
+      const sharingToken = `share_${Date.now().toString(36)}_${Math.random().toString(36).substr(2)}`;
+      
+      // Create a direct link to accept the share and go to the Shared With Me tab
+      const shareAcceptUrl = `${window.location.origin}/dashboard/flashcards/share/accept/${deckToShare.id}/${sharingToken}`;
+      
+      // Create message content with HTML link that will be processed by renderMessageWithLinks
+      // This hides the raw URL and shows a clean clickable text instead
+      let messageContent = `I've shared my flashcard deck "${deckToShare.title}" with you. <a href="${shareAcceptUrl}">Click here to access the deck</a>`;
+      
+      // First share the deck through the API to ensure the token is saved
+      await api.post(`/flashcards/decks/${deckToShare.id}/share`, { 
+        email: friends.find(f => f.id === friendId).email,
+        canEdit: false,
+        sharingToken: sharingToken
+      });
+      
+      // Then send direct message to friend
+      await api.post(`/messages/direct/${friendId}`, { content: messageContent });
+      
+      setSharingStatus(prev => ({ ...prev, [friendId]: 'success' }));
+      
+      // Reset status after 2 seconds to show "already shared"
+      setTimeout(() => {
+        setSharingStatus(prev => {
+          const newStatus = { ...prev };
+          newStatus[friendId] = 'already-shared';
+          return newStatus;
+        });
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error sharing deck:', error);
+      setSharingStatus(prev => ({ ...prev, [friendId]: 'error' }));
+      
+      // Reset status after 2 seconds
+      setTimeout(() => {
+        setSharingStatus(prev => {
+          const newStatus = { ...prev };
+          delete newStatus[friendId];
+          return newStatus;
+        });
+      }, 2000);
+    }
+  };
+  
+  // Share deck with email
+  const shareWithEmailHandler = async (e) => {
+    e.preventDefault();
+    
+    if (!shareWithEmail.trim()) {
+      toast.warning('Please enter an email address');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      // Share the deck through the API
+      await api.post(`/flashcards/decks/${deckToShare.id}/share`, { 
+        email: shareWithEmail,
+        canEdit: canEditShared
+      });
+      
+      toast.success(`Deck shared with ${shareWithEmail}`);
+      setShareWithEmail('');
+      
+    } catch (error) {
+      console.error('Error sharing deck:', error);
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Failed to share deck');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div>
       {!studyMode ? (
@@ -589,6 +745,13 @@ const Flashcards = () => {
                           disabled={loading}
                         >
                           <FaEdit />
+                        </button>
+                        <button 
+                          className="p-2 bg-secondary-100 text-secondary-600 rounded-md hover:bg-secondary-200 transition-colors"
+                          onClick={() => openShareModal(deck)}
+                          disabled={loading}
+                        >
+                          <FaShareAlt />
                         </button>
                         <button 
                           className="p-2 bg-secondary-100 text-secondary-600 rounded-md hover:bg-secondary-200 transition-colors"
@@ -1305,6 +1468,136 @@ const Flashcards = () => {
                   disabled={loading}
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Share Deck Modal */}
+      {shareModalOpen && deckToShare && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-secondary-900 opacity-75"></div>
+            </div>
+            
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <h3 className="text-lg font-medium text-secondary-900 mb-4">Share Flashcard Deck</h3>
+                
+                <p className="mb-4 text-secondary-600">
+                  Share "{deckToShare.title}" with others:
+                </p>
+                
+                {/* Share by email form */}
+                <form onSubmit={shareWithEmailHandler} className="mb-6">
+                  <div className="mb-4">
+                    <label htmlFor="email" className="block text-sm font-medium text-secondary-700 mb-1">
+                      Share with email
+                    </label>
+                    <div className="flex">
+                      <input
+                        type="email"
+                        id="email"
+                        className="flex-1 px-3 py-2 border border-secondary-300 rounded-l-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                        value={shareWithEmail}
+                        onChange={(e) => setShareWithEmail(e.target.value)}
+                        placeholder="Enter email address"
+                      />
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-primary-600 text-white rounded-r-md hover:bg-primary-700 transition-colors"
+                        disabled={loading}
+                      >
+                        {loading ? 'Sharing...' : 'Share'}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="canEdit"
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
+                      checked={canEditShared}
+                      onChange={(e) => setCanEditShared(e.target.checked)}
+                    />
+                    <label htmlFor="canEdit" className="ml-2 block text-sm text-secondary-700">
+                      Allow editing
+                    </label>
+                  </div>
+                </form>
+                
+                <div className="border-t border-secondary-200 pt-4">
+                  <h4 className="text-sm font-medium text-secondary-900 mb-2">Share with friends</h4>
+                  
+                  {loadingFriends ? (
+                    <div className="text-center py-8">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-500 border-t-transparent"></div>
+                      <p className="mt-2 text-secondary-600">Loading friends...</p>
+                    </div>
+                  ) : friends.length === 0 ? (
+                    <div className="text-center py-8 text-secondary-600">
+                      <p>You don't have any friends yet.</p>
+                      <p className="mt-2">
+                        <Link to="/dashboard/friends" className="text-primary-600 hover:text-primary-700">
+                          Add friends
+                        </Link>
+                        {' '}to share flashcard decks with them.
+                      </p>
+                    </div>
+                  ) : (
+                    <ul className="max-h-60 overflow-y-auto">
+                      {friends.map(friend => (
+                        <li key={friend.id} className="py-2 border-b border-secondary-100 last:border-0">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              {friend.avatar ? (
+                                <img 
+                                  src={friend.avatar} 
+                                  alt={`${friend.firstName} ${friend.lastName}`} 
+                                  className="w-8 h-8 rounded-full mr-3"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center mr-3">
+                                  {friend.firstName.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <span className="text-secondary-900">{friend.firstName} {friend.lastName}</span>
+                            </div>
+                            <button
+                              onClick={() => shareWithFriend(friend.id)}
+                              className={`px-3 py-1 rounded-md text-sm font-medium ${
+                                sharingStatus[friend.id] === 'loading' ? 'bg-secondary-100 text-secondary-500' :
+                                sharingStatus[friend.id] === 'success' ? 'bg-green-100 text-green-700' :
+                                sharingStatus[friend.id] === 'error' ? 'bg-red-100 text-red-700' :
+                                sharingStatus[friend.id] === 'already-shared' ? 'bg-blue-100 text-blue-700' :
+                                'bg-primary-100 text-primary-700 hover:bg-primary-200'
+                              }`}
+                              disabled={sharingStatus[friend.id] === 'loading' || sharingStatus[friend.id] === 'already-shared'}
+                            >
+                              {sharingStatus[friend.id] === 'loading' ? 'Sharing...' :
+                               sharingStatus[friend.id] === 'success' ? 'Shared!' :
+                               sharingStatus[friend.id] === 'error' ? 'Failed' :
+                               sharingStatus[friend.id] === 'already-shared' ? 'Shared' : 'Share'}
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              
+              <div className="bg-secondary-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-secondary-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-secondary-700 hover:bg-secondary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm"
+                  onClick={closeShareModal}
+                >
+                  Close
                 </button>
               </div>
             </div>

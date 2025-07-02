@@ -758,7 +758,7 @@ exports.markCardReviewed = async (req, res) => {
 exports.shareDeck = async (req, res) => {
   try {
     const { deckId } = req.params;
-    const { email, canEdit } = req.body;
+    const { email, canEdit, sharingToken } = req.body;
     
     if (!email) {
       return res.status(400).json({
@@ -811,12 +811,13 @@ exports.shareDeck = async (req, res) => {
       });
     }
     
-    // Create the share
+    // Create the share with the sharing token if provided
     const share = await SharedFlashcardDeck.create({
       deckId,
       sharedWithId: userToShare.id,
       sharedById: req.user.id,
-      canEdit: canEdit || false
+      canEdit: canEdit || false,
+      sharingToken: sharingToken || null // Store the sharing token if provided
     });
     
     res.status(201).json({
@@ -973,6 +974,147 @@ exports.getGlobalDecks = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch global flashcard decks'
+    });
+  }
+};
+
+// @desc    Accept a shared flashcard deck
+// @route   POST /api/flashcards/share/accept
+// @access  Private
+exports.acceptShare = async (req, res) => {
+  try {
+    const { deckId, token } = req.body;
+    
+    if (!deckId || !token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Deck ID and token are required'
+      });
+    }
+    
+    // Find the deck
+    const deck = await FlashcardDeck.findByPk(deckId);
+    
+    if (!deck) {
+      return res.status(404).json({
+        success: false,
+        message: 'Flashcard deck not found'
+      });
+    }
+    
+    // Check if the deck is already shared with this user
+    const existingShare = await SharedFlashcardDeck.findOne({
+      where: { 
+        deckId,
+        sharedWithId: req.user.id
+      }
+    });
+    
+    if (existingShare) {
+      return res.status(200).json({
+        success: true,
+        message: 'Deck is already shared with you',
+        data: existingShare
+      });
+    }
+    
+    // Verify that the sharing token is valid
+    // This prevents unauthorized users from accessing the deck
+    const validShare = await SharedFlashcardDeck.findOne({
+      where: {
+        deckId,
+        sharingToken: token
+      }
+    });
+    
+    // If no valid share with this token exists, check if the token was meant for a direct share
+    if (!validShare) {
+      // Look for any share that might be pending with this token
+      const pendingShare = await SharedFlashcardDeck.findOne({
+        where: {
+          sharingToken: token
+        }
+      });
+      
+      if (!pendingShare) {
+        return res.status(404).json({
+          success: false,
+          message: 'Invalid sharing token. This share may have expired or been revoked.'
+        });
+      }
+      
+      // If the pending share is for a different deck, reject it
+      if (pendingShare.deckId !== deckId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Token does not match the requested deck'
+        });
+      }
+    }
+    
+    // Create the share record
+    const share = await SharedFlashcardDeck.create({
+      deckId,
+      sharedWithId: req.user.id,
+      sharedById: deck.userId,
+      canEdit: false,
+      sharingToken: token
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Flashcard deck shared successfully',
+      data: share
+    });
+  } catch (error) {
+    console.error('Error accepting shared flashcard deck:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to accept shared flashcard deck'
+    });
+  }
+};
+
+// @desc    Get all shares for a deck
+// @route   GET /api/flashcards/decks/:deckId/shares
+// @access  Private
+exports.getDeckShares = async (req, res) => {
+  try {
+    const { deckId } = req.params;
+    
+    // Find the deck
+    const deck = await FlashcardDeck.findOne({
+      where: { id: deckId, userId: req.user.id }
+    });
+    
+    if (!deck) {
+      return res.status(404).json({
+        success: false,
+        message: 'Flashcard deck not found or you are not the owner'
+      });
+    }
+    
+    // Get all shares for this deck
+    const shares = await SharedFlashcardDeck.findAll({
+      where: { deckId },
+      include: [
+        {
+          model: User,
+          as: 'sharedWith',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'avatar']
+        }
+      ]
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: shares
+    });
+  } catch (error) {
+    console.error('Error fetching flashcard deck shares:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch flashcard deck shares'
     });
   }
 }; 

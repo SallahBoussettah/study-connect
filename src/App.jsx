@@ -35,6 +35,7 @@ import StudyTimer from './pages/dashboard/StudyTimer';
 import Flashcards from './pages/dashboard/Flashcards';
 import Friends from './pages/dashboard/Friends';
 import ResourceEdit from './pages/dashboard/ResourceEdit';
+import ShareAcceptRedirect from './pages/dashboard/ShareAcceptRedirect';
 
 // Study Room Pages
 import StudyRoomResources from './pages/studyRoom/StudyRoomResources';
@@ -100,6 +101,7 @@ const App = () => {
                 <Route path="flashcards" element={<Flashcards />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="flashcards/share/accept/:deckId/:token" element={<ShareAcceptRedirect />} />
               </Route>
               
               {/* Study Room Routes */}

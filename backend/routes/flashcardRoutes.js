@@ -14,7 +14,9 @@ const {
   markCardReviewed,
   shareDeck,
   removeDeckShare,
-  getGlobalDecks
+  getGlobalDecks,
+  acceptShare,
+  getDeckShares
 } = require('../controllers/flashcardController');
 
 const router = express.Router();
@@ -41,5 +43,7 @@ router.post('/cards/:cardId/review', markCardReviewed);
 // Sharing routes
 router.post('/decks/:deckId/share', shareDeck);
 router.delete('/decks/:deckId/share/:userId', removeDeckShare);
+router.post('/share/accept', acceptShare);
+router.get('/decks/:deckId/shares', getDeckShares);
 
 module.exports = router; 

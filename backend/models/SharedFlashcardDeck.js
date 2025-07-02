@@ -22,6 +22,10 @@ module.exports = (sequelize, DataTypes) => {
     canEdit: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
+    },
+    sharingToken: {
+      type: DataTypes.STRING,
+      allowNull: true
     }
   }, {
     timestamps: true,
