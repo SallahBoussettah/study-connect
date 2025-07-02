@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaPlus, FaEdit, FaTrash, FaRandom, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaCheck, FaTimes, FaGraduationCap, FaGlobe, FaUser, FaUsers, FaShareAlt } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
+import socketService from '../../services/socketService';
 
 const Flashcards = () => {
   const { currentUser, api } = useAuth();
@@ -543,8 +544,19 @@ const Flashcards = () => {
         sharingToken: sharingToken
       });
       
-      // Then send direct message to friend
-      await api.post(`/messages/direct/${friendId}`, { content: messageContent });
+      // Join the direct chat first to ensure the connection is established
+      socketService.joinDirectChat(friendId);
+      
+      // Small delay to ensure the join operation completes
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Try to send via socket for real-time delivery
+      const sent = socketService.sendDirectMessage(friendId, messageContent);
+      
+      // If socket sending fails, fall back to API
+      if (!sent) {
+        await api.post(`/messages/direct/${friendId}`, { content: messageContent });
+      }
       
       setSharingStatus(prev => ({ ...prev, [friendId]: 'success' }));
       
@@ -1020,27 +1032,23 @@ const Flashcards = () => {
                         </select>
                       </div>
                       
-                      <div>
-                        <label htmlFor="isPublic" className="flex items-center text-sm font-medium text-secondary-700 mb-1">
-                          <input
-                            type="checkbox"
-                            id="isPublic"
-                            className="mr-2 h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
-                            checked={newDeck.isPublic}
-                            onChange={(e) => setNewDeck({...newDeck, isPublic: e.target.checked})}
-                          />
-                          Make this deck public (visible to everyone)
-                        </label>
-                        {currentUser?.role === 'admin' || currentUser?.role === 'teacher' ? (
+                        {(currentUser?.role === 'admin' || currentUser?.role === 'teacher') && (
+                        <div>
+                          <label htmlFor="isPublic" className="flex items-center text-sm font-medium text-secondary-700 mb-1">
+                            <input
+                              type="checkbox"
+                              id="isPublic"
+                              className="mr-2 h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
+                              checked={newDeck.isPublic}
+                              onChange={(e) => setNewDeck({...newDeck, isPublic: e.target.checked})}
+                            />
+                            Make this deck public (visible to everyone)
+                          </label>
                           <p className="text-xs text-secondary-500 ml-6">
-                            As a {currentUser.role}, your public decks will appear in the Global Decks section
+                            As {currentUser?.role === 'admin' ? 'an' : 'a'} {currentUser?.role}, your public decks will appear in the Global Decks section
                           </p>
-                        ) : (
-                          <p className="text-xs text-secondary-500 ml-6">
-                            Public decks can be shared with other users
-                          </p>
-                        )}
-                      </div>
+                        </div>
+                      )}
                       
                       <div className="border-t border-secondary-200 pt-4">
                         <h4 className="text-sm font-medium text-secondary-900 mb-2">Cards ({newDeck.cards.length})</h4>
