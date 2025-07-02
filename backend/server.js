@@ -19,6 +19,7 @@ const friendRoutes = require('./routes/friendRoutes');
 const directMessageRoutes = require('./routes/directMessageRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const studyTaskRoutes = require('./routes/studyTaskRoutes');
+const flashcardRoutes = require('./routes/flashcardRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -57,6 +58,7 @@ app.use('/api/friends', friendRoutes);
 app.use('/api/messages/direct', directMessageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/study-tasks', studyTaskRoutes);
+app.use('/api/flashcards', flashcardRoutes);
 
 // Root route
 app.get('/', (req, res) => {

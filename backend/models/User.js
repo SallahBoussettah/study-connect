@@ -203,8 +203,18 @@ module.exports = (sequelize, DataTypes) => {
     // User has many FlashcardDecks
     if (models.FlashcardDeck) {
       User.hasMany(models.FlashcardDeck, {
-        foreignKey: 'ownerId',
+        foreignKey: 'userId',
         as: 'flashcardDecks'
+      });
+    }
+
+    // User has shared flashcard decks (decks shared with this user)
+    if (models.FlashcardDeck && models.SharedFlashcardDeck) {
+      User.belongsToMany(models.FlashcardDeck, {
+        through: models.SharedFlashcardDeck,
+        foreignKey: 'sharedWithId',
+        otherKey: 'deckId',
+        as: 'sharedFlashcardDecks'
       });
     }
 
@@ -262,6 +272,29 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'receiverId',
         otherKey: 'senderId',
         as: 'friendsOf'
+      });
+    }
+    
+    // Direct Messages
+    if (models.DirectMessage) {
+      // Sent messages
+      User.hasMany(models.DirectMessage, {
+        foreignKey: 'senderId',
+        as: 'sentDirectMessages'
+      });
+      
+      // Received messages
+      User.hasMany(models.DirectMessage, {
+        foreignKey: 'receiverId',
+        as: 'receivedDirectMessages'
+      });
+    }
+
+    // User has many StudyTasks
+    if (models.StudyTask) {
+      User.hasMany(models.StudyTask, {
+        foreignKey: 'userId',
+        as: 'studyTasks'
       });
     }
   };

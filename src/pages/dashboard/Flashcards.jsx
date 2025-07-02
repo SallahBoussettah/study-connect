@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaPlus, FaEdit, FaTrash, FaRandom, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaCheck, FaTimes, FaGraduationCap } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'react-toastify';
 
 const Flashcards = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, api } = useAuth();
   const [activeTab, setActiveTab] = useState('myDecks');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentDeck, setCurrentDeck] = useState(null);
@@ -12,56 +13,16 @@ const Flashcards = () => {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [showCreateDeck, setShowCreateDeck] = useState(false);
+  const [showEditDeck, setShowEditDeck] = useState(false);
+  const [showEditCard, setShowEditCard] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  // Mock data for flashcard decks
-  const [myDecks, setMyDecks] = useState([
-    {
-      id: 1,
-      title: 'Calculus Fundamentals',
-      description: 'Basic concepts and formulas for calculus',
-      cardCount: 24,
-      lastStudied: '2023-06-10T15:30:00',
-      mastery: 68,
-      subject: 'Mathematics',
-      cards: [
-        { id: 1, question: 'What is the derivative of sin(x)?', answer: 'cos(x)', mastered: true },
-        { id: 2, question: 'What is the derivative of e^x?', answer: 'e^x', mastered: true },
-        { id: 3, question: 'What is the integral of 1/x?', answer: 'ln|x| + C', mastered: false },
-        { id: 4, question: 'What is the chain rule?', answer: 'If y = f(g(x)), then dy/dx = (df/dg) × (dg/dx)', mastered: false },
-        { id: 5, question: 'What is the product rule?', answer: 'If y = f(x) × g(x), then dy/dx = f(x) × g\'(x) + g(x) × f\'(x)', mastered: true },
-      ]
-    },
-    {
-      id: 2,
-      title: 'Biology Terms',
-      description: 'Important terminology for biology exams',
-      cardCount: 42,
-      lastStudied: '2023-06-12T09:15:00',
-      mastery: 45,
-      subject: 'Biology',
-      cards: [
-        { id: 1, question: 'What is photosynthesis?', answer: 'The process by which green plants and some other organisms use sunlight to synthesize foods with carbon dioxide and water', mastered: true },
-        { id: 2, question: 'What is cellular respiration?', answer: 'The process by which cells break down glucose and other molecules to generate ATP', mastered: false },
-        { id: 3, question: 'What is mitosis?', answer: 'A type of cell division that results in two daughter cells each having the same number and kind of chromosomes as the parent nucleus', mastered: false },
-      ]
-    },
-    {
-      id: 3,
-      title: 'Computer Science Concepts',
-      description: 'Core concepts in computer science and programming',
-      cardCount: 36,
-      lastStudied: '2023-06-08T14:00:00',
-      mastery: 72,
-      subject: 'Computer Science',
-      cards: [
-        { id: 1, question: 'What is a data structure?', answer: 'A specialized format for organizing, processing, retrieving and storing data', mastered: true },
-        { id: 2, question: 'What is an algorithm?', answer: 'A step-by-step procedure for solving a problem or accomplishing a task', mastered: true },
-        { id: 3, question: 'What is object-oriented programming?', answer: 'A programming paradigm based on the concept of "objects", which can contain data and code', mastered: false },
-        { id: 4, question: 'What is recursion?', answer: 'A method where the solution to a problem depends on solutions to smaller instances of the same problem', mastered: true },
-      ]
-    }
-  ]);
+  // State for flashcard decks
+  const [myDecks, setMyDecks] = useState([]);
+  const [sharedDecks, setSharedDecks] = useState([]);
   
+  // State for creating new deck
   const [newDeck, setNewDeck] = useState({
     title: '',
     description: '',
@@ -69,25 +30,91 @@ const Flashcards = () => {
     cards: []
   });
   
+  // State for editing deck
+  const [editDeck, setEditDeck] = useState({
+    id: '',
+    title: '',
+    description: '',
+    subject: '',
+    cards: []
+  });
+  
+  // State for creating new card
   const [newCard, setNewCard] = useState({
     question: '',
     answer: ''
   });
   
+  // State for editing card
+  const [editCard, setEditCard] = useState({
+    id: '',
+    question: '',
+    answer: ''
+  });
+
+  // Fetch user's decks
+  const fetchDecks = async () => {
+    setLoading(true);
+    try {
+      // Fetch my decks
+      const myDecksResponse = await api.get('/flashcards/my-decks');
+      setMyDecks(myDecksResponse.data.data);
+      
+      // Fetch shared decks
+      const sharedDecksResponse = await api.get('/flashcards/shared');
+      setSharedDecks(sharedDecksResponse.data.data);
+      
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching flashcard decks:', err);
+      setError('Failed to load flashcard decks. Please try again later.');
+      toast.error('Failed to load flashcard decks');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Initial fetch of decks
+  useEffect(() => {
+    fetchDecks();
+  }, [api]);
+  
   // Filter decks based on search query
-  const filteredDecks = myDecks.filter(deck => 
-    deck.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    deck.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    deck.subject.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredDecks = activeTab === 'myDecks' 
+    ? myDecks.filter(deck => 
+        deck.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        deck.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        deck.subject?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : sharedDecks.filter(deck => 
+        deck.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        deck.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        deck.subject?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
   
   // Start studying a deck
-  const startStudying = (deckId) => {
-    const deck = myDecks.find(d => d.id === deckId);
-    setCurrentDeck(deck);
-    setCurrentCardIndex(0);
-    setShowAnswer(false);
-    setStudyMode(true);
+  const startStudying = async (deckId) => {
+    try {
+      setLoading(true);
+      // Fetch the full deck with cards
+      const response = await api.get(`/flashcards/decks/${deckId}`);
+      const deck = response.data.data;
+      
+      if (!deck.cards || deck.cards.length === 0) {
+        toast.info('This deck has no cards to study');
+        return;
+      }
+      
+      setCurrentDeck(deck);
+      setCurrentCardIndex(0);
+      setShowAnswer(false);
+      setStudyMode(true);
+    } catch (err) {
+      console.error('Error fetching deck for study:', err);
+      toast.error('Failed to load study deck');
+    } finally {
+      setLoading(false);
+    }
   };
   
   // Navigate through cards
@@ -97,9 +124,17 @@ const Flashcards = () => {
       setShowAnswer(false);
     } else {
       // End of deck
-      setStudyMode(false);
-      setCurrentDeck(null);
+      toast.success('You completed this study session!');
+      exitStudyMode();
     }
+  };
+  
+  // Exit study mode and refresh deck data
+  const exitStudyMode = () => {
+    setStudyMode(false);
+    setCurrentDeck(null);
+    // Refresh the decks data to show updated mastery
+    fetchDecks();
   };
   
   const prevCard = () => {
@@ -110,32 +145,24 @@ const Flashcards = () => {
   };
   
   // Mark card as mastered/not mastered
-  const markCard = (mastered) => {
-    const updatedDecks = myDecks.map(deck => {
-      if (deck.id === currentDeck.id) {
-        const updatedCards = deck.cards.map(card => {
-          if (card.id === currentDeck.cards[currentCardIndex].id) {
-            return { ...card, mastered };
-          }
-          return card;
-        });
-        
-        // Calculate new mastery percentage
-        const masteredCount = updatedCards.filter(card => card.mastered).length;
-        const newMastery = Math.round((masteredCount / updatedCards.length) * 100);
-        
-        return { 
-          ...deck, 
-          cards: updatedCards,
-          mastery: newMastery
-        };
-      }
-      return deck;
-    });
-    
-    setMyDecks(updatedDecks);
-    setCurrentDeck(updatedDecks.find(d => d.id === currentDeck.id));
-    nextCard();
+  const markCard = async (mastered) => {
+    try {
+      const cardId = currentDeck.cards[currentCardIndex].id;
+      
+      // Call API to mark card as reviewed
+      await api.post(`/flashcards/cards/${cardId}/review`, { mastered });
+      
+      // Update the local state
+      const updatedDeck = { ...currentDeck };
+      updatedDeck.cards[currentCardIndex].mastered = mastered;
+      setCurrentDeck(updatedDeck);
+      
+      // Move to next card
+      nextCard();
+    } catch (err) {
+      console.error('Error marking card:', err);
+      toast.error('Failed to update card status');
+    }
   };
   
   // Add new card to deck being created
@@ -143,26 +170,247 @@ const Flashcards = () => {
     if (newCard.question.trim() && newCard.answer.trim()) {
       setNewDeck({
         ...newDeck,
-        cards: [...newDeck.cards, { ...newCard, id: newDeck.cards.length + 1, mastered: false }]
+        cards: [...newDeck.cards, { ...newCard, mastered: false }]
       });
       setNewCard({ question: '', answer: '' });
+    } else {
+      toast.warning('Both question and answer are required');
+    }
+  };
+  
+  // Add new card to deck being edited
+  const addCardToEditDeck = () => {
+    if (editCard.question.trim() && editCard.answer.trim()) {
+      setEditDeck({
+        ...editDeck,
+        cards: [...editDeck.cards, { ...editCard, mastered: false }]
+      });
+      setEditCard({ id: '', question: '', answer: '' });
+    } else {
+      toast.warning('Both question and answer are required');
+    }
+  };
+  
+  // Start editing a deck
+  const handleStartEditDeck = async (deckId) => {
+    try {
+      setLoading(true);
+      
+      // Fetch the full deck with cards
+      const response = await api.get(`/flashcards/decks/${deckId}`);
+      const deck = response.data.data;
+      
+      // Set the edit deck state
+      setEditDeck({
+        id: deck.id,
+        title: deck.title,
+        description: deck.description || '',
+        subject: deck.subject || '',
+        cards: deck.cards || []
+      });
+      
+      setShowEditDeck(true);
+    } catch (err) {
+      console.error('Error fetching deck for edit:', err);
+      toast.error('Failed to load deck for editing');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Start editing a specific card
+  const startEditingCard = (card) => {
+    setEditCard({
+      id: card.id,
+      question: card.question,
+      answer: card.answer
+    });
+    setShowEditCard(true);
+  };
+
+  // Save edited card
+  const saveEditedCard = async () => {
+    if (!editCard.question.trim() || !editCard.answer.trim()) {
+      toast.warning('Both question and answer are required');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      await updateCardInEditDeck(editCard.id, {
+        question: editCard.question,
+        answer: editCard.answer
+      });
+      
+      // Close the edit card modal
+      setShowEditCard(false);
+      
+    } catch (err) {
+      console.error('Error saving card:', err);
+      toast.error('Failed to save card');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Update an existing card in the edit deck
+  const updateCardInEditDeck = async (cardId, updatedCard) => {
+    try {
+      setLoading(true);
+      
+      // Call API to update card
+      await api.put(`/flashcards/cards/${cardId}`, updatedCard);
+      
+      // Update the local state
+      const updatedCards = editDeck.cards.map(card => 
+        card.id === cardId ? { ...card, ...updatedCard } : card
+      );
+      
+      setEditDeck({
+        ...editDeck,
+        cards: updatedCards
+      });
+      
+      toast.success('Card updated successfully');
+    } catch (err) {
+      console.error('Error updating card:', err);
+      toast.error('Failed to update card');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Delete a card from the edit deck
+  const deleteCardFromEditDeck = async (cardId) => {
+    if (!window.confirm('Are you sure you want to delete this card? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      // Call API to delete card
+      await api.delete(`/flashcards/cards/${cardId}`);
+      
+      // Update the local state
+      const updatedCards = editDeck.cards.filter(card => card.id !== cardId);
+      
+      setEditDeck({
+        ...editDeck,
+        cards: updatedCards
+      });
+      
+      toast.success('Card deleted successfully');
+    } catch (err) {
+      console.error('Error deleting card:', err);
+      toast.error('Failed to delete card');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Save edited deck
+  const handleSaveEditDeck = async () => {
+    if (!editDeck.title.trim()) {
+      toast.warning('Deck title is required');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      // Call API to update deck details
+      await api.put(`/flashcards/decks/${editDeck.id}`, {
+        title: editDeck.title,
+        description: editDeck.description,
+        subject: editDeck.subject
+      });
+      
+      // Process any new cards that don't have IDs yet
+      const newCards = editDeck.cards.filter(card => !card.id);
+      if (newCards.length > 0) {
+        // Create each new card one by one
+        for (const card of newCards) {
+          await api.post(`/flashcards/decks/${editDeck.id}/cards`, {
+            question: card.question,
+            answer: card.answer
+          });
+        }
+        
+        toast.success(`Added ${newCards.length} new card${newCards.length > 1 ? 's' : ''}`);
+      }
+      
+      // Refresh decks to show updated data
+      await fetchDecks();
+      
+      // Close edit modal
+      setShowEditDeck(false);
+      
+      toast.success('Flashcard deck updated successfully');
+    } catch (err) {
+      console.error('Error updating deck:', err);
+      toast.error('Failed to update flashcard deck');
+    } finally {
+      setLoading(false);
     }
   };
   
   // Create new deck
-  const handleCreateDeck = () => {
-    if (newDeck.title.trim() && newDeck.cards.length > 0) {
-      const newDeckWithId = {
-        ...newDeck,
-        id: myDecks.length + 1,
-        cardCount: newDeck.cards.length,
-        lastStudied: new Date().toISOString(),
-        mastery: 0
-      };
+  const handleCreateDeck = async () => {
+    if (!newDeck.title.trim()) {
+      toast.warning('Deck title is required');
+      return;
+    }
+    
+    if (newDeck.cards.length === 0) {
+      toast.warning('Add at least one card to your deck');
+      return;
+    }
+    
+    try {
+      setLoading(true);
       
-      setMyDecks([...myDecks, newDeckWithId]);
+      // Call API to create deck with cards
+      const response = await api.post('/flashcards/decks', newDeck);
+      
+      // Add new deck to state
+      setMyDecks([response.data.data, ...myDecks]);
+      
+      // Reset form
       setNewDeck({ title: '', description: '', subject: '', cards: [] });
       setShowCreateDeck(false);
+      
+      toast.success('Flashcard deck created successfully');
+    } catch (err) {
+      console.error('Error creating deck:', err);
+      toast.error('Failed to create flashcard deck');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Delete a deck
+  const handleDeleteDeck = async (deckId) => {
+    if (!window.confirm('Are you sure you want to delete this deck? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      // Call API to delete deck
+      await api.delete(`/flashcards/decks/${deckId}`);
+      
+      // Remove deck from state
+      setMyDecks(myDecks.filter(deck => deck.id !== deckId));
+      
+      toast.success('Flashcard deck deleted successfully');
+    } catch (err) {
+      console.error('Error deleting deck:', err);
+      toast.error('Failed to delete flashcard deck');
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -232,22 +480,40 @@ const Flashcards = () => {
           {/* Flashcard Decks */}
           {activeTab === 'myDecks' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredDecks.length > 0 ? (
+              {loading ? (
+                <div className="col-span-full flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                </div>
+              ) : error ? (
+                <div className="col-span-full text-center py-12">
+                  <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                    <FaTimes className="text-red-500 text-xl" />
+                  </div>
+                  <h3 className="text-lg font-medium text-secondary-900 mb-1">Error Loading Flashcards</h3>
+                  <p className="text-secondary-500">{error}</p>
+                </div>
+              ) : filteredDecks.length > 0 ? (
                 filteredDecks.map(deck => (
                   <div key={deck.id} className="bg-white rounded-lg shadow overflow-hidden">
                     <div className="p-6">
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="text-lg font-semibold text-secondary-900">{deck.title}</h3>
+                        {deck.subject && (
                         <span className="text-xs font-medium bg-primary-100 text-primary-800 px-2 py-1 rounded-full">
                           {deck.subject}
                         </span>
+                        )}
                       </div>
                       <p className="text-secondary-600 text-sm mb-4 line-clamp-2">
-                        {deck.description}
+                        {deck.description || 'No description'}
                       </p>
                       <div className="flex justify-between items-center text-sm text-secondary-500 mb-4">
                         <span>{deck.cardCount} cards</span>
-                        <span>Last studied: {new Date(deck.lastStudied).toLocaleDateString()}</span>
+                        <span>
+                          {deck.lastStudied 
+                            ? `Last studied: ${new Date(deck.lastStudied).toLocaleDateString()}`
+                            : 'Never studied'}
+                        </span>
                       </div>
                       
                       {/* Mastery progress bar */}
@@ -268,13 +534,22 @@ const Flashcards = () => {
                         <button
                           onClick={() => startStudying(deck.id)}
                           className="flex-1 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors text-sm font-medium"
+                          disabled={loading}
                         >
                           Study
                         </button>
-                        <button className="p-2 bg-secondary-100 text-secondary-600 rounded-md hover:bg-secondary-200 transition-colors">
+                        <button 
+                          className="p-2 bg-secondary-100 text-secondary-600 rounded-md hover:bg-secondary-200 transition-colors"
+                          onClick={() => handleStartEditDeck(deck.id)}
+                          disabled={loading}
+                        >
                           <FaEdit />
                         </button>
-                        <button className="p-2 bg-secondary-100 text-secondary-600 rounded-md hover:bg-secondary-200 transition-colors">
+                        <button 
+                          className="p-2 bg-secondary-100 text-secondary-600 rounded-md hover:bg-secondary-200 transition-colors"
+                          onClick={() => handleDeleteDeck(deck.id)}
+                          disabled={loading}
+                        >
                           <FaTrash />
                         </button>
                       </div>
@@ -300,12 +575,105 @@ const Flashcards = () => {
           )}
           
           {activeTab === 'shared' && (
-            <div className="text-center py-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {loading ? (
+                <div className="col-span-full flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                </div>
+              ) : error ? (
+                <div className="col-span-full text-center py-12">
+                  <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                    <FaTimes className="text-red-500 text-xl" />
+                  </div>
+                  <h3 className="text-lg font-medium text-secondary-900 mb-1">Error Loading Shared Decks</h3>
+                  <p className="text-secondary-500">{error}</p>
+                </div>
+              ) : filteredDecks.length > 0 ? (
+                filteredDecks.map(deck => (
+                  <div key={deck.id} className="bg-white rounded-lg shadow overflow-hidden">
+                    <div className="p-6">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-lg font-semibold text-secondary-900">{deck.title}</h3>
+                        {deck.subject && (
+                          <span className="text-xs font-medium bg-primary-100 text-primary-800 px-2 py-1 rounded-full">
+                            {deck.subject}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center mb-2 text-sm text-secondary-600">
+                        <span>Shared by: </span>
+                        <div className="flex items-center ml-1">
+                          {deck.sharedBy?.avatar && (
+                            <img 
+                              src={deck.sharedBy.avatar} 
+                              alt={`${deck.sharedBy.firstName} ${deck.sharedBy.lastName}`}
+                              className="h-5 w-5 rounded-full mr-1"
+                            />
+                          )}
+                          <span>{deck.sharedBy?.firstName} {deck.sharedBy?.lastName}</span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-secondary-600 text-sm mb-4 line-clamp-2">
+                        {deck.description || 'No description'}
+                      </p>
+                      
+                      <div className="flex justify-between items-center text-sm text-secondary-500 mb-4">
+                        <span>{deck.cardCount} cards</span>
+                        <span>
+                          {deck.lastStudied 
+                            ? `Last studied: ${new Date(deck.lastStudied).toLocaleDateString()}`
+                            : 'Never studied'}
+                        </span>
+                      </div>
+                      
+                      {/* Mastery progress bar */}
+                      <div className="mb-4">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-xs font-medium text-secondary-700">Mastery</span>
+                          <span className="text-xs font-medium text-secondary-700">{deck.mastery}%</span>
+                        </div>
+                        <div className="w-full bg-secondary-200 rounded-full h-2">
+                          <div 
+                            className="bg-primary-600 h-2 rounded-full" 
+                            style={{ width: `${deck.mastery}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => startStudying(deck.id)}
+                          className="flex-1 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors text-sm font-medium"
+                          disabled={loading}
+                        >
+                          Study
+                        </button>
+                        {deck.canEdit && (
+                          <button 
+                            className="p-2 bg-secondary-100 text-secondary-600 rounded-md hover:bg-secondary-200 transition-colors"
+                            onClick={() => {
+                              // Edit functionality will be implemented later
+                              toast.info('Edit functionality coming soon');
+                            }}
+                          >
+                            <FaEdit />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
               <div className="mx-auto w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center mb-4">
                 <FaGraduationCap className="text-secondary-400 text-xl" />
               </div>
               <h3 className="text-lg font-medium text-secondary-900 mb-1">No shared decks yet</h3>
               <p className="text-secondary-500">Decks shared with you will appear here</p>
+                </div>
+              )}
             </div>
           )}
           
@@ -428,13 +796,15 @@ const Flashcards = () => {
                       type="button"
                       className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm"
                       onClick={handleCreateDeck}
+                      disabled={loading}
                     >
-                      Create Deck
+                      {loading ? 'Creating...' : 'Create Deck'}
                     </button>
                     <button
                       type="button"
                       className="mt-3 w-full inline-flex justify-center rounded-md border border-secondary-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-secondary-700 hover:bg-secondary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                       onClick={() => setShowCreateDeck(false)}
+                      disabled={loading}
                     >
                       Cancel
                     </button>
@@ -455,7 +825,7 @@ const Flashcards = () => {
               </p>
             </div>
             <button
-              onClick={() => setStudyMode(false)}
+              onClick={exitStudyMode}
               className="px-4 py-2 border border-secondary-300 text-secondary-700 rounded-md hover:bg-secondary-100 transition-colors"
             >
               Exit
@@ -505,12 +875,14 @@ const Flashcards = () => {
                     <button
                       onClick={() => markCard(false)}
                       className="px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors flex items-center"
+                      disabled={loading}
                     >
                       <FaTimes className="mr-2" /> Still Learning
                     </button>
                     <button
                       onClick={() => markCard(true)}
                       className="px-4 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors flex items-center"
+                      disabled={loading}
                     >
                       <FaCheck className="mr-2" /> Mastered
                     </button>
@@ -527,6 +899,227 @@ const Flashcards = () => {
                   }`}
                 >
                   <FaChevronRight />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Edit Deck Modal */}
+      {showEditDeck && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-secondary-900 opacity-75"></div>
+            </div>
+            
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <h3 className="text-lg font-medium text-secondary-900 mb-4">Edit Flashcard Deck</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="edit-title" className="block text-sm font-medium text-secondary-700 mb-1">
+                      Deck Title
+                    </label>
+                    <input
+                      type="text"
+                      id="edit-title"
+                      className="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                      value={editDeck.title}
+                      onChange={(e) => setEditDeck({...editDeck, title: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="edit-description" className="block text-sm font-medium text-secondary-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      id="edit-description"
+                      rows="2"
+                      className="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                      value={editDeck.description}
+                      onChange={(e) => setEditDeck({...editDeck, description: e.target.value})}
+                    ></textarea>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="edit-subject" className="block text-sm font-medium text-secondary-700 mb-1">
+                      Subject
+                    </label>
+                    <select
+                      id="edit-subject"
+                      className="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                      value={editDeck.subject}
+                      onChange={(e) => setEditDeck({...editDeck, subject: e.target.value})}
+                    >
+                      <option value="">Select a subject</option>
+                      <option value="Mathematics">Mathematics</option>
+                      <option value="Biology">Biology</option>
+                      <option value="Chemistry">Chemistry</option>
+                      <option value="Physics">Physics</option>
+                      <option value="Computer Science">Computer Science</option>
+                      <option value="Literature">Literature</option>
+                      <option value="History">History</option>
+                      <option value="Languages">Languages</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  
+                  <div className="border-t border-secondary-200 pt-4">
+                    <h4 className="text-sm font-medium text-secondary-900 mb-2">Cards ({editDeck.cards.length})</h4>
+                    
+                    {editDeck.cards.length > 0 && (
+                      <div className="mb-4 max-h-60 overflow-y-auto">
+                        {editDeck.cards.map((card, index) => (
+                          <div key={card.id || index} className="p-3 bg-secondary-50 rounded-md mb-2">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{card.question}</p>
+                                <p className="text-secondary-600 text-sm mt-1">{card.answer}</p>
+                              </div>
+                              {card.id && (
+                                <div className="flex space-x-2 ml-2">
+                                  <button
+                                    onClick={() => startEditingCard(card)}
+                                    className="p-1 text-secondary-500 hover:text-secondary-700"
+                                  >
+                                    <FaEdit size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => deleteCardFromEditDeck(card.id)}
+                                    className="p-1 text-secondary-500 hover:text-red-500"
+                                  >
+                                    <FaTrash size={14} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="bg-secondary-50 p-3 rounded-md">
+                      <div className="mb-2">
+                        <label htmlFor="edit-question" className="block text-xs font-medium text-secondary-700 mb-1">
+                          Add New Question
+                        </label>
+                        <input
+                          type="text"
+                          id="edit-question"
+                          className="w-full px-3 py-2 text-sm border border-secondary-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                          value={editCard.question}
+                          onChange={(e) => setEditCard({...editCard, question: e.target.value})}
+                        />
+                      </div>
+                      
+                      <div className="mb-2">
+                        <label htmlFor="edit-answer" className="block text-xs font-medium text-secondary-700 mb-1">
+                          Add New Answer
+                        </label>
+                        <textarea
+                          id="edit-answer"
+                          rows="2"
+                          className="w-full px-3 py-2 text-sm border border-secondary-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                          value={editCard.answer}
+                          onChange={(e) => setEditCard({...editCard, answer: e.target.value})}
+                        ></textarea>
+                      </div>
+                      
+                      <button
+                        onClick={addCardToEditDeck}
+                        className="w-full py-1 bg-secondary-200 text-secondary-700 rounded-md hover:bg-secondary-300 transition-colors text-sm"
+                      >
+                        Add New Card
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-secondary-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  onClick={handleSaveEditDeck}
+                  disabled={loading}
+                >
+                  {loading ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button
+                  type="button"
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-secondary-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-secondary-700 hover:bg-secondary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  onClick={() => setShowEditDeck(false)}
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Edit Card Modal */}
+      {showEditCard && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-secondary-900 opacity-75"></div>
+            </div>
+            
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <h3 className="text-lg font-medium text-secondary-900 mb-4">Edit Card</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="edit-card-question" className="block text-sm font-medium text-secondary-700 mb-1">
+                      Question
+                    </label>
+                    <input
+                      type="text"
+                      id="edit-card-question"
+                      className="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                      value={editCard.question}
+                      onChange={(e) => setEditCard({...editCard, question: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="edit-card-answer" className="block text-sm font-medium text-secondary-700 mb-1">
+                      Answer
+                    </label>
+                    <textarea
+                      id="edit-card-answer"
+                      rows="4"
+                      className="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                      value={editCard.answer}
+                      onChange={(e) => setEditCard({...editCard, answer: e.target.value})}
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-secondary-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  onClick={saveEditedCard}
+                  disabled={loading}
+                >
+                  {loading ? 'Saving...' : 'Save Card'}
+                </button>
+                <button
+                  type="button"
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-secondary-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-secondary-700 hover:bg-secondary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  onClick={() => setShowEditCard(false)}
+                  disabled={loading}
+                >
+                  Cancel
                 </button>
               </div>
             </div>
