@@ -85,6 +85,14 @@ module.exports = (sequelize, DataTypes) => {
       otherKey: 'sharedWithId',
       as: 'sharedWithUsers'
     });
+    
+    // FlashcardDeck has many UserCardProgress records
+    if (models.UserCardProgress) {
+      FlashcardDeck.hasMany(models.UserCardProgress, {
+        foreignKey: 'deckId',
+        as: 'userProgress'
+      });
+    }
   };
 
   // Instance method to calculate mastery percentage

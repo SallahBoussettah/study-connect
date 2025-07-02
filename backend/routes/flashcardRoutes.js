@@ -13,7 +13,8 @@ const {
   deleteCard,
   markCardReviewed,
   shareDeck,
-  removeDeckShare
+  removeDeckShare,
+  getGlobalDecks
 } = require('../controllers/flashcardController');
 
 const router = express.Router();
@@ -24,6 +25,7 @@ router.use(protect);
 // Deck routes
 router.get('/my-decks', getMyDecks);
 router.get('/shared', getSharedDecks);
+router.get('/global', getGlobalDecks);
 router.get('/decks/:deckId', getDeckById);
 router.post('/decks', createDeck);
 router.put('/decks/:deckId', updateDeck);

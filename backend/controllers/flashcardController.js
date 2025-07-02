@@ -1,4 +1,4 @@
-const { FlashcardDeck, FlashcardCard, SharedFlashcardDeck, User } = require('../models');
+const { FlashcardDeck, FlashcardCard, SharedFlashcardDeck, User, UserCardProgress } = require('../models');
 const { Op } = require('sequelize');
 
 // @desc    Get all flashcard decks for the current user
@@ -97,14 +97,21 @@ exports.getDeckById = async (req, res) => {
         [Op.or]: [
           { userId: req.user.id },
           // Include decks shared with the user
-          { '$shares.sharedWithId$': req.user.id }
+          { '$shares.sharedWithId$': req.user.id },
+          // Include public decks from teachers and admins
+          {
+            isPublic: true,
+            '$owner.role$': {
+              [Op.in]: ['teacher', 'admin']
+            }
+          }
         ]
       },
       include: [
         {
           model: User,
           as: 'owner',
-          attributes: ['id', 'firstName', 'lastName', 'avatar']
+          attributes: ['id', 'firstName', 'lastName', 'avatar', 'role']
         },
         {
           model: FlashcardCard,
@@ -132,13 +139,59 @@ exports.getDeckById = async (req, res) => {
     const deckData = deck.toJSON();
     const isOwner = deck.userId === req.user.id;
     const canEdit = isOwner || (deck.shares.length > 0 && deck.shares[0].canEdit);
+    const isGlobal = deck.isPublic && ['teacher', 'admin'].includes(deck.owner.role);
+    
+    // For global decks that the user doesn't own, fetch user's progress
+    if (isGlobal && !isOwner) {
+      // Get user's progress for all cards in this deck
+      const userProgress = await UserCardProgress.findAll({
+        where: {
+          userId: req.user.id,
+          deckId: deckId
+        },
+        attributes: ['cardId', 'mastered', 'lastReviewed', 'reviewCount']
+      });
+      
+      // Create a map of card progress by cardId for easier lookup
+      const progressMap = {};
+      userProgress.forEach(progress => {
+        progressMap[progress.cardId] = {
+          mastered: progress.mastered,
+          lastReviewed: progress.lastReviewed,
+          reviewCount: progress.reviewCount
+        };
+      });
+      
+      // Calculate user's mastery percentage for this deck
+      let masteryPercentage = 0;
+      if (userProgress.length > 0) {
+        const masteredCount = userProgress.filter(progress => progress.mastered).length;
+        masteryPercentage = Math.round((masteredCount / deckData.cards.length) * 100);
+      }
+      
+      // Add user's progress to each card
+      deckData.cards = deckData.cards.map(card => ({
+        ...card,
+        mastered: progressMap[card.id]?.mastered || false,
+        lastReviewed: progressMap[card.id]?.lastReviewed || null,
+        reviewCount: progressMap[card.id]?.reviewCount || 0,
+        hasProgress: !!progressMap[card.id]
+      }));
+      
+      // Add user's mastery percentage to the deck
+      deckData.mastery = masteryPercentage;
+      deckData.lastStudied = userProgress.length > 0 
+        ? new Date(Math.max(...userProgress.map(p => p.lastReviewed ? new Date(p.lastReviewed).getTime() : 0)))
+        : null;
+    }
     
     res.status(200).json({
       success: true,
       data: {
         ...deckData,
         isOwner,
-        canEdit
+        canEdit,
+        isGlobal
       }
     });
   } catch (error) {
@@ -563,7 +616,14 @@ exports.markCardReviewed = async (req, res) => {
       include: [
         {
           model: FlashcardDeck,
-          as: 'deck'
+          as: 'deck',
+          include: [
+            {
+              model: User,
+              as: 'owner',
+              attributes: ['role']
+            }
+          ]
         }
       ]
     });
@@ -581,7 +641,14 @@ exports.markCardReviewed = async (req, res) => {
         id: card.deckId,
         [Op.or]: [
           { userId: req.user.id },
-          { '$shares.sharedWithId$': req.user.id }
+          { '$shares.sharedWithId$': req.user.id },
+          // Allow access to public decks from teachers and admins
+          {
+            isPublic: true,
+            '$owner.role$': {
+              [Op.in]: ['teacher', 'admin']
+            }
+          }
         ]
       },
       include: [
@@ -590,6 +657,12 @@ exports.markCardReviewed = async (req, res) => {
           as: 'shares',
           required: false,
           where: { sharedWithId: req.user.id }
+        },
+        {
+          model: User,
+          as: 'owner',
+          required: false,
+          attributes: ['role']
         }
       ]
     });
@@ -601,7 +674,68 @@ exports.markCardReviewed = async (req, res) => {
       });
     }
     
-    // Mark the card as reviewed
+    // For global decks, we need to track the user's personal progress
+    // without modifying the original card's mastery status
+    if (deck.isPublic && ['teacher', 'admin'].includes(deck.owner.role) && deck.userId !== req.user.id) {
+      // Create or update user's progress record for this card
+      const [userProgress, created] = await UserCardProgress.findOrCreate({
+        where: {
+          userId: req.user.id,
+          cardId: cardId,
+          deckId: card.deckId
+        },
+        defaults: {
+          mastered: mastered,
+          lastReviewed: new Date(),
+          reviewCount: 1
+        }
+      });
+      
+      // If the record already existed, update it
+      if (!created) {
+        await userProgress.update({
+          mastered: mastered,
+          lastReviewed: new Date(),
+          reviewCount: userProgress.reviewCount + 1
+        });
+      }
+      
+      // Calculate user's mastery percentage for this deck
+      const userProgressRecords = await UserCardProgress.findAll({
+        where: {
+          userId: req.user.id,
+          deckId: card.deckId
+        }
+      });
+      
+      // Get all cards in the deck to calculate mastery percentage
+      const allDeckCards = await FlashcardCard.findAll({
+        where: { deckId: card.deckId }
+      });
+      
+      // Calculate mastery percentage based on user's progress
+      let masteryPercentage = 0;
+      if (userProgressRecords.length > 0) {
+        const masteredCount = userProgressRecords.filter(record => record.mastered).length;
+        masteryPercentage = Math.round((masteredCount / allDeckCards.length) * 100);
+      }
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Progress tracked for global deck card',
+        data: {
+          ...card.toJSON(),
+          userProgress: {
+            mastered: userProgress.mastered,
+            lastReviewed: userProgress.lastReviewed,
+            reviewCount: userProgress.reviewCount
+          }
+        },
+        deckMastery: masteryPercentage
+      });
+    }
+    
+    // For personal or shared decks, mark the card as reviewed
     await card.markReviewed(mastered);
     
     res.status(200).json({
@@ -748,6 +882,97 @@ exports.removeDeckShare = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to remove flashcard deck share'
+    });
+  }
+};
+
+// @desc    Get all public flashcard decks created by teachers and admins
+// @route   GET /api/flashcards/global
+// @access  Private
+exports.getGlobalDecks = async (req, res) => {
+  try {
+    const decks = await FlashcardDeck.findAll({
+      where: { 
+        isPublic: true,
+        '$owner.role$': {
+          [Op.in]: ['teacher', 'admin']
+        }
+      },
+      include: [
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['id', 'firstName', 'lastName', 'avatar', 'role'],
+          required: true
+        }
+      ],
+      attributes: [
+        'id', 'title', 'description', 'subject', 'cardCount', 
+        'createdAt'
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    
+    // Get all deck IDs
+    const deckIds = decks.map(deck => deck.id);
+    
+    // Get user's progress for these decks
+    const userProgress = await UserCardProgress.findAll({
+      where: {
+        userId: req.user.id,
+        deckId: {
+          [Op.in]: deckIds
+        }
+      },
+      attributes: ['deckId', 'cardId', 'mastered', 'lastReviewed']
+    });
+    
+    // Group progress by deckId
+    const progressByDeck = {};
+    userProgress.forEach(progress => {
+      if (!progressByDeck[progress.deckId]) {
+        progressByDeck[progress.deckId] = [];
+      }
+      progressByDeck[progress.deckId].push(progress);
+    });
+    
+    // Add progress information to each deck
+    const decksWithProgress = decks.map(deck => {
+      const deckData = deck.toJSON();
+      const deckProgress = progressByDeck[deck.id] || [];
+      
+      // Calculate mastery percentage
+      let masteryPercentage = 0;
+      if (deckProgress.length > 0) {
+        const masteredCount = deckProgress.filter(progress => progress.mastered).length;
+        // Use deck.cardCount to calculate percentage
+        masteryPercentage = deck.cardCount > 0 
+          ? Math.round((masteredCount / deck.cardCount) * 100)
+          : 0;
+      }
+      
+      // Find last studied date
+      const lastStudied = deckProgress.length > 0 
+        ? new Date(Math.max(...deckProgress.map(p => p.lastReviewed ? new Date(p.lastReviewed).getTime() : 0)))
+        : null;
+      
+      return {
+        ...deckData,
+        mastery: masteryPercentage,
+        lastStudied: lastStudied,
+        hasProgress: deckProgress.length > 0
+      };
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: decksWithProgress
+    });
+  } catch (error) {
+    console.error('Error fetching global flashcard decks:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch global flashcard decks'
     });
   }
 }; 

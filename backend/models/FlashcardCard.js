@@ -80,6 +80,14 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'deckId',
       as: 'deck'
     });
+    
+    // FlashcardCard has many UserCardProgress records
+    if (models.UserCardProgress) {
+      FlashcardCard.hasMany(models.UserCardProgress, {
+        foreignKey: 'cardId',
+        as: 'userProgress'
+      });
+    }
   };
 
   // Instance method to mark card as reviewed

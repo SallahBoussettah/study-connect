@@ -234,6 +234,14 @@ module.exports = (sequelize, DataTypes) => {
       });
     }
     
+    // User has many UserCardProgress records for tracking progress on global decks
+    if (models.UserCardProgress) {
+      User.hasMany(models.UserCardProgress, {
+        foreignKey: 'userId',
+        as: 'cardProgress'
+      });
+    }
+    
     // Friendship associations
     if (models.Friendship) {
       // Sent friend requests

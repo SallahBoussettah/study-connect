@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaPlus, FaEdit, FaTrash, FaRandom, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaCheck, FaTimes, FaGraduationCap } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaRandom, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaCheck, FaTimes, FaGraduationCap, FaGlobe, FaUser, FaUsers } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -21,12 +21,14 @@ const Flashcards = () => {
   // State for flashcard decks
   const [myDecks, setMyDecks] = useState([]);
   const [sharedDecks, setSharedDecks] = useState([]);
+  const [globalDecks, setGlobalDecks] = useState([]);
   
   // State for creating new deck
   const [newDeck, setNewDeck] = useState({
     title: '',
     description: '',
     subject: '',
+    isPublic: false,
     cards: []
   });
   
@@ -64,6 +66,10 @@ const Flashcards = () => {
       const sharedDecksResponse = await api.get('/flashcards/shared');
       setSharedDecks(sharedDecksResponse.data.data);
       
+      // Fetch global decks
+      const globalDecksResponse = await api.get('/flashcards/global');
+      setGlobalDecks(globalDecksResponse.data.data);
+      
       setError(null);
     } catch (err) {
       console.error('Error fetching flashcard decks:', err);
@@ -86,7 +92,13 @@ const Flashcards = () => {
         deck.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         deck.subject?.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : sharedDecks.filter(deck => 
+    : activeTab === 'shared'
+    ? sharedDecks.filter(deck => 
+        deck.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        deck.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        deck.subject?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : globalDecks.filter(deck => 
         deck.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         deck.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         deck.subject?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -150,11 +162,34 @@ const Flashcards = () => {
       const cardId = currentDeck.cards[currentCardIndex].id;
       
       // Call API to mark card as reviewed
-      await api.post(`/flashcards/cards/${cardId}/review`, { mastered });
+      const response = await api.post(`/flashcards/cards/${cardId}/review`, { mastered });
       
-      // Update the local state
+      // Update the local state with the response data
       const updatedDeck = { ...currentDeck };
-      updatedDeck.cards[currentCardIndex].mastered = mastered;
+      
+      // If the response includes card data with userProgress (for global decks)
+      if (response.data.data.userProgress) {
+        updatedDeck.cards[currentCardIndex] = {
+          ...updatedDeck.cards[currentCardIndex],
+          mastered: response.data.data.userProgress.mastered,
+          lastReviewed: response.data.data.userProgress.lastReviewed,
+          reviewCount: response.data.data.userProgress.reviewCount
+        };
+      } else {
+        // For personal decks
+        updatedDeck.cards[currentCardIndex] = {
+          ...updatedDeck.cards[currentCardIndex],
+          mastered: mastered,
+          lastReviewed: new Date().toISOString(),
+          reviewCount: (updatedDeck.cards[currentCardIndex].reviewCount || 0) + 1
+        };
+      }
+      
+      // Update deck mastery if provided in the response
+      if (response.data.deckMastery !== undefined) {
+        updatedDeck.mastery = response.data.deckMastery;
+      }
+      
       setCurrentDeck(updatedDeck);
       
       // Move to next card
@@ -378,7 +413,7 @@ const Flashcards = () => {
       setMyDecks([response.data.data, ...myDecks]);
       
       // Reset form
-      setNewDeck({ title: '', description: '', subject: '', cards: [] });
+      setNewDeck({ title: '', description: '', subject: '', isPublic: false, cards: [] });
       setShowCreateDeck(false);
       
       toast.success('Flashcard deck created successfully');
@@ -436,26 +471,36 @@ const Flashcards = () => {
           {/* Tabs */}
           <div className="bg-white rounded-lg shadow mb-6">
             <div className="border-b border-secondary-200">
-              <nav className="flex">
+              <nav className="flex overflow-x-auto">
                 <button
                   onClick={() => setActiveTab('myDecks')}
-                  className={`px-6 py-4 text-sm font-medium ${
+                  className={`px-6 py-4 text-sm font-medium flex items-center ${
                     activeTab === 'myDecks'
                       ? 'border-b-2 border-primary-500 text-primary-600'
                       : 'text-secondary-500 hover:text-secondary-700'
                   }`}
                 >
-                  My Decks
+                  <FaUser className="mr-2" /> My Decks
                 </button>
                 <button
                   onClick={() => setActiveTab('shared')}
-                  className={`px-6 py-4 text-sm font-medium ${
+                  className={`px-6 py-4 text-sm font-medium flex items-center ${
                     activeTab === 'shared'
                       ? 'border-b-2 border-primary-500 text-primary-600'
                       : 'text-secondary-500 hover:text-secondary-700'
                   }`}
                 >
-                  Shared With Me
+                  <FaUsers className="mr-2" /> Shared With Me
+                </button>
+                <button
+                  onClick={() => setActiveTab('global')}
+                  className={`px-6 py-4 text-sm font-medium flex items-center ${
+                    activeTab === 'global'
+                      ? 'border-b-2 border-primary-500 text-primary-600'
+                      : 'text-secondary-500 hover:text-secondary-700'
+                  }`}
+                >
+                  <FaGlobe className="mr-2" /> Global Decks
                 </button>
               </nav>
             </div>
@@ -653,10 +698,8 @@ const Flashcards = () => {
                         {deck.canEdit && (
                           <button 
                             className="p-2 bg-secondary-100 text-secondary-600 rounded-md hover:bg-secondary-200 transition-colors"
-                            onClick={() => {
-                              // Edit functionality will be implemented later
-                              toast.info('Edit functionality coming soon');
-                            }}
+                            onClick={() => handleStartEditDeck(deck.id)}
+                            disabled={loading}
                           >
                             <FaEdit />
                           </button>
@@ -667,11 +710,86 @@ const Flashcards = () => {
                 ))
               ) : (
                 <div className="col-span-full text-center py-12">
-              <div className="mx-auto w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center mb-4">
-                <FaGraduationCap className="text-secondary-400 text-xl" />
-              </div>
-              <h3 className="text-lg font-medium text-secondary-900 mb-1">No shared decks yet</h3>
-              <p className="text-secondary-500">Decks shared with you will appear here</p>
+                  <div className="mx-auto w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center mb-4">
+                    <FaGraduationCap className="text-secondary-400 text-xl" />
+                  </div>
+                  <h3 className="text-lg font-medium text-secondary-900 mb-1">No shared decks yet</h3>
+                  <p className="text-secondary-500">Decks shared with you will appear here</p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {activeTab === 'global' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {loading ? (
+                <div className="col-span-full flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                </div>
+              ) : error ? (
+                <div className="col-span-full text-center py-12">
+                  <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                    <FaTimes className="text-red-500 text-xl" />
+                  </div>
+                  <h3 className="text-lg font-medium text-secondary-900 mb-1">Error Loading Global Decks</h3>
+                  <p className="text-secondary-500">{error}</p>
+                </div>
+              ) : filteredDecks.length > 0 ? (
+                filteredDecks.map(deck => (
+                  <div key={deck.id} className="bg-white rounded-lg shadow overflow-hidden">
+                    <div className="p-6">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-lg font-semibold text-secondary-900">{deck.title}</h3>
+                        {deck.subject && (
+                          <span className="text-xs font-medium bg-primary-100 text-primary-800 px-2 py-1 rounded-full">
+                            {deck.subject}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center mb-2 text-sm text-secondary-600">
+                        <span>Created by: </span>
+                        <div className="flex items-center ml-1">
+                          {deck.owner?.avatar && (
+                            <img 
+                              src={deck.owner.avatar} 
+                              alt={`${deck.owner.firstName} ${deck.owner.lastName}`}
+                              className="h-5 w-5 rounded-full mr-1"
+                            />
+                          )}
+                          <span>{deck.owner?.firstName} {deck.owner?.lastName}</span>
+                          <span className="ml-1 px-1.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">
+                            {deck.owner?.role === 'admin' ? 'Admin' : 'Teacher'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-secondary-600 text-sm mb-4 line-clamp-2">
+                        {deck.description || 'No description'}
+                      </p>
+                      
+                      <div className="flex justify-between items-center text-sm text-secondary-500 mb-4">
+                        <span>{deck.cardCount} cards</span>
+                        <span>{new Date(deck.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      
+                      <button
+                        onClick={() => startStudying(deck.id)}
+                        className="w-full py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors text-sm font-medium"
+                        disabled={loading}
+                      >
+                        Study
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <div className="mx-auto w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center mb-4">
+                    <FaGlobe className="text-secondary-400 text-xl" />
+                  </div>
+                  <h3 className="text-lg font-medium text-secondary-900 mb-1">No global decks available</h3>
+                  <p className="text-secondary-500">Global decks created by teachers and admins will appear here</p>
                 </div>
               )}
             </div>
@@ -737,6 +855,28 @@ const Flashcards = () => {
                           <option value="Languages">Languages</option>
                           <option value="Other">Other</option>
                         </select>
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="isPublic" className="flex items-center text-sm font-medium text-secondary-700 mb-1">
+                          <input
+                            type="checkbox"
+                            id="isPublic"
+                            className="mr-2 h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
+                            checked={newDeck.isPublic}
+                            onChange={(e) => setNewDeck({...newDeck, isPublic: e.target.checked})}
+                          />
+                          Make this deck public (visible to everyone)
+                        </label>
+                        {currentUser?.role === 'admin' || currentUser?.role === 'teacher' ? (
+                          <p className="text-xs text-secondary-500 ml-6">
+                            As a {currentUser.role}, your public decks will appear in the Global Decks section
+                          </p>
+                        ) : (
+                          <p className="text-xs text-secondary-500 ml-6">
+                            Public decks can be shared with other users
+                          </p>
+                        )}
                       </div>
                       
                       <div className="border-t border-secondary-200 pt-4">
@@ -834,6 +974,33 @@ const Flashcards = () => {
           
           <div className="flex-grow flex items-center justify-center p-6">
             <div className="w-full max-w-2xl">
+              {/* Card mastery indicator */}
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center">
+                  {currentDeck.cards[currentCardIndex].mastered ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <FaCheck className="mr-1" /> Mastered
+                    </span>
+                  ) : currentDeck.cards[currentCardIndex].reviewCount > 0 ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      <FaTimes className="mr-1" /> Learning
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      New Card
+                    </span>
+                  )}
+                </div>
+                {currentDeck.cards[currentCardIndex].reviewCount > 0 && (
+                  <span className="text-xs text-secondary-500">
+                    Reviewed {currentDeck.cards[currentCardIndex].reviewCount} {currentDeck.cards[currentCardIndex].reviewCount === 1 ? 'time' : 'times'}
+                    {currentDeck.cards[currentCardIndex].lastReviewed && 
+                      ` · Last: ${new Date(currentDeck.cards[currentCardIndex].lastReviewed).toLocaleDateString()}`
+                    }
+                  </span>
+                )}
+              </div>
+              
               <div 
                 className={`bg-white rounded-lg shadow-lg p-8 min-h-[300px] flex flex-col justify-between transform transition-all duration-300 ${
                   showAnswer ? 'rotate-y-180' : ''
@@ -977,8 +1144,26 @@ const Flashcards = () => {
                           <div key={card.id || index} className="p-3 bg-secondary-50 rounded-md mb-2">
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
-                                <p className="font-medium text-sm">{card.question}</p>
+                                <div className="flex items-center mb-1">
+                                  <p className="font-medium text-sm">{card.question}</p>
+                                  {card.mastered && (
+                                    <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      <FaCheck className="mr-1" size={8} /> Mastered
+                                    </span>
+                                  )}
+                                  {!card.mastered && card.reviewCount > 0 && (
+                                    <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                      Learning
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-secondary-600 text-sm mt-1">{card.answer}</p>
+                                {card.reviewCount > 0 && (
+                                  <p className="text-xs text-secondary-400 mt-1">
+                                    Reviewed {card.reviewCount} {card.reviewCount === 1 ? 'time' : 'times'}
+                                    {card.lastReviewed && ` · Last: ${new Date(card.lastReviewed).toLocaleDateString()}`}
+                                  </p>
+                                )}
                               </div>
                               {card.id && (
                                 <div className="flex space-x-2 ml-2">
