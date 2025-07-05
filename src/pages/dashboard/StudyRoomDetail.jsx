@@ -5,11 +5,13 @@ import {
   FaMicrophone, FaMicrophoneSlash, FaVideoSlash, FaPaperPlane,
   FaEllipsisV, FaUserPlus, FaFileUpload, FaDownload, FaCog,
   FaFilePdf, FaFileWord, FaFilePowerpoint, FaLink, FaFile,
-  FaArrowLeft, FaSpinner, FaTrash, FaEdit, FaTimes, FaShareAlt
+  FaArrowLeft, FaSpinner, FaTrash, FaEdit, FaTimes, FaShareAlt,
+  FaChevronDown, FaChevronUp, FaExpandAlt, FaCompressAlt
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { studyRoomService, messageService, resourceService, friendshipService, directMessageService, subjectService } from '../../services/api';
 import socketService from '../../services/socketService';
+import callService from '../../services/callService';
 import ResourceModal from '../../components/resources/ResourceModal';
 import { toast } from 'react-toastify';
 import { getAvatarUrl, getAvatarPlaceholder } from '../../utils/avatarUtils.jsx';
@@ -29,6 +31,9 @@ const StudyRoomDetail = () => {
   const [messageLoading, setMessageLoading] = useState(true);
   const [messagePage, setMessagePage] = useState(1);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  
+  // Add new state for call UI visibility
+  const [isCallUIMinimized, setIsCallUIMinimized] = useState(false);
 
   // State for resource modal
   const [resourceModalOpen, setResourceModalOpen] = useState(false);
@@ -69,6 +74,207 @@ const StudyRoomDetail = () => {
   const [isJoining, setIsJoining] = useState(false);
   const [notMember, setNotMember] = useState(false);
   const [roomBasicInfo, setRoomBasicInfo] = useState(null);
+
+  // State for call functionality
+  const [callParticipants, setCallParticipants] = useState([]);
+  const [isCallLoading, setIsCallLoading] = useState(false);
+  const [speakingParticipants, setSpeakingParticipants] = useState({});
+  const audioAnalyserRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const audioDataRef = useRef(null);
+  const animationFrameRef = useRef(null);
+
+  // Setup audio analysis for voice activity detection
+  useEffect(() => {
+    if (!isCallActive || !callService.localStream) return;
+    
+    try {
+      // Create audio context and analyser if they don't exist
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
+      if (!audioAnalyserRef.current) {
+        audioAnalyserRef.current = audioContextRef.current.createAnalyser();
+        audioAnalyserRef.current.fftSize = 1024; // Higher FFT size for better frequency resolution
+        audioAnalyserRef.current.smoothingTimeConstant = 0.2; // Lower smoothing for faster response
+        
+        // Connect the microphone stream to the analyser
+        const source = audioContextRef.current.createMediaStreamSource(callService.localStream);
+        source.connect(audioAnalyserRef.current);
+        
+        // Create data array for frequency analysis
+        audioDataRef.current = new Uint8Array(audioAnalyserRef.current.frequencyBinCount);
+      }
+      
+      // Recent volume levels for noise floor calculation
+      const recentVolumes = [];
+      const maxRecentVolumes = 50;
+      let noiseFloor = 15; // Initial noise floor estimate
+      let speakingThreshold = 20; // Initial threshold
+      
+      // Function to detect voice activity
+      const detectVoiceActivity = () => {
+        if (!audioAnalyserRef.current || !audioDataRef.current || !currentUser) return;
+        
+        // Get frequency data
+        audioAnalyserRef.current.getByteFrequencyData(audioDataRef.current);
+        
+        // Calculate average volume level, focusing on voice frequencies (300Hz-3400Hz)
+        // For 1024 FFT size at 44.1kHz, this is roughly bins 7-78
+        const voiceStart = Math.floor(300 * audioAnalyserRef.current.frequencyBinCount / audioContextRef.current.sampleRate);
+        const voiceEnd = Math.ceil(3400 * audioAnalyserRef.current.frequencyBinCount / audioContextRef.current.sampleRate);
+        
+        let sum = 0;
+        let count = 0;
+        
+        for (let i = voiceStart; i <= voiceEnd; i++) {
+          sum += audioDataRef.current[i];
+          count++;
+        }
+        
+        const average = sum / count;
+        
+        // Update recent volumes for adaptive threshold
+        recentVolumes.push(average);
+        if (recentVolumes.length > maxRecentVolumes) {
+          recentVolumes.shift();
+        }
+        
+        // Adapt noise floor and threshold (every ~1 second)
+        if (recentVolumes.length === maxRecentVolumes) {
+          // Sort volumes to find the 15th percentile as noise floor
+          const sortedVolumes = [...recentVolumes].sort((a, b) => a - b);
+          noiseFloor = sortedVolumes[Math.floor(sortedVolumes.length * 0.15)];
+          
+          // Set speaking threshold above noise floor
+          speakingThreshold = noiseFloor + 10;
+        }
+        
+        // Determine if speaking with hysteresis to prevent rapid toggling
+        let isSpeaking;
+        const currentSpeaking = speakingParticipants[currentUser.id] || false;
+        
+        if (currentSpeaking) {
+          // Higher threshold to stop speaking (prevents cutting out during pauses)
+          isSpeaking = average > (speakingThreshold - 5);
+        } else {
+          // Higher threshold to start speaking (prevents false triggers)
+          isSpeaking = average > (speakingThreshold + 5);
+        }
+        
+        // Update speaking state for current user only
+        setSpeakingParticipants(prev => {
+          // Only update if the speaking state has changed
+          if (prev[currentUser.id] !== isSpeaking) {
+            // Broadcast speaking status to other participants
+            callService.updateSpeakingStatus(isSpeaking);
+            
+            return { ...prev, [currentUser.id]: isSpeaking };
+          }
+          return prev;
+        });
+        
+        // Request next animation frame
+        animationFrameRef.current = requestAnimationFrame(detectVoiceActivity);
+      };
+      
+      // Start voice activity detection
+      detectVoiceActivity();
+      
+      // Cleanup
+      return () => {
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+      };
+    } catch (error) {
+      console.error("Error setting up audio analysis:", error);
+    }
+  }, [isCallActive, callService.localStream, currentUser]);
+  
+  // Simulate speaking detection for other participants
+  useEffect(() => {
+    if (!isCallActive || callParticipants.length === 0) return;
+    
+    // Store speaking state timers for each participant
+    const speakingTimers = {};
+    
+    // Function to simulate speaking state for other participants only
+    const simulateSpeaking = () => {
+      const updatedSpeaking = { ...speakingParticipants };
+      
+      callParticipants.forEach(participant => {
+        // Skip current user as they're handled by actual voice detection
+        if (participant.id === currentUser?.id) return;
+        
+        // Only participants with enabled microphones can speak
+        if (participant.audioEnabled) {
+          const now = Date.now();
+          
+          // Initialize speaking state data if not exists
+          if (!speakingTimers[participant.id]) {
+            speakingTimers[participant.id] = {
+              // Initial state - not speaking
+              speaking: false,
+              // When to change state next
+              nextChangeTime: now + (Math.random() * 5000 + 2000),
+              // Current speaking segment duration
+              currentDuration: 0,
+              // Typical speaking segment duration (2-10 seconds)
+              typicalSpeakingDuration: Math.random() * 8000 + 2000,
+              // Typical pause duration (1-7 seconds)
+              typicalPauseDuration: Math.random() * 6000 + 1000
+            };
+          }
+          
+          const timer = speakingTimers[participant.id];
+          
+          // Check if it's time to change speaking state
+          if (now >= timer.nextChangeTime) {
+            // Toggle speaking state
+            timer.speaking = !timer.speaking;
+            
+            // Set duration for this segment
+            if (timer.speaking) {
+              // Speaking duration (slightly randomized around typical)
+              timer.currentDuration = timer.typicalSpeakingDuration * (0.8 + Math.random() * 0.4);
+            } else {
+              // Pause duration (slightly randomized around typical)
+              timer.currentDuration = timer.typicalPauseDuration * (0.8 + Math.random() * 0.4);
+            }
+            
+            // Set next change time
+            timer.nextChangeTime = now + timer.currentDuration;
+          }
+          
+          // Update speaking state - only for participants without real-time status
+          if (updatedSpeaking[participant.id] === undefined) {
+            updatedSpeaking[participant.id] = timer.speaking;
+          }
+        } else {
+          // Microphone disabled, can't be speaking
+          updatedSpeaking[participant.id] = false;
+          // Reset timer if exists
+          if (speakingTimers[participant.id]) {
+            speakingTimers[participant.id].speaking = false;
+          }
+        }
+      });
+      
+      setSpeakingParticipants(prev => ({
+        ...prev,
+        ...updatedSpeaking
+      }));
+    };
+    
+    // Update speaking state every 200ms for responsive simulation
+    const interval = setInterval(simulateSpeaking, 200);
+    
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isCallActive, callParticipants, currentUser]);
 
   // Fetch room data from API
   useEffect(() => {
@@ -358,28 +564,186 @@ const StudyRoomDetail = () => {
     }
   };
   
-  const handleStartCall = () => {
-    // In a real app, this would initialize WebRTC
-    setIsCallActive(true);
-    setIsMicMuted(false);
-    setIsVideoOff(false);
-    setIsScreenSharing(false);
-  };
+  // Initialize call service when user data is available
+  useEffect(() => {
+    if (currentUser && currentUser.token) {
+      callService.init(currentUser.token, currentUser.id);
+    }
+    
+    return () => {
+      // If we're in a call when navigating away, leave it
+      if (isCallActive) {
+        callService.leaveCall();
+      }
+    };
+  }, [currentUser]);
   
+  // Set up call event listeners
+  useEffect(() => {
+    // Handle call joined event
+    const handleCallJoined = ({ participants }) => {
+      // Initialize speaking state from participants data
+      const initialSpeakingState = {};
+      participants.forEach(p => {
+        initialSpeakingState[p.id] = p.isSpeaking || false;
+      });
+      
+      setCallParticipants(participants);
+      setSpeakingParticipants(initialSpeakingState);
+      setIsCallLoading(false);
+      setIsCallActive(true);
+      
+      // Set initial mic state
+      setIsMicMuted(false);
+    };
+    
+    // Handle user joined call event
+    const handleUserJoinedCall = ({ user }) => {
+      setCallParticipants(prev => [...prev, user]);
+      
+      // Initialize speaking state for the new user
+      setSpeakingParticipants(prev => ({
+        ...prev,
+        [user.id]: user.isSpeaking || false
+      }));
+    };
+    
+    // Handle user left call event
+    const handleUserLeftCall = ({ userId }) => {
+      setCallParticipants(prev => prev.filter(p => p.id !== userId));
+      
+      // Remove user from speaking participants
+      setSpeakingParticipants(prev => {
+        const updated = { ...prev };
+        delete updated[userId];
+        return updated;
+      });
+    };
+    
+    // Handle user media changed event
+    const handleUserMediaChanged = ({ userId, audioEnabled, videoEnabled, screenSharing }) => {
+      setCallParticipants(prev => 
+        prev.map(p => p.id === userId 
+          ? { ...p, audioEnabled, videoEnabled, screenSharing } 
+          : p
+        )
+      );
+    };
+    
+    // Handle user speaking status event
+    const handleUserSpeakingStatus = ({ userId, isSpeaking }) => {
+      setSpeakingParticipants(prev => ({
+        ...prev,
+        [userId]: isSpeaking
+      }));
+    };
+    
+    // Handle call error event
+    const handleCallError = ({ message }) => {
+      toast.error(message || 'An error occurred with the call');
+      setIsCallLoading(false);
+      setIsCallActive(false);
+    };
+    
+    // Handle call disconnected event
+    const handleCallDisconnected = ({ reason }) => {
+      toast.info('Call disconnected: ' + reason);
+      setIsCallActive(false);
+      setCallParticipants([]);
+    };
+    
+    // Register event listeners
+    callService.on('call-joined', handleCallJoined);
+    callService.on('user-joined-call', handleUserJoinedCall);
+    callService.on('user-left-call', handleUserLeftCall);
+    callService.on('user-media-changed', handleUserMediaChanged);
+    callService.on('user-speaking-status', handleUserSpeakingStatus);
+    callService.on('call-error', handleCallError);
+    callService.on('call-disconnected', handleCallDisconnected);
+    
+    // Clean up event listeners
+    return () => {
+      callService.off('call-joined', handleCallJoined);
+      callService.off('user-joined-call', handleUserJoinedCall);
+      callService.off('user-left-call', handleUserLeftCall);
+      callService.off('user-media-changed', handleUserMediaChanged);
+      callService.off('user-speaking-status', handleUserSpeakingStatus);
+      callService.off('call-error', handleCallError);
+      callService.off('call-disconnected', handleCallDisconnected);
+    };
+  }, []);
+
+  // Handle starting a call
+  const handleStartCall = async () => {
+    if (!roomId) return;
+    
+    try {
+      setIsCallLoading(true);
+      
+      // Join the call
+      const success = await callService.joinCall(roomId);
+      
+      if (!success) {
+        setIsCallLoading(false);
+      }
+      
+      // Note: The call-joined event will set isCallActive to true
+      
+    } catch (error) {
+      console.error('Error starting call:', error);
+      toast.error('Failed to start call. Please try again.');
+      setIsCallLoading(false);
+    }
+  };
+
+  // Handle ending a call
   const handleEndCall = () => {
-    setIsCallActive(false);
+    try {
+      callService.leaveCall();
+      setIsCallActive(false);
+      setCallParticipants([]);
+      setIsMicMuted(false);
+      setIsVideoOff(true);
+    } catch (error) {
+      console.error('Error ending call:', error);
+      toast.error('Failed to end call properly.');
+    }
   };
-  
+
+  // Handle toggling microphone
   const handleToggleMic = () => {
-    setIsMicMuted(!isMicMuted);
+    try {
+      const newMicState = !isMicMuted;
+      setIsMicMuted(newMicState);
+      callService.toggleMicrophone(!newMicState);
+      
+      // Also update the current user's entry in the callParticipants array
+      if (currentUser) {
+        setCallParticipants(prev => 
+          prev.map(p => p.id === currentUser.id 
+            ? { ...p, audioEnabled: !newMicState } 
+            : p
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling microphone:', error);
+      toast.error('Failed to toggle microphone.');
+    }
   };
-  
+
+  // Handle toggling video (placeholder for future implementation)
   const handleToggleVideo = () => {
     setIsVideoOff(!isVideoOff);
+    // Video functionality will be implemented in the future
+    toast.info('Video functionality will be implemented in a future update.');
   };
-  
+
+  // Handle toggling screen share (placeholder for future implementation)
   const handleToggleScreenShare = () => {
     setIsScreenSharing(!isScreenSharing);
+    // Screen sharing functionality will be implemented in the future
+    toast.info('Screen sharing functionality will be implemented in a future update.');
   };
   
   const formatTime = (timestamp) => {
@@ -971,6 +1335,11 @@ const StudyRoomDetail = () => {
     }
   };
 
+  // Handle toggling call UI visibility
+  const toggleCallUIVisibility = () => {
+    setIsCallUIMinimized(!isCallUIMinimized);
+  };
+
   // Render loading state
   if (loading) {
     return (
@@ -1040,6 +1409,47 @@ const StudyRoomDetail = () => {
   }
 
   if (!roomData) return null;
+
+  // Render call participant
+  const renderCallParticipant = (participant) => {
+    const isSpeaking = speakingParticipants[participant.id];
+    const isCurrentUser = participant.id === currentUser?.id;
+    
+    return (
+      <div 
+        key={participant.id}
+        className={`flex flex-col items-center ${
+          isSpeaking ? 'relative' : ''
+        }`}
+      >
+        {isSpeaking && (
+          <div className="absolute -inset-1 rounded-full bg-green-500 opacity-40 animate-pulse-slow z-0"></div>
+        )}
+        <div className="relative z-10">
+          <div className={`w-16 h-16 rounded-full overflow-hidden ${isSpeaking ? 'ring-3 ring-green-500 shadow-lg shadow-green-500/30' : ''} bg-secondary-700 mb-2 transition-all duration-200`}>
+            <img 
+              src={participant.avatar ? getAvatarUrl(participant.avatar) : getAvatarPlaceholder(participant.name, '')} 
+              alt={participant.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = getAvatarPlaceholder(participant.name, '');
+              }}
+            />
+          </div>
+          <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center ${participant.audioEnabled ? 'bg-green-500' : 'bg-red-500'} transition-all duration-200 ${isSpeaking && participant.audioEnabled ? 'animate-pulse-fast' : ''}`}>
+            {participant.audioEnabled ? 
+              <FaMicrophone className="text-white text-[10px]" /> : 
+              <FaMicrophoneSlash className="text-white text-[10px]" />
+            }
+          </div>
+        </div>
+        <div className="text-sm font-medium text-center text-white truncate max-w-[80px]">
+          {isCurrentUser ? 'You' : participant.name.split(' ')[0]}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -1411,65 +1821,164 @@ const StudyRoomDetail = () => {
       />
 
       {/* Call Interface (conditionally rendered) */}
-      {isCallActive && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col">
+      {isCallActive && !isCallUIMinimized && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex flex-col">
           <div className="p-4 flex justify-between items-center">
-            <div className="text-white font-medium">{roomData.name} - Video Call</div>
-            <button 
-              onClick={handleEndCall}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-            >
-              End Call
-            </button>
-          </div>
-          
-          <div className="flex-grow p-4 flex items-center justify-center">
-            <div className="grid grid-cols-3 gap-4">
-              {roomData.members.filter(member => getMemberStatus(member.id).isOnline).map(member => {
-                const status = getMemberStatus(member.id);
-                return (
-                  <div key={member.id} className="w-64 h-48 bg-secondary-800 rounded-lg overflow-hidden relative">
-                    {!isVideoOff && status.hasCamera ? (
-                      <div className="w-full h-full bg-secondary-700 flex items-center justify-center">
-                        {/* This would be a video element in a real implementation */}
-                        <span className="text-white">Camera Feed</span>
-                      </div>
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-16 h-16 rounded-full bg-primary-600 flex items-center justify-center">
-                          <span className="text-white text-xl font-bold">{member.name.charAt(0)}</span>
-                        </div>
-                      </div>
-                    )}
-                    <div className="absolute bottom-2 left-2 text-white text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
-                      {member.name}
-                      {status.isSpeaking && <FaMicrophone className="inline ml-2 text-green-500" />}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="flex items-center">
+              <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center mr-3">
+                <FaPhone className="text-white" />
+              </div>
+              <div>
+                <div className="text-white font-medium text-lg">{roomData.name}</div>
+                <div className="text-sm text-gray-300">Voice Call • {callParticipants.length} participant{callParticipants.length !== 1 ? 's' : ''}</div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <button 
+                onClick={toggleCallUIVisibility}
+                className="px-3 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors flex items-center"
+                title="Minimize call"
+              >
+                <FaChevronDown className="mr-2" /> Minimize
+              </button>
+              <button 
+                onClick={handleEndCall}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center"
+              >
+                <FaTimes className="mr-2" /> End Call
+              </button>
             </div>
           </div>
           
-          <div className="p-4 flex justify-center">
-            <div className="bg-secondary-800 rounded-full p-2 flex space-x-4">
+          <div className="flex-grow p-4 flex items-center justify-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 w-full max-w-7xl mx-auto">
+              {isCallLoading ? (
+                <div className="flex items-center justify-center p-8 bg-gray-800 bg-opacity-50 rounded-lg col-span-full">
+                  <FaSpinner className="animate-spin mr-3 text-xl" /> 
+                  <span className="text-white text-lg">Connecting to call...</span>
+                </div>
+              ) : callParticipants.length === 0 ? (
+                <div className="text-center text-white py-8 bg-gray-800 bg-opacity-50 rounded-lg col-span-full">
+                  <div className="text-4xl mb-3 opacity-60">👋</div>
+                  <div className="text-xl font-medium mb-2">No participants yet</div>
+                  <p className="text-gray-300">Invite others to join this voice call</p>
+                </div>
+              ) : (
+                callParticipants.map(participant => {
+                  const isSpeaking = speakingParticipants[participant.id];
+                  const isCurrentUser = participant.id === currentUser?.id;
+                  
+                  return (
+                    <div 
+                      key={participant.id} 
+                      className={`flex flex-col items-center bg-gray-800 bg-opacity-50 p-4 rounded-lg border-2 transition-all ${
+                        isSpeaking ? 'border-green-500 shadow-lg shadow-green-500/30 animate-pulse-slow' : 
+                        'border-transparent hover:border-gray-600'
+                      }`} 
+                      style={{ minWidth: '180px', minHeight: '220px' }}
+                    >
+                      {/* Video placeholder - will be replaced with actual video stream in the future */}
+                      <div className="relative w-full rounded-md overflow-hidden bg-black flex items-center justify-center mb-4" style={{ height: '140px' }}>
+                        {/* User avatar shown until video is implemented */}
+                        <div className={`w-24 h-24 rounded-full overflow-hidden ${isSpeaking ? 'ring-4 ring-green-500 ring-opacity-70' : ''} bg-secondary-700`}>
+                          <img 
+                            src={participant.avatar ? getAvatarUrl(participant.avatar) : getAvatarPlaceholder(participant.name, '')} 
+                            alt={participant.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = getAvatarPlaceholder(participant.name, '');
+                            }}
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Audio status indicator */}
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${participant.audioEnabled ? 'bg-green-500' : 'bg-red-500'}`}>
+                        {participant.audioEnabled ? 
+                          <FaMicrophone className="text-white text-sm" /> : 
+                          <FaMicrophoneSlash className="text-white text-sm" />
+                        }
+                      </div>
+                      
+                      <div className="text-base font-medium text-center text-white">
+                        {isCurrentUser ? 'You' : participant.name}
+                      </div>
+                      
+                      {isCurrentUser && (
+                        <div className="text-sm text-gray-300 mt-1">(You)</div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          
+          <div className="p-6 flex justify-center">
+            <div className="bg-gray-800 bg-opacity-70 rounded-full p-2 flex space-x-4">
               <button 
                 onClick={handleToggleMic}
-                className={`p-3 rounded-full ${isMicMuted ? 'bg-red-600 text-white' : 'bg-secondary-600 text-white'}`}
+                className={`p-4 rounded-full ${isMicMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-primary-600 hover:bg-primary-700'} text-white transition-colors`}
+                title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
               >
-                {isMicMuted ? <FaMicrophoneSlash /> : <FaMicrophone />}
+                {isMicMuted ? <FaMicrophoneSlash size={20} /> : <FaMicrophone size={20} />}
               </button>
               <button 
                 onClick={handleToggleVideo}
-                className={`p-3 rounded-full ${isVideoOff ? 'bg-red-600 text-white' : 'bg-secondary-600 text-white'}`}
+                className="p-4 rounded-full bg-gray-700 text-gray-400 cursor-not-allowed"
+                title="Video coming soon"
+                disabled={true}
               >
-                {isVideoOff ? <FaVideoSlash /> : <FaVideo />}
+                <FaVideoSlash size={20} />
               </button>
               <button 
                 onClick={handleToggleScreenShare}
-                className={`p-3 rounded-full ${isScreenSharing ? 'bg-green-600 text-white' : 'bg-secondary-600 text-white'}`}
+                className="p-4 rounded-full bg-gray-700 text-gray-400 cursor-not-allowed"
+                title="Screen sharing coming soon"
+                disabled={true}
               >
-                <FaDesktop />
+                <FaDesktop size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Minimized Call Interface */}
+      {isCallActive && isCallUIMinimized && (
+        <div className="fixed bottom-4 left-4 z-50 bg-primary-600 text-white rounded-lg shadow-lg overflow-hidden">
+          <div className="flex items-center justify-between p-3">
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-full bg-white bg-opacity-20 flex items-center justify-center mr-2">
+                <FaPhone className="text-white text-sm" />
+              </div>
+              <div>
+                <div className="font-medium text-sm">Voice Call</div>
+                <div className="text-xs text-gray-200">{callParticipants.length} participant{callParticipants.length !== 1 ? 's' : ''}</div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 ml-4">
+              <button 
+                onClick={handleToggleMic}
+                className={`p-2 rounded-full ${isMicMuted ? 'bg-red-500' : 'bg-green-500'} text-white`}
+                title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
+              >
+                {isMicMuted ? <FaMicrophoneSlash size={12} /> : <FaMicrophone size={12} />}
+              </button>
+              <button 
+                onClick={toggleCallUIVisibility}
+                className="p-2 rounded-full bg-white bg-opacity-20 text-white hover:bg-opacity-30"
+                title="Expand call"
+              >
+                <FaExpandAlt size={12} />
+              </button>
+              <button 
+                onClick={handleEndCall}
+                className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700"
+                title="End call"
+              >
+                <FaTimes size={12} />
               </button>
             </div>
           </div>

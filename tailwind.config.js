@@ -32,6 +32,10 @@ export default {
           900: '#0f172a',
         },
       },
+      animation: {
+        'pulse-slow': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'pulse-fast': 'pulse 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
     },
     fontFamily: {
       sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],

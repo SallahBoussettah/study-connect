@@ -8,6 +8,10 @@ const { Op } = require('sequelize');
 const activeRoomUsersCache = new Map();
 // In-memory cache for online users
 const onlineUsersCache = new Map();
+// In-memory cache for active calls in rooms
+const activeCallsCache = new Map();
+// In-memory cache for users in calls
+const callParticipantsCache = new Map();
 
 // Cache expiration time for room users (5 minutes)
 const CACHE_EXPIRATION = 5 * 60 * 1000;
@@ -78,6 +82,35 @@ function setupSocket(server) {
       next();
     } catch (error) {
       console.error('Chat namespace authentication error:', error.message);
+      return next(new Error('Authentication failed'));
+    }
+  });
+
+  // Create call namespace for WebRTC signaling
+  const callNamespace = io.of('/call');
+  
+  // Apply authentication middleware to call namespace
+  callNamespace.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth.token;
+      
+      if (!token) {
+        return next(new Error('Authentication token is required'));
+      }
+
+      // Verify JWT token
+      const decoded = jwt.verify(token, config.jwt.secret);
+      
+      if (!decoded || !decoded.id) {
+        return next(new Error('Invalid authentication token'));
+      }
+      
+      // Store the user ID in the socket object
+      socket.userId = decoded.id;
+      
+      next();
+    } catch (error) {
+      console.error('Call namespace authentication error:', error.message);
       return next(new Error('Authentication failed'));
     }
   });
@@ -621,6 +654,215 @@ function setupSocket(server) {
     });
   });
 
+  // Handle call namespace connections
+  callNamespace.on('connection', async (socket) => {
+    const userId = socket.userId;
+    console.log(`User connected to call namespace: ${userId}`);
+    
+    try {
+      // Get user info
+      const user = await User.findByPk(userId, {
+        attributes: ['id', 'firstName', 'lastName', 'avatar']
+      });
+      
+      if (!user) {
+        socket.disconnect();
+        return;
+      }
+      
+      // Handle joining a call in a study room
+      socket.on('join-call', async ({ roomId }) => {
+        try {
+          // Check if user is a member of the room
+          const room = await StudyRoom.findByPk(roomId, {
+            include: [{
+              model: User,
+              as: 'members',
+              where: { id: userId },
+              required: true
+            }]
+          });
+          
+          if (!room) {
+            socket.emit('call-error', { message: 'You are not a member of this room' });
+            return;
+          }
+          
+          // Join the call socket room
+          socket.join(`call:${roomId}`);
+          
+          // Initialize room in call cache if needed
+          if (!callParticipantsCache.has(roomId)) {
+            callParticipantsCache.set(roomId, new Map());
+          }
+          
+          // Add user to call participants
+          const participants = callParticipantsCache.get(roomId);
+          participants.set(userId, {
+            id: userId,
+            name: `${user.firstName} ${user.lastName}`,
+            avatar: user.avatar,
+            socketId: socket.id,
+            audioEnabled: true,
+            videoEnabled: false,
+            screenSharing: false,
+            isSpeaking: false,
+            joinedAt: new Date()
+          });
+          
+          // Mark call as active for this room
+          activeCallsCache.set(roomId, true);
+          
+          // Get all participants to send to the new user
+          const participantsArray = Array.from(participants.values()).map(p => ({
+            id: p.id,
+            name: p.name,
+            avatar: p.avatar,
+            audioEnabled: p.audioEnabled,
+            videoEnabled: p.videoEnabled,
+            screenSharing: p.screenSharing,
+            isSpeaking: p.isSpeaking || false
+          }));
+          
+          // Send current participants to the new user
+          socket.emit('call-joined', {
+            roomId,
+            participants: participantsArray
+          });
+          
+          // Notify other participants that a new user joined
+          socket.to(`call:${roomId}`).emit('user-joined-call', {
+            roomId,
+            user: {
+              id: userId,
+              name: `${user.firstName} ${user.lastName}`,
+              avatar: user.avatar,
+              audioEnabled: true,
+              videoEnabled: false,
+              screenSharing: false,
+              isSpeaking: false
+            }
+          });
+          
+          // Create a system message in the chat
+          await Message.create({
+            roomId,
+            senderId: userId,
+            content: `${user.firstName} ${user.lastName} joined the voice call`,
+            isSystem: true
+          });
+          
+          // Broadcast system message to chat
+          chatNamespace.to(`room:${roomId}`).emit('new-message', {
+            id: Date.now().toString(),
+            content: `${user.firstName} ${user.lastName} joined the voice call`,
+            timestamp: new Date(),
+            sender: {
+              id: userId,
+              name: `${user.firstName} ${user.lastName}`,
+              avatar: user.avatar
+            },
+            isSystem: true
+          });
+          
+          console.log(`User ${userId} joined call in room ${roomId}`);
+        } catch (error) {
+          console.error('Error joining call:', error);
+          socket.emit('call-error', { message: 'Failed to join call' });
+        }
+      });
+      
+      // Handle WebRTC signaling
+      socket.on('signal', ({ roomId, to, signal, type }) => {
+        // Forward the signaling message to the intended recipient
+        const participants = callParticipantsCache.get(roomId);
+        
+        if (participants) {
+          const recipient = Array.from(participants.values()).find(p => p.id === to);
+          
+          if (recipient && recipient.socketId) {
+            callNamespace.to(recipient.socketId).emit('signal', {
+              from: userId,
+              signal,
+              type
+            });
+          }
+        }
+      });
+      
+      // Handle audio/video state changes
+      socket.on('media-state-change', ({ roomId, audioEnabled, videoEnabled, screenSharing }) => {
+        const participants = callParticipantsCache.get(roomId);
+        
+        if (participants && participants.has(userId)) {
+          // Update user's media state
+          const userState = participants.get(userId);
+          
+          if (audioEnabled !== undefined) userState.audioEnabled = audioEnabled;
+          if (videoEnabled !== undefined) userState.videoEnabled = videoEnabled;
+          if (screenSharing !== undefined) userState.screenSharing = screenSharing;
+          
+          participants.set(userId, userState);
+          
+          // Notify other participants of the state change
+          socket.to(`call:${roomId}`).emit('user-media-changed', {
+            userId,
+            audioEnabled: userState.audioEnabled,
+            videoEnabled: userState.videoEnabled,
+            screenSharing: userState.screenSharing
+          });
+        }
+      });
+      
+      // Handle speaking status changes
+      socket.on('speaking-status-change', ({ roomId, isSpeaking }) => {
+        const participants = callParticipantsCache.get(roomId);
+        
+        if (participants && participants.has(userId)) {
+          // Update user's speaking state
+          const userState = participants.get(userId);
+          userState.isSpeaking = isSpeaking;
+          participants.set(userId, userState);
+          
+          // Notify other participants of the speaking status change
+          socket.to(`call:${roomId}`).emit('user-speaking-status', {
+            userId,
+            isSpeaking
+          });
+          
+          console.log(`User ${userId} speaking status in room ${roomId}: ${isSpeaking ? 'speaking' : 'not speaking'}`);
+        }
+      });
+      
+      // Handle leaving a call
+      socket.on('leave-call', async ({ roomId }) => {
+        await handleLeaveCall(socket, roomId, userId, user);
+      });
+      
+      // Handle disconnection
+      socket.on('disconnect', async () => {
+        console.log(`User disconnected from call namespace: ${userId}`);
+        
+        // Find all calls the user is part of and remove them
+        for (const [roomId, participants] of callParticipantsCache.entries()) {
+          if (participants.has(userId)) {
+            const user = await User.findByPk(userId, {
+              attributes: ['id', 'firstName', 'lastName', 'avatar']
+            });
+            
+            if (user) {
+              await handleLeaveCall(socket, roomId, userId, user);
+            }
+          }
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error handling call connection:', error);
+      socket.disconnect();
+    }
+  });
+
   // Helper function to update room active members count
   async function updateRoomActiveMembers(roomId) {
     try {
@@ -639,6 +881,58 @@ function setupSocket(server) {
       console.log(`Room ${roomId}: Updated to ${activeUsers.length} active members`);
     } catch (error) {
       console.error('Error updating room active members count:', error);
+    }
+  }
+
+  // Helper function to handle a user leaving a call
+  async function handleLeaveCall(socket, roomId, userId, user) {
+    try {
+      // Remove user from call participants
+      const participants = callParticipantsCache.get(roomId);
+      
+      if (participants && participants.has(userId)) {
+        participants.delete(userId);
+        
+        // Leave the call socket room
+        socket.leave(`call:${roomId}`);
+        
+        // If no participants left, mark call as inactive
+        if (participants.size === 0) {
+          callParticipantsCache.delete(roomId);
+          activeCallsCache.delete(roomId);
+        }
+        
+        // Notify other participants that user left
+        socket.to(`call:${roomId}`).emit('user-left-call', {
+          roomId,
+          userId
+        });
+        
+        // Create a system message in the chat
+        await Message.create({
+          roomId,
+          senderId: userId,
+          content: `${user.firstName} ${user.lastName} left the voice call`,
+          isSystem: true
+        });
+        
+        // Broadcast system message to chat
+        global.io.of('/chat').to(`room:${roomId}`).emit('new-message', {
+          id: Date.now().toString(),
+          content: `${user.firstName} ${user.lastName} left the voice call`,
+          timestamp: new Date(),
+          sender: {
+            id: userId,
+            name: `${user.firstName} ${user.lastName}`,
+            avatar: user.avatar
+          },
+          isSystem: true
+        });
+        
+        console.log(`User ${userId} left call in room ${roomId}`);
+      }
+    } catch (error) {
+      console.error('Error handling leave call:', error);
     }
   }
 

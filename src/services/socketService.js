@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import callService from './callService';
 
 class SocketService {
   constructor() {
@@ -46,6 +47,14 @@ class SocketService {
         timeout: 20000,
         transports: ['websocket', 'polling']
       });
+      
+      // Extract user ID from token
+      const userId = this._getUserIdFromToken(token);
+      
+      // Initialize call service if we have a user ID
+      if (userId) {
+        callService.init(token, userId);
+      }
       
       // Set up connection event handlers
       this.socket.on('connect', () => {
@@ -353,22 +362,60 @@ class SocketService {
   }
   
   /**
-   * Disconnect sockets
+   * Extract user ID from JWT token
+   * @param {string} token - JWT token
+   * @returns {string|null} - User ID or null if invalid
+   * @private
+   */
+  _getUserIdFromToken(token) {
+    try {
+      // JWT tokens are in format: header.payload.signature
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      
+      // Decode the payload (middle part)
+      const payload = JSON.parse(atob(parts[1]));
+      
+      // Return the user ID
+      return payload.id || null;
+    } catch (error) {
+      console.error('Error extracting user ID from token:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Clean up and disconnect
    */
   disconnect() {
+    // Clean up listeners
+    if (this.socket) {
+      for (const event in this.listeners) {
+        this.listeners[event].forEach(l => {
+          const s = l.useMainSocket ? this.socket : this.chatSocket;
+          if (s) s.off(event, l.callback);
+        });
+      }
+      
+      // Close connections
+      this.socket.disconnect();
+      this.socket = null;
+    }
+    
     if (this.chatSocket) {
       this.chatSocket.disconnect();
       this.chatSocket = null;
     }
     
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
+    // Disconnect call service
+    callService.disconnect();
     
+    // Reset state
     this.connected = false;
     this.connecting = false;
     this.listeners = {};
+    
+    console.log('Socket service disconnected');
   }
 }
 
