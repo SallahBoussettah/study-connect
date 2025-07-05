@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   FaUsers, FaBook, FaComments, FaVideo, FaPhone, FaDesktop, 
@@ -6,7 +6,8 @@ import {
   FaEllipsisV, FaUserPlus, FaFileUpload, FaDownload, FaCog,
   FaFilePdf, FaFileWord, FaFilePowerpoint, FaLink, FaFile,
   FaArrowLeft, FaSpinner, FaTrash, FaEdit, FaTimes, FaShareAlt,
-  FaChevronDown, FaChevronUp, FaExpandAlt, FaCompressAlt
+  FaChevronDown, FaChevronUp, FaExpandAlt, FaCompressAlt, FaCheck,
+  FaStopCircle, FaDesktop as FaDesktopAlt, FaLaptop
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { studyRoomService, messageService, resourceService, friendshipService, directMessageService, subjectService } from '../../services/api';
@@ -28,12 +29,17 @@ const VideoDisplay = ({ participantId, isCurrentUser, isSpeaking }) => {
     let stream = null;
     
     // For current user, use local stream
-    if (isCurrentUser && callService.localStream) {
-      stream = callService.localStream;
-      
-      // Check if there are enabled video tracks
-      const hasEnabledVideoTracks = stream.getVideoTracks().some(track => track.enabled);
-      setHasVideoStream(hasEnabledVideoTracks);
+    if (isCurrentUser) {
+      // If screen sharing is active, use that stream
+      if (callService.isScreenSharing() && callService.getScreenShareStream()) {
+        stream = callService.getScreenShareStream();
+        setHasVideoStream(true);
+      } else if (callService.localStream) {
+        stream = callService.localStream;
+        // Check if there are enabled video tracks
+        const hasEnabledVideoTracks = stream.getVideoTracks().some(track => track.enabled);
+        setHasVideoStream(hasEnabledVideoTracks);
+      }
     } 
     // For other participants, get stream from peer connection
     else if (!isCurrentUser) {
@@ -41,7 +47,7 @@ const VideoDisplay = ({ participantId, isCurrentUser, isSpeaking }) => {
       if (audioElement && audioElement.srcObject) {
         stream = audioElement.srcObject;
         
-        // Check if there are video tracks
+        // Check if there are video tracks (could be from camera or screen sharing)
         const hasVideoTracks = stream.getVideoTracks().length > 0;
         setHasVideoStream(hasVideoTracks);
       }
@@ -97,7 +103,7 @@ const VideoDisplay = ({ participantId, isCurrentUser, isSpeaking }) => {
       autoPlay
       playsInline
       muted={isCurrentUser}
-      className={`w-full h-full object-cover ${isSpeaking ? 'ring-2 ring-green-500' : ''} ${!hasVideoStream ? 'hidden' : ''}`}
+      className={`w-full h-full ${isCurrentUser && callService.isScreenSharing() ? 'object-contain' : 'object-cover'} ${isSpeaking ? 'ring-2 ring-green-500' : ''} ${!hasVideoStream ? 'hidden' : ''}`}
     />
   );
 };
@@ -175,6 +181,65 @@ const StudyRoomDetail = () => {
   const audioContextRef = useRef(null);
   const audioDataRef = useRef(null);
   const animationFrameRef = useRef(null);
+  
+  // Add state for screen sharing settings
+  const [screenShareSettingsOpen, setScreenShareSettingsOpen] = useState(false);
+  const [screenShareSettings, setScreenShareSettings] = useState({
+    resolution: '1080p',
+    frameRate: 30
+  });
+  const [screenShareStream, setScreenShareStream] = useState(null);
+  const [availableScreens, setAvailableScreens] = useState([]);
+  const [selectedScreenId, setSelectedScreenId] = useState(null);
+  const [isLoadingScreens, setIsLoadingScreens] = useState(false);
+
+  // Handle stopping screen share - defined early to avoid reference errors
+  const stopScreenShare = useCallback(() => {
+    try {
+      // Stop all tracks in the screen share stream
+      if (screenShareStream) {
+        screenShareStream.getTracks().forEach(track => track.stop());
+        setScreenShareStream(null);
+      }
+      
+      // Update UI state
+      setIsScreenSharing(false);
+      
+      // Update the current user's entry in callParticipants
+      if (currentUser) {
+        setCallParticipants(prev => 
+          prev.map(p => p.id === currentUser.id 
+            ? { ...p, screenSharing: false } 
+            : p
+          )
+        );
+      }
+      
+      // Notify call service to stop screen sharing
+      callService.stopScreenShare();
+      
+      toast.info('Screen sharing stopped');
+    } catch (error) {
+      console.error('Error stopping screen share:', error);
+      toast.error('Failed to stop screen sharing properly');
+    }
+  }, [screenShareStream, currentUser]);
+  
+  // Clean up screen sharing when component unmounts or call ends
+  useEffect(() => {
+    return () => {
+      if (screenShareStream) {
+        screenShareStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [screenShareStream]);
+  
+  // Clean up screen sharing when call ends
+  useEffect(() => {
+    if (!isCallActive && isScreenSharing) {
+      stopScreenShare();
+    }
+  }, [isCallActive, isScreenSharing, stopScreenShare]);
   
   // Listen for fullscreen change events - moved up with other useEffects
   useEffect(() => {
@@ -935,11 +1000,167 @@ const StudyRoomDetail = () => {
     }
   };
 
-  // Handle toggling screen share (placeholder for future implementation)
+  // Handle toggling screen share settings modal
+  const openScreenShareSettings = async () => {
+    try {
+      setIsLoadingScreens(true);
+      
+      // Check if the browser supports getDisplayMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        toast.error('Screen sharing is not supported in your browser');
+        return;
+      }
+      
+      // Try to get available screens if the browser supports it
+      // Note: This is an experimental feature and might not work in all browsers
+      if (navigator.mediaDevices.enumerateDevices) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        // Filter for display devices if the API provides that info
+        // Most browsers don't expose screen IDs for privacy reasons
+        const screens = devices.filter(device => device.kind === 'videoinput' && device.label.toLowerCase().includes('screen'));
+        setAvailableScreens(screens.length > 0 ? screens : [{ deviceId: 'default', label: 'Default Screen' }]);
+      } else {
+        setAvailableScreens([{ deviceId: 'default', label: 'Default Screen' }]);
+      }
+      
+      setScreenShareSettingsOpen(true);
+    } catch (error) {
+      console.error('Error preparing screen share:', error);
+      toast.error('Failed to prepare screen sharing');
+    } finally {
+      setIsLoadingScreens(false);
+    }
+  };
+  
+  // Handle closing screen share settings modal
+  const closeScreenShareSettings = () => {
+    setScreenShareSettingsOpen(false);
+  };
+  
+  // Handle screen share settings change
+  const handleScreenShareSettingChange = (setting, value) => {
+    setScreenShareSettings(prev => ({
+      ...prev,
+      [setting]: value
+    }));
+  };
+  
+  // Function to maximize a participant's video
+  const maximizeParticipantVideo = (participant) => {
+    // Store the participant data along with screen sharing status
+    setMaximizedParticipant({
+      ...participant,
+      // Add a flag to indicate if we're maximizing a screen share
+      isMaximizingScreenShare: participant.screenSharing
+    });
+  };
+
+  // Function to close the maximized video
+  const closeMaximizedVideo = () => {
+    setMaximizedParticipant(null);
+  };
+
+  // Handle starting screen share
+  const startScreenShare = async () => {
+    try {
+      // Close the settings modal
+      setScreenShareSettingsOpen(false);
+      
+      // Convert resolution string to actual dimensions
+      let width, height;
+      switch (screenShareSettings.resolution) {
+        case '720p':
+          width = 1280;
+          height = 720;
+          break;
+        case '1080p':
+          width = 1920;
+          height = 1080;
+          break;
+        case '1440p':
+          width = 2560;
+          height = 1440;
+          break;
+        case 'source':
+        default:
+          width = undefined;
+          height = undefined;
+      }
+      
+      // Request screen sharing with specified settings
+      const mediaOptions = {
+        video: {
+          cursor: 'always',
+          displaySurface: 'monitor',
+          logicalSurface: true,
+          width: width ? { ideal: width } : undefined,
+          height: height ? { ideal: height } : undefined,
+          frameRate: { ideal: screenShareSettings.frameRate }
+        },
+        audio: false // Usually screen share doesn't include audio to avoid echo
+      };
+      
+      // Get the screen sharing stream
+      const stream = await navigator.mediaDevices.getDisplayMedia(mediaOptions);
+      
+      // Store the stream for later cleanup
+      setScreenShareStream(stream);
+      
+      // Update UI state
+      setIsScreenSharing(true);
+      
+      // Disable camera when screen sharing starts
+      if (!isVideoOff) {
+        setIsVideoOff(true);
+        callService.toggleVideo(false);
+      }
+      
+      // Update the current user's entry in callParticipants to reflect screen sharing
+      if (currentUser) {
+        setCallParticipants(prev => 
+          prev.map(p => p.id === currentUser.id 
+            ? { ...p, screenSharing: true, videoEnabled: false } 
+            : p
+          )
+        );
+      }
+      
+      // Add event listener for when the user stops sharing via the browser UI
+      stream.getVideoTracks()[0].addEventListener('ended', () => {
+        stopScreenShare();
+      });
+      
+      // Send the screen sharing stream to call service
+      const success = await callService.startScreenShare(stream);
+      
+      if (!success) {
+        // If failed to send to call service, stop screen sharing
+        stopScreenShare();
+        toast.error('Failed to start screen sharing');
+      } else {
+        toast.success('Screen sharing started');
+      }
+    } catch (error) {
+      console.error('Error starting screen share:', error);
+      
+      // Check if the error is because the user cancelled the screen selection
+      if (error.name === 'NotAllowedError' || error.name === 'AbortError') {
+        toast.info('Screen sharing was cancelled');
+      } else {
+        toast.error('Failed to start screen sharing: ' + (error.message || 'Unknown error'));
+      }
+      
+      setIsScreenSharing(false);
+    }
+  };
+  
+  // Handle toggling screen share (replaced the placeholder function)
   const handleToggleScreenShare = () => {
-    setIsScreenSharing(!isScreenSharing);
-    // Screen sharing functionality will be implemented in the future
-    toast.info('Screen sharing functionality will be implemented in a future update.');
+    if (isScreenSharing) {
+      stopScreenShare();
+    } else {
+      openScreenShareSettings();
+    }
   };
   
   const formatTime = (timestamp) => {
@@ -1583,16 +1804,6 @@ const StudyRoomDetail = () => {
     }
   };
 
-  // Function to maximize a participant's video
-  const maximizeParticipantVideo = (participant) => {
-    setMaximizedParticipant(participant);
-  };
-
-  // Function to close the maximized video
-  const closeMaximizedVideo = () => {
-    setMaximizedParticipant(null);
-  };
-
   // Render loading state
   if (loading) {
     return (
@@ -1668,6 +1879,7 @@ const StudyRoomDetail = () => {
     const isSpeaking = speakingParticipants[participant.id];
     const isCurrentUser = participant.id === currentUser?.id;
     const hasVideo = participant.videoEnabled;
+    const isParticipantScreenSharing = participant.screenSharing;
     
     return (
       <div 
@@ -1680,7 +1892,7 @@ const StudyRoomDetail = () => {
       >
         {/* Video container */}
         <div className="relative w-full rounded-md overflow-hidden bg-black flex items-center justify-center mb-4 group" style={{ height: '140px' }}>
-          {hasVideo ? (
+          {hasVideo || isParticipantScreenSharing ? (
             <>
               <VideoDisplay 
                 participantId={participant.id} 
@@ -1695,6 +1907,13 @@ const StudyRoomDetail = () => {
               >
                 <FaExpandAlt className="text-white text-sm" />
               </button>
+              
+              {/* Screen sharing indicator */}
+              {isParticipantScreenSharing && (
+                <div className="absolute bottom-2 left-2 bg-blue-500 bg-opacity-70 text-white text-xs px-2 py-1 rounded-md flex items-center">
+                  <FaDesktop className="mr-1" /> Sharing screen
+                </div>
+              )}
             </>
           ) : (
             /* User avatar shown when video is disabled */
@@ -2175,11 +2394,10 @@ const StudyRoomDetail = () => {
               </button>
               <button 
                 onClick={handleToggleScreenShare}
-                className="p-4 rounded-full bg-gray-700 text-gray-400 cursor-not-allowed"
-                title="Screen sharing coming soon"
-                disabled={true}
+                className={`p-4 rounded-full ${isScreenSharing ? 'bg-red-600 hover:bg-red-700' : 'bg-primary-600 hover:bg-primary-700'} text-white transition-colors`}
+                title={isScreenSharing ? 'Stop screen sharing' : 'Share your screen'}
               >
-                <FaDesktop size={20} />
+                {isScreenSharing ? <FaStopCircle size={20} /> : <FaDesktop size={20} />}
               </button>
             </div>
           </div>
@@ -2537,6 +2755,9 @@ const StudyRoomDetail = () => {
             <div className="flex items-center">
               <div className="text-white font-medium text-lg">
                 {maximizedParticipant.id === currentUser?.id ? 'You' : maximizedParticipant.name}
+                {maximizedParticipant.isMaximizingScreenShare && (
+                  <span className="ml-2 text-blue-400"> • Screen sharing</span>
+                )}
               </div>
               {maximizedParticipant.audioEnabled && speakingParticipants[maximizedParticipant.id] && (
                 <div className="ml-2 px-2 py-1 bg-green-500 text-xs text-white rounded-full flex items-center">
@@ -2554,8 +2775,9 @@ const StudyRoomDetail = () => {
           </div>
           
           <div className="flex-grow flex items-center justify-center p-4">
-            <div className="relative w-full max-w-4xl h-full max-h-[80vh] bg-gray-900 rounded-lg overflow-hidden">
-              {maximizedParticipant.videoEnabled ? (
+            <div className={`relative w-full ${maximizedParticipant.isMaximizingScreenShare ? 'max-w-6xl' : 'max-w-4xl'} h-full max-h-[80vh] bg-gray-900 rounded-lg overflow-hidden`}>
+              {/* Show video or screen sharing */}
+              {(maximizedParticipant.videoEnabled || maximizedParticipant.isMaximizingScreenShare) ? (
                 <VideoDisplay 
                   participantId={maximizedParticipant.id} 
                   isCurrentUser={maximizedParticipant.id === currentUser?.id}
@@ -2583,6 +2805,13 @@ const StudyRoomDetail = () => {
                 </div>
               )}
               
+              {/* Screen sharing indicator */}
+              {maximizedParticipant.isMaximizingScreenShare && (
+                <div className="absolute top-4 left-4 bg-blue-500 bg-opacity-70 text-white px-3 py-1 rounded-md flex items-center">
+                  <FaDesktop className="mr-2" /> Screen Share
+                </div>
+              )}
+              
               {/* Audio indicator */}
               <div className={`absolute bottom-4 right-4 flex items-center px-3 py-1 rounded-full ${
                 maximizedParticipant.audioEnabled ? 'bg-green-500' : 'bg-red-500'
@@ -2598,6 +2827,95 @@ const StudyRoomDetail = () => {
                     <span className="text-white text-sm">Audio off</span>
                   </>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Screen Share Settings Modal */}
+      {screenShareSettingsOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-lg font-medium">Screen Sharing Settings</h3>
+              <button 
+                onClick={closeScreenShareSettings}
+                className="text-secondary-500 hover:text-secondary-700"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-secondary-700 mb-2">
+                  Resolution
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {['720p', '1080p', '1440p', 'source'].map(resolution => (
+                    <button
+                      key={resolution}
+                      onClick={() => handleScreenShareSettingChange('resolution', resolution)}
+                      className={`py-2 px-4 rounded-md flex items-center justify-center ${
+                        screenShareSettings.resolution === resolution
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-secondary-100 text-secondary-800 hover:bg-secondary-200'
+                      }`}
+                    >
+                      {resolution === 'source' ? 'Source' : resolution}
+                      {screenShareSettings.resolution === resolution && (
+                        <FaCheck className="ml-2" size={12} />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-secondary-500 mt-1">
+                  Higher resolutions require more bandwidth
+                </p>
+              </div>
+              
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-secondary-700 mb-2">
+                  Frame Rate
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[15, 30, 60].map(fps => (
+                    <button
+                      key={fps}
+                      onClick={() => handleScreenShareSettingChange('frameRate', fps)}
+                      className={`py-2 px-4 rounded-md flex items-center justify-center ${
+                        screenShareSettings.frameRate === fps
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-secondary-100 text-secondary-800 hover:bg-secondary-200'
+                      }`}
+                    >
+                      {fps} FPS
+                      {screenShareSettings.frameRate === fps && (
+                        <FaCheck className="ml-2" size={12} />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-secondary-500 mt-1">
+                  Higher frame rates are smoother but use more bandwidth
+                </p>
+              </div>
+              
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={closeScreenShareSettings}
+                  className="px-4 py-2 bg-secondary-100 text-secondary-700 rounded-md hover:bg-secondary-200 transition-colors mr-3"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={startScreenShare}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors flex items-center"
+                >
+                  <FaDesktop className="mr-2" />
+                  Start Sharing
+                </button>
               </div>
             </div>
           </div>

@@ -25,6 +25,10 @@ class CallService {
     
     // Base URL for the Socket.IO server
     this.baseURL = 'http://localhost:5000';
+    
+    // Screen sharing state
+    this.screenShareStream = null;
+    this.screenShareTracks = new Map(); // Map of userId -> screen track
   }
   
   /**
@@ -615,6 +619,14 @@ class CallService {
       // Clear the map
       this.peerConnections.clear();
       
+      // Clean up screen sharing
+      if (this.screenShareStream) {
+        this.screenShareStream.getTracks().forEach(track => track.stop());
+        this.screenShareStream = null;
+      }
+      
+      this.screenShareTracks.clear();
+      
       console.log('Cleaned up all peer connections');
     } catch (error) {
       console.error('Error cleaning up peer connections:', error);
@@ -728,6 +740,153 @@ class CallService {
     } catch (error) {
       console.error('Error updating speaking status:', error);
     }
+  }
+  
+  /**
+   * Start screen sharing
+   * @param {MediaStream} stream - The screen sharing stream from getDisplayMedia
+   * @returns {Promise<boolean>} - Whether starting screen share was successful
+   */
+  async startScreenShare(stream) {
+    try {
+      if (!this.socket || !this.roomId) {
+        throw new Error('Not in a call');
+      }
+      
+      if (!stream) {
+        throw new Error('No screen sharing stream provided');
+      }
+      
+      // Store the screen share stream
+      this.screenShareStream = stream;
+      
+      // Notify other participants that we're screen sharing
+      this.socket.emit('media-state-change', {
+        roomId: this.roomId,
+        audioEnabled: this.localStream ? this.localStream.getAudioTracks().some(track => track.enabled) : false,
+        videoEnabled: this.localStream ? this.localStream.getVideoTracks().some(track => track.enabled) : false,
+        screenSharing: true
+      });
+      
+      // Add the screen track to all peer connections
+      const screenTrack = stream.getVideoTracks()[0];
+      
+      for (const [userId, peerConnection] of this.peerConnections.entries()) {
+        try {
+          // Store reference to the screen track for this peer
+          this.screenShareTracks.set(userId, screenTrack);
+          
+          // Get the sender for video if it exists
+          const videoSender = peerConnection.getSenders().find(sender => 
+            sender.track && sender.track.kind === 'video'
+          );
+          
+          if (videoSender) {
+            // Replace the video track with the screen track
+            await videoSender.replaceTrack(screenTrack);
+          } else {
+            // Add the screen track if there's no video sender
+            peerConnection.addTrack(screenTrack, this.screenShareStream);
+          }
+          
+          // Renegotiate the connection
+          await this._sendOffer(userId);
+        } catch (error) {
+          console.error(`Error adding screen track to peer ${userId}:`, error);
+        }
+      }
+      
+      // Listen for the end of screen sharing (e.g., user clicks "Stop sharing")
+      screenTrack.addEventListener('ended', () => {
+        this.stopScreenShare();
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error starting screen share:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Stop screen sharing
+   * @returns {Promise<boolean>} - Whether stopping screen share was successful
+   */
+  async stopScreenShare() {
+    try {
+      if (!this.socket || !this.roomId) {
+        return false;
+      }
+      
+      // Notify other participants that we're no longer screen sharing
+      this.socket.emit('media-state-change', {
+        roomId: this.roomId,
+        audioEnabled: this.localStream ? this.localStream.getAudioTracks().some(track => track.enabled) : false,
+        videoEnabled: this.localStream ? this.localStream.getVideoTracks().some(track => track.enabled) : false,
+        screenSharing: false
+      });
+      
+      // For each peer connection, revert back to camera video if available
+      for (const [userId, peerConnection] of this.peerConnections.entries()) {
+        try {
+          // Get the screen track for this peer
+          const screenTrack = this.screenShareTracks.get(userId);
+          
+          if (screenTrack) {
+            // Find the sender that's currently sending the screen track
+            const screenSender = peerConnection.getSenders().find(sender => 
+              sender.track && sender.track.id === screenTrack.id
+            );
+            
+            if (screenSender) {
+              // If we have a camera video track, replace with that
+              if (this.localStream && this.localStream.getVideoTracks().length > 0) {
+                const videoTrack = this.localStream.getVideoTracks()[0];
+                await screenSender.replaceTrack(videoTrack);
+              } else {
+                // Otherwise, remove the track
+                peerConnection.removeTrack(screenSender);
+              }
+              
+              // Renegotiate the connection
+              await this._sendOffer(userId);
+            }
+            
+            // Remove from our tracking map
+            this.screenShareTracks.delete(userId);
+          }
+        } catch (error) {
+          console.error(`Error removing screen track from peer ${userId}:`, error);
+        }
+      }
+      
+      // Stop all tracks in the screen share stream
+      if (this.screenShareStream) {
+        this.screenShareStream.getTracks().forEach(track => track.stop());
+        this.screenShareStream = null;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error stopping screen share:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Check if user is currently screen sharing
+   * @returns {boolean} - Whether user is currently screen sharing
+   */
+  isScreenSharing() {
+    return !!this.screenShareStream;
+  }
+  
+  /**
+   * Get the current screen sharing stream
+   * @returns {MediaStream|null} - The screen sharing stream or null if not sharing
+   */
+  getScreenShareStream() {
+    return this.screenShareStream;
   }
 }
 
