@@ -120,6 +120,12 @@ const StudyRoomDetail = () => {
   
   // Add new state for call UI visibility
   const [isCallUIMinimized, setIsCallUIMinimized] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenContainerRef = useRef(null);
+
+  // Add state for maximized participant video
+  const [maximizedParticipant, setMaximizedParticipant] = useState(null);
+  const maximizedVideoRef = useRef(null);
 
   // State for resource modal
   const [resourceModalOpen, setResourceModalOpen] = useState(false);
@@ -169,6 +175,41 @@ const StudyRoomDetail = () => {
   const audioContextRef = useRef(null);
   const audioDataRef = useRef(null);
   const animationFrameRef = useRef(null);
+  
+  // Listen for fullscreen change events - moved up with other useEffects
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      try {
+        const isCurrentlyFullscreen = 
+          document.fullscreenElement || 
+          document.webkitFullscreenElement || 
+          document.mozFullScreenElement || 
+          document.msFullscreenElement;
+        
+        setIsFullscreen(!!isCurrentlyFullscreen);
+      } catch (error) {
+        console.error('Error in fullscreen change handler:', error);
+      }
+    };
+    
+    // Add event listeners with try-catch for safety
+    try {
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+      
+      return () => {
+        document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+      };
+    } catch (error) {
+      console.error('Error setting up fullscreen listeners:', error);
+      return () => {};
+    }
+  }, []);
 
   // Setup audio analysis for voice activity detection
   useEffect(() => {
@@ -1494,6 +1535,63 @@ const StudyRoomDetail = () => {
   const toggleCallUIVisibility = () => {
     setIsCallUIMinimized(!isCallUIMinimized);
   };
+  
+  // Handle toggling fullscreen mode
+  const toggleFullscreen = () => {
+    try {
+      if (!fullscreenContainerRef.current) return;
+      
+      if (!isFullscreen) {
+        // Enter fullscreen
+        const element = fullscreenContainerRef.current;
+        
+        const requestFullscreen = element.requestFullscreen || 
+                                 element.webkitRequestFullscreen || 
+                                 element.mozRequestFullScreen || 
+                                 element.msRequestFullscreen;
+        
+        if (requestFullscreen) {
+          requestFullscreen.call(element)
+            .then(() => {
+              setIsFullscreen(true);
+            })
+            .catch(err => {
+              console.error('Error attempting to enable fullscreen:', err);
+            });
+        }
+      } else {
+        // Exit fullscreen
+        const exitFullscreen = document.exitFullscreen || 
+                              document.webkitExitFullscreen || 
+                              document.mozCancelFullScreen || 
+                              document.msExitFullscreen;
+        
+        if (exitFullscreen) {
+          exitFullscreen.call(document)
+            .then(() => {
+              setIsFullscreen(false);
+            })
+            .catch(err => {
+              console.error('Error attempting to exit fullscreen:', err);
+            });
+        }
+      }
+    } catch (error) {
+      console.error('Fullscreen toggle error:', error);
+      // Fallback - just toggle the state if the API fails
+      setIsFullscreen(!isFullscreen);
+    }
+  };
+
+  // Function to maximize a participant's video
+  const maximizeParticipantVideo = (participant) => {
+    setMaximizedParticipant(participant);
+  };
+
+  // Function to close the maximized video
+  const closeMaximizedVideo = () => {
+    setMaximizedParticipant(null);
+  };
 
   // Render loading state
   if (loading) {
@@ -1574,22 +1672,33 @@ const StudyRoomDetail = () => {
     return (
       <div 
         key={participant.id}
-        className={`flex flex-col items-center ${
-          isSpeaking ? 'relative' : ''
-        }`}
+        className={`flex flex-col items-center bg-gray-800 bg-opacity-50 p-4 rounded-lg border-2 transition-all ${
+          isSpeaking ? 'border-green-500 shadow-lg shadow-green-500/30 animate-pulse-slow' : 
+          'border-transparent hover:border-gray-600'
+        }`} 
+        style={{ minWidth: '180px', minHeight: '220px' }}
       >
-        {isSpeaking && (
-          <div className="absolute -inset-1 rounded-full bg-green-500 opacity-40 animate-pulse-slow z-0"></div>
-        )}
-        <div className="relative z-10">
-          <div className={`w-16 h-16 rounded-full overflow-hidden ${isSpeaking ? 'ring-3 ring-green-500 shadow-lg shadow-green-500/30' : ''} bg-secondary-700 mb-2 transition-all duration-200`}>
-            {hasVideo ? (
+        {/* Video container */}
+        <div className="relative w-full rounded-md overflow-hidden bg-black flex items-center justify-center mb-4 group" style={{ height: '140px' }}>
+          {hasVideo ? (
+            <>
               <VideoDisplay 
                 participantId={participant.id} 
                 isCurrentUser={isCurrentUser}
                 isSpeaking={isSpeaking}
               />
-            ) : (
+              {/* Add maximize button */}
+              <button 
+                onClick={() => maximizeParticipantVideo(participant)}
+                className="absolute top-2 right-2 bg-black bg-opacity-60 p-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Maximize video"
+              >
+                <FaExpandAlt className="text-white text-sm" />
+              </button>
+            </>
+          ) : (
+            /* User avatar shown when video is disabled */
+            <div className={`w-24 h-24 rounded-full overflow-hidden ${isSpeaking ? 'ring-4 ring-green-500 ring-opacity-70' : ''} bg-secondary-700`}>
               <img 
                 src={participant.avatar ? getAvatarUrl(participant.avatar) : getAvatarPlaceholder(participant.name, '')} 
                 alt={participant.name}
@@ -1599,18 +1708,25 @@ const StudyRoomDetail = () => {
                   e.target.src = getAvatarPlaceholder(participant.name, '');
                 }}
               />
-            )}
-          </div>
-          <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center ${participant.audioEnabled ? 'bg-green-500' : 'bg-red-500'} transition-all duration-200 ${isSpeaking && participant.audioEnabled ? 'animate-pulse-fast' : ''}`}>
-            {participant.audioEnabled ? 
-              <FaMicrophone className="text-white text-[10px]" /> : 
-              <FaMicrophoneSlash className="text-white text-[10px]" />
-            }
-          </div>
+            </div>
+          )}
         </div>
-        <div className="text-sm font-medium text-center text-white truncate max-w-[80px]">
-          {isCurrentUser ? 'You' : participant.name.split(' ')[0]}
+        
+        {/* Audio status indicator */}
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${participant.audioEnabled ? 'bg-green-500' : 'bg-red-500'}`}>
+          {participant.audioEnabled ? 
+            <FaMicrophone className="text-white text-sm" /> : 
+            <FaMicrophoneSlash className="text-white text-sm" />
+          }
         </div>
+        
+        <div className="text-base font-medium text-center text-white">
+          {isCurrentUser ? 'You' : participant.name}
+        </div>
+        
+        {isCurrentUser && (
+          <div className="text-sm text-gray-300 mt-1">(You)</div>
+        )}
       </div>
     );
   };
@@ -1986,7 +2102,7 @@ const StudyRoomDetail = () => {
 
       {/* Call Interface (conditionally rendered) */}
       {isCallActive && !isCallUIMinimized && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex flex-col">
+        <div ref={fullscreenContainerRef} className="fixed inset-0 bg-black bg-opacity-80 z-50 flex flex-col">
           <div className="p-4 flex justify-between items-center">
             <div className="flex items-center">
               <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center mr-3">
@@ -1998,6 +2114,14 @@ const StudyRoomDetail = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
+              <button 
+                onClick={toggleFullscreen}
+                className="px-3 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors flex items-center"
+                title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              >
+                {isFullscreen ? <FaCompressAlt className="mr-2" /> : <FaExpandAlt className="mr-2" />}
+                {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              </button>
               <button 
                 onClick={toggleCallUIVisibility}
                 className="px-3 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors flex items-center"
@@ -2028,61 +2152,7 @@ const StudyRoomDetail = () => {
                   <p className="text-gray-300">Invite others to join this voice call</p>
                 </div>
               ) : (
-                callParticipants.map(participant => {
-                  const isSpeaking = speakingParticipants[participant.id];
-                  const isCurrentUser = participant.id === currentUser?.id;
-                  
-                  return (
-                    <div 
-                      key={participant.id} 
-                      className={`flex flex-col items-center bg-gray-800 bg-opacity-50 p-4 rounded-lg border-2 transition-all ${
-                        isSpeaking ? 'border-green-500 shadow-lg shadow-green-500/30 animate-pulse-slow' : 
-                        'border-transparent hover:border-gray-600'
-                      }`} 
-                      style={{ minWidth: '180px', minHeight: '220px' }}
-                    >
-                      {/* Video container */}
-                      <div className="relative w-full rounded-md overflow-hidden bg-black flex items-center justify-center mb-4" style={{ height: '140px' }}>
-                        {participant.videoEnabled ? (
-                          <VideoDisplay 
-                            participantId={participant.id} 
-                            isCurrentUser={isCurrentUser}
-                            isSpeaking={isSpeaking}
-                          />
-                        ) : (
-                          /* User avatar shown when video is disabled */
-                          <div className={`w-24 h-24 rounded-full overflow-hidden ${isSpeaking ? 'ring-4 ring-green-500 ring-opacity-70' : ''} bg-secondary-700`}>
-                            <img 
-                              src={participant.avatar ? getAvatarUrl(participant.avatar) : getAvatarPlaceholder(participant.name, '')} 
-                              alt={participant.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = getAvatarPlaceholder(participant.name, '');
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Audio status indicator */}
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${participant.audioEnabled ? 'bg-green-500' : 'bg-red-500'}`}>
-                        {participant.audioEnabled ? 
-                          <FaMicrophone className="text-white text-sm" /> : 
-                          <FaMicrophoneSlash className="text-white text-sm" />
-                        }
-                      </div>
-                      
-                      <div className="text-base font-medium text-center text-white">
-                        {isCurrentUser ? 'You' : participant.name}
-                      </div>
-                      
-                      {isCurrentUser && (
-                        <div className="text-sm text-gray-300 mt-1">(You)</div>
-                      )}
-                    </div>
-                  );
-                })
+                callParticipants.map(participant => renderCallParticipant(participant))
               )}
             </div>
           </div>
@@ -2145,11 +2215,18 @@ const StudyRoomDetail = () => {
                 {isVideoOff ? <FaVideoSlash size={12} /> : <FaVideo size={12} />}
               </button>
               <button 
+                onClick={toggleFullscreen}
+                className="p-2 rounded-full bg-white bg-opacity-20 text-white hover:bg-opacity-30"
+                title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              >
+                {isFullscreen ? <FaCompressAlt size={12} /> : <FaExpandAlt size={12} />}
+              </button>
+              <button 
                 onClick={toggleCallUIVisibility}
                 className="p-2 rounded-full bg-white bg-opacity-20 text-white hover:bg-opacity-30"
                 title="Expand call"
               >
-                <FaExpandAlt size={12} />
+                <FaChevronUp size={12} />
               </button>
               <button 
                 onClick={handleEndCall}
@@ -2448,6 +2525,80 @@ const StudyRoomDetail = () => {
                   'Delete Room'
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Maximized Video Modal */}
+      {maximizedParticipant && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col">
+          <div className="p-4 flex justify-between items-center">
+            <div className="flex items-center">
+              <div className="text-white font-medium text-lg">
+                {maximizedParticipant.id === currentUser?.id ? 'You' : maximizedParticipant.name}
+              </div>
+              {maximizedParticipant.audioEnabled && speakingParticipants[maximizedParticipant.id] && (
+                <div className="ml-2 px-2 py-1 bg-green-500 text-xs text-white rounded-full flex items-center">
+                  <FaMicrophone className="mr-1" /> Speaking
+                </div>
+              )}
+            </div>
+            <button 
+              onClick={closeMaximizedVideo}
+              className="p-2 rounded-full bg-gray-800 text-white hover:bg-gray-700"
+              title="Close"
+            >
+              <FaTimes />
+            </button>
+          </div>
+          
+          <div className="flex-grow flex items-center justify-center p-4">
+            <div className="relative w-full max-w-4xl h-full max-h-[80vh] bg-gray-900 rounded-lg overflow-hidden">
+              {maximizedParticipant.videoEnabled ? (
+                <VideoDisplay 
+                  participantId={maximizedParticipant.id} 
+                  isCurrentUser={maximizedParticipant.id === currentUser?.id}
+                  isSpeaking={speakingParticipants[maximizedParticipant.id]}
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center">
+                  <div className="w-40 h-40 rounded-full overflow-hidden mb-4">
+                    <img 
+                      src={maximizedParticipant.avatar ? getAvatarUrl(maximizedParticipant.avatar) : getAvatarPlaceholder(maximizedParticipant.name, '')} 
+                      alt={maximizedParticipant.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = getAvatarPlaceholder(maximizedParticipant.name, '');
+                      }}
+                    />
+                  </div>
+                  <div className="text-xl font-medium text-white">
+                    {maximizedParticipant.id === currentUser?.id ? 'You' : maximizedParticipant.name}
+                  </div>
+                  <div className="text-gray-400 mt-2">
+                    Video is turned off
+                  </div>
+                </div>
+              )}
+              
+              {/* Audio indicator */}
+              <div className={`absolute bottom-4 right-4 flex items-center px-3 py-1 rounded-full ${
+                maximizedParticipant.audioEnabled ? 'bg-green-500' : 'bg-red-500'
+              }`}>
+                {maximizedParticipant.audioEnabled ? (
+                  <>
+                    <FaMicrophone className="text-white mr-2" />
+                    <span className="text-white text-sm">Audio on</span>
+                  </>
+                ) : (
+                  <>
+                    <FaMicrophoneSlash className="text-white mr-2" />
+                    <span className="text-white text-sm">Audio off</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
