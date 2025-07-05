@@ -16,6 +16,92 @@ import ResourceModal from '../../components/resources/ResourceModal';
 import { toast } from 'react-toastify';
 import { getAvatarUrl, getAvatarPlaceholder } from '../../utils/avatarUtils.jsx';
 
+// VideoDisplay component for handling video streams
+const VideoDisplay = ({ participantId, isCurrentUser, isSpeaking }) => {
+  const videoRef = useRef(null);
+  const [hasVideoStream, setHasVideoStream] = useState(false);
+  const [errorLoading, setErrorLoading] = useState(false);
+  
+  useEffect(() => {
+    if (!videoRef.current) return;
+    
+    let stream = null;
+    
+    // For current user, use local stream
+    if (isCurrentUser && callService.localStream) {
+      stream = callService.localStream;
+      
+      // Check if there are enabled video tracks
+      const hasEnabledVideoTracks = stream.getVideoTracks().some(track => track.enabled);
+      setHasVideoStream(hasEnabledVideoTracks);
+    } 
+    // For other participants, get stream from peer connection
+    else if (!isCurrentUser) {
+      const audioElement = document.getElementById(`remote-audio-${participantId}`);
+      if (audioElement && audioElement.srcObject) {
+        stream = audioElement.srcObject;
+        
+        // Check if there are video tracks
+        const hasVideoTracks = stream.getVideoTracks().length > 0;
+        setHasVideoStream(hasVideoTracks);
+      }
+    }
+    
+    if (stream) {
+      try {
+        videoRef.current.srcObject = stream;
+        
+        // Add event listener for when video starts playing
+        const handleCanPlay = () => {
+          setHasVideoStream(true);
+          setErrorLoading(false);
+        };
+        
+        // Add event listener for errors
+        const handleError = (error) => {
+          console.error('Video element error:', error);
+          setErrorLoading(true);
+          setHasVideoStream(false);
+        };
+        
+        videoRef.current.addEventListener('canplay', handleCanPlay);
+        videoRef.current.addEventListener('error', handleError);
+        
+        return () => {
+          if (videoRef.current) {
+            videoRef.current.removeEventListener('canplay', handleCanPlay);
+            videoRef.current.removeEventListener('error', handleError);
+            videoRef.current.srcObject = null;
+          }
+        };
+      } catch (error) {
+        console.error('Error setting video source:', error);
+        setErrorLoading(true);
+      }
+    } else {
+      setHasVideoStream(false);
+    }
+  }, [participantId, isCurrentUser]);
+  
+  if (errorLoading) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white text-sm text-center p-2">
+        <span>Video unavailable</span>
+      </div>
+    );
+  }
+  
+  return (
+    <video 
+      ref={videoRef}
+      autoPlay
+      playsInline
+      muted={isCurrentUser}
+      className={`w-full h-full object-cover ${isSpeaking ? 'ring-2 ring-green-500' : ''} ${!hasVideoStream ? 'hidden' : ''}`}
+    />
+  );
+};
+
 const StudyRoomDetail = () => {
   const { roomId } = useParams();
   const { currentUser, api } = useAuth();
@@ -595,6 +681,10 @@ const StudyRoomDetail = () => {
       
       // Set initial mic state
       setIsMicMuted(false);
+      
+      // Set initial video state - start with video off
+      setIsVideoOff(true);
+      callService.toggleVideo(false);
     };
     
     // Handle user joined call event
@@ -732,11 +822,76 @@ const StudyRoomDetail = () => {
     }
   };
 
-  // Handle toggling video (placeholder for future implementation)
+  // Handle toggling video
   const handleToggleVideo = () => {
-    setIsVideoOff(!isVideoOff);
-    // Video functionality will be implemented in the future
-    toast.info('Video functionality will be implemented in a future update.');
+    try {
+      const newVideoState = !isVideoOff;
+      setIsVideoOff(newVideoState);
+      
+      // Check if we have permission to access camera before trying to toggle
+      if (newVideoState === false && callService.localStream) {
+        // Check if we have video tracks
+        const videoTracks = callService.localStream.getVideoTracks();
+        
+        if (videoTracks.length === 0) {
+          // We don't have video tracks, try to get them
+          navigator.mediaDevices.getUserMedia({ video: true })
+            .then(videoStream => {
+              // Add the video track to our existing stream
+              const videoTrack = videoStream.getVideoTracks()[0];
+              callService.localStream.addTrack(videoTrack);
+              
+              // Now toggle video
+              callService.toggleVideo(true);
+              
+              // Also update the current user's entry in the callParticipants array
+              if (currentUser) {
+                setCallParticipants(prev => 
+                  prev.map(p => p.id === currentUser.id 
+                    ? { ...p, videoEnabled: true } 
+                    : p
+                  )
+                );
+              }
+            })
+            .catch(err => {
+              console.error('Error accessing camera:', err);
+              toast.error('Could not access camera. Please check your permissions.');
+              setIsVideoOff(true); // Revert the state
+            });
+        } else {
+          // We have video tracks, just toggle them
+          callService.toggleVideo(!newVideoState);
+          
+          // Also update the current user's entry in the callParticipants array
+          if (currentUser) {
+            setCallParticipants(prev => 
+              prev.map(p => p.id === currentUser.id 
+                ? { ...p, videoEnabled: !newVideoState } 
+                : p
+              )
+            );
+          }
+        }
+      } else {
+        // Just toggle existing video
+        callService.toggleVideo(!newVideoState);
+        
+        // Also update the current user's entry in the callParticipants array
+        if (currentUser) {
+          setCallParticipants(prev => 
+            prev.map(p => p.id === currentUser.id 
+              ? { ...p, videoEnabled: !newVideoState } 
+              : p
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling video:', error);
+      toast.error('Failed to toggle video. Please check your camera permissions.');
+      setIsVideoOff(true); // Revert to video off on error
+    }
   };
 
   // Handle toggling screen share (placeholder for future implementation)
@@ -1414,6 +1569,7 @@ const StudyRoomDetail = () => {
   const renderCallParticipant = (participant) => {
     const isSpeaking = speakingParticipants[participant.id];
     const isCurrentUser = participant.id === currentUser?.id;
+    const hasVideo = participant.videoEnabled;
     
     return (
       <div 
@@ -1427,15 +1583,23 @@ const StudyRoomDetail = () => {
         )}
         <div className="relative z-10">
           <div className={`w-16 h-16 rounded-full overflow-hidden ${isSpeaking ? 'ring-3 ring-green-500 shadow-lg shadow-green-500/30' : ''} bg-secondary-700 mb-2 transition-all duration-200`}>
-            <img 
-              src={participant.avatar ? getAvatarUrl(participant.avatar) : getAvatarPlaceholder(participant.name, '')} 
-              alt={participant.name}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = getAvatarPlaceholder(participant.name, '');
-              }}
-            />
+            {hasVideo ? (
+              <VideoDisplay 
+                participantId={participant.id} 
+                isCurrentUser={isCurrentUser}
+                isSpeaking={isSpeaking}
+              />
+            ) : (
+              <img 
+                src={participant.avatar ? getAvatarUrl(participant.avatar) : getAvatarPlaceholder(participant.name, '')} 
+                alt={participant.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = getAvatarPlaceholder(participant.name, '');
+                }}
+              />
+            )}
           </div>
           <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center ${participant.audioEnabled ? 'bg-green-500' : 'bg-red-500'} transition-all duration-200 ${isSpeaking && participant.audioEnabled ? 'animate-pulse-fast' : ''}`}>
             {participant.audioEnabled ? 
@@ -1877,20 +2041,28 @@ const StudyRoomDetail = () => {
                       }`} 
                       style={{ minWidth: '180px', minHeight: '220px' }}
                     >
-                      {/* Video placeholder - will be replaced with actual video stream in the future */}
+                      {/* Video container */}
                       <div className="relative w-full rounded-md overflow-hidden bg-black flex items-center justify-center mb-4" style={{ height: '140px' }}>
-                        {/* User avatar shown until video is implemented */}
-                        <div className={`w-24 h-24 rounded-full overflow-hidden ${isSpeaking ? 'ring-4 ring-green-500 ring-opacity-70' : ''} bg-secondary-700`}>
-                          <img 
-                            src={participant.avatar ? getAvatarUrl(participant.avatar) : getAvatarPlaceholder(participant.name, '')} 
-                            alt={participant.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = getAvatarPlaceholder(participant.name, '');
-                            }}
+                        {participant.videoEnabled ? (
+                          <VideoDisplay 
+                            participantId={participant.id} 
+                            isCurrentUser={isCurrentUser}
+                            isSpeaking={isSpeaking}
                           />
-                        </div>
+                        ) : (
+                          /* User avatar shown when video is disabled */
+                          <div className={`w-24 h-24 rounded-full overflow-hidden ${isSpeaking ? 'ring-4 ring-green-500 ring-opacity-70' : ''} bg-secondary-700`}>
+                            <img 
+                              src={participant.avatar ? getAvatarUrl(participant.avatar) : getAvatarPlaceholder(participant.name, '')} 
+                              alt={participant.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = getAvatarPlaceholder(participant.name, '');
+                              }}
+                            />
+                          </div>
+                        )}
                       </div>
                       
                       {/* Audio status indicator */}
@@ -1926,11 +2098,10 @@ const StudyRoomDetail = () => {
               </button>
               <button 
                 onClick={handleToggleVideo}
-                className="p-4 rounded-full bg-gray-700 text-gray-400 cursor-not-allowed"
-                title="Video coming soon"
-                disabled={true}
+                className={`p-4 rounded-full ${isVideoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-primary-600 hover:bg-primary-700'} text-white transition-colors`}
+                title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}
               >
-                <FaVideoSlash size={20} />
+                {isVideoOff ? <FaVideoSlash size={20} /> : <FaVideo size={20} />}
               </button>
               <button 
                 onClick={handleToggleScreenShare}
@@ -1965,6 +2136,13 @@ const StudyRoomDetail = () => {
                 title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
               >
                 {isMicMuted ? <FaMicrophoneSlash size={12} /> : <FaMicrophone size={12} />}
+              </button>
+              <button 
+                onClick={handleToggleVideo}
+                className={`p-2 rounded-full ${isVideoOff ? 'bg-red-500' : 'bg-green-500'} text-white`}
+                title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}
+              >
+                {isVideoOff ? <FaVideoSlash size={12} /> : <FaVideo size={12} />}
               </button>
               <button 
                 onClick={toggleCallUIVisibility}

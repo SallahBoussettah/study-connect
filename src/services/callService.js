@@ -11,7 +11,7 @@ class CallService {
     this.listeners = {};
     this.mediaConstraints = {
       audio: true,
-      video: false
+      video: true
     };
     this.rtcConfig = {
       iceServers: [
@@ -182,8 +182,31 @@ class CallService {
         throw new Error('Already in a call');
       }
       
-      // Get user media (audio only for now)
-      this.localStream = await navigator.mediaDevices.getUserMedia(this.mediaConstraints);
+      // Try to get user media with both audio and video
+      try {
+        this.localStream = await navigator.mediaDevices.getUserMedia(this.mediaConstraints);
+        
+        // Initially disable video but keep audio enabled
+        this.localStream.getVideoTracks().forEach(track => {
+          track.enabled = false;
+        });
+      } catch (mediaError) {
+        console.warn('Error accessing camera, falling back to audio only:', mediaError);
+        
+        // Try audio only as fallback
+        try {
+          this.localStream = await navigator.mediaDevices.getUserMedia({ 
+            audio: true, 
+            video: false 
+          });
+          
+          // Show warning to user
+          toast.warning('Camera access failed. Joining with audio only.');
+        } catch (audioError) {
+          console.error('Error accessing microphone:', audioError);
+          throw new Error('Could not access microphone. Please check your permissions.');
+        }
+      }
       
       // Join the call
       this.socket.emit('join-call', { roomId });
@@ -197,7 +220,7 @@ class CallService {
         this._stopLocalStream();
       }
       
-      toast.error(error.message || 'Failed to join call. Please check your microphone permissions.');
+      toast.error(error.message || 'Failed to join call. Please check your microphone and camera permissions.');
       return false;
     }
   }
@@ -263,6 +286,73 @@ class CallService {
     if (audioTracks.length === 0) return true;
     
     return !audioTracks[0].enabled;
+  }
+  
+  /**
+   * Ensure video tracks are available, requesting camera access if needed
+   * @returns {Promise<boolean>} - Whether video tracks are available
+   */
+  async ensureVideoTracks() {
+    if (!this.localStream) return false;
+    
+    // Check if we already have video tracks
+    const videoTracks = this.localStream.getVideoTracks();
+    if (videoTracks.length > 0) return true;
+    
+    try {
+      // Request camera access
+      const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      
+      // Add video tracks to our existing stream
+      videoStream.getVideoTracks().forEach(track => {
+        this.localStream.addTrack(track);
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Toggle video on/off
+   * @param {boolean} enabled - Whether the video should be enabled
+   */
+  toggleVideo(enabled) {
+    if (!this.localStream) return;
+    
+    try {
+      // Toggle video tracks
+      this.localStream.getVideoTracks().forEach(track => {
+        track.enabled = enabled;
+      });
+      
+      // Notify server of state change
+      if (this.socket && this.roomId) {
+        this.socket.emit('media-state-change', {
+          roomId: this.roomId,
+          videoEnabled: enabled
+        });
+      }
+      
+      console.log(`Video ${enabled ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+      console.error('Error toggling video:', error);
+    }
+  }
+  
+  /**
+   * Check if the video is currently disabled
+   * @returns {boolean} - Whether the video is disabled
+   */
+  isVideoDisabled() {
+    if (!this.localStream) return true;
+    
+    const videoTracks = this.localStream.getVideoTracks();
+    if (videoTracks.length === 0) return true;
+    
+    return !videoTracks[0].enabled;
   }
   
   /**
@@ -333,7 +423,7 @@ class CallService {
       // Create offer
       const offer = await peerConnection.createOffer({
         offerToReceiveAudio: true,
-        offerToReceiveVideo: false
+        offerToReceiveVideo: true
       });
       
       // Set local description
