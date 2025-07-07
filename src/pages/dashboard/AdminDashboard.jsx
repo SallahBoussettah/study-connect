@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { FaUsers, FaUserGraduate, FaBook, FaChartLine, FaServer, FaExclamationTriangle, FaCog, FaSearch, FaFilter, FaDownload, FaDatabase, FaUserClock, FaChartBar, FaCalendarAlt, FaUserPlus, FaFileUpload, FaFilePdf, FaFileAlt, FaImage, FaVideo, FaLink, FaFile } from 'react-icons/fa';
+import { FaUsers, FaUserGraduate, FaBook, FaChartLine, FaServer, FaExclamationTriangle, FaCog, FaSearch, FaFilter, FaDownload, FaDatabase, FaUserClock, FaChartBar, FaCalendarAlt, FaUserPlus, FaFileUpload, FaFilePdf, FaFileAlt, FaImage, FaVideo, FaLink, FaFile, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { format, parseISO, subDays } from 'date-fns';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { adminUserService } from '../../services/api';
+import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'react-hot-toast';
 
 const AdminDashboard = () => {
   const { currentUser, api } = useAuth();
@@ -194,142 +197,573 @@ const AdminDashboard = () => {
     );
   };
   
+  // Users Management Component
+  const UsersManagement = () => {
+    const { api } = useAuth();
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalUsers, setTotalUsers] = useState(0);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [roleFilter, setRoleFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [userToDelete, setUserToDelete] = useState(null);
+    const [showRoleModal, setShowRoleModal] = useState(false);
+    const [userToUpdateRole, setUserToUpdateRole] = useState(null);
+    const [selectedRole, setSelectedRole] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Fetch users on component mount and when filters change
+    useEffect(() => {
+      const fetchUsers = async () => {
+        try {
+                      setLoading(true);
+          const response = await adminUserService.getUsers(
+            currentPage, 
+            10, 
+            searchTerm, 
+            roleFilter, 
+            statusFilter
+          );
+          
+          if (response.success) {
+            setUsers(response.data.users);
+            setTotalPages(response.data.pagination.totalPages);
+            setTotalUsers(response.data.pagination.totalUsers);
+          } else {
+            setError('Failed to fetch users');
+          }
+        } catch (err) {
+          console.error('Error fetching users:', err);
+          setError('An error occurred while fetching users');
+        } finally {
+                          setLoading(false);
+        }
+      };
+      
+      fetchUsers();
+    }, [currentPage, searchTerm, roleFilter, statusFilter]);
+
+    // Handle search
+    const handleSearch = (e) => {
+      e.preventDefault();
+      setCurrentPage(1);
+    };
+
+    // Handle role filter change
+    const handleRoleFilterChange = (e) => {
+      setRoleFilter(e.target.value);
+      setCurrentPage(1);
+    };
+
+    // Handle status filter change
+    const handleStatusFilterChange = (e) => {
+      setStatusFilter(e.target.value);
+      setCurrentPage(1);
+    };
+
+    // Handle pagination
+    const handlePageChange = (page) => {
+      setCurrentPage(page);
+    };
+
+    // Format date for display
+    const formatDate = (dateString) => {
+      if (!dateString || dateString === 'Never') return 'Never';
+      try {
+        return format(parseISO(dateString), 'MMM d, yyyy h:mm a');
+      } catch (error) {
+        return dateString;
+      }
+    };
+
+    // Format relative time for display
+    const formatRelativeTime = (dateString) => {
+      if (!dateString || dateString === 'Never') return 'Never';
+      try {
+        return formatDistanceToNow(parseISO(dateString), { addSuffix: true });
+      } catch (error) {
+        return dateString;
+      }
+    };
+
+    // Toggle user status
+    const toggleUserStatus = async (userId, currentStatus) => {
+      try {
+        setIsSubmitting(true);
+        const response = await adminUserService.updateUserStatus(userId, !currentStatus);
+        
+        if (response.success) {
+          // Update user in the list
+          setUsers(users.map(user => 
+            user.id === userId ? { ...user, isActive: !currentStatus } : user
+          ));
+          toast.success(response.message);
+        } else {
+          toast.error(response.error || 'Failed to update user status');
+        }
+      } catch (err) {
+        console.error('Error toggling user status:', err);
+        toast.error(err.response?.data?.error || 'An error occurred');
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    // Open delete confirmation modal
+    const openDeleteModal = (user) => {
+      setUserToDelete(user);
+      setShowDeleteModal(true);
+    };
+
+    // Close delete confirmation modal
+    const closeDeleteModal = () => {
+      setUserToDelete(null);
+      setShowDeleteModal(false);
+    };
+
+    // Delete user
+    const handleDeleteUser = async () => {
+      if (!userToDelete) return;
+      
+      try {
+        setIsSubmitting(true);
+        const response = await adminUserService.deleteUser(userToDelete.id);
+        
+        if (response.success) {
+          // Remove user from the list
+          setUsers(users.filter(user => user.id !== userToDelete.id));
+          toast.success('User deleted successfully');
+          closeDeleteModal();
+        } else {
+          toast.error(response.error || 'Failed to delete user');
+        }
+      } catch (err) {
+        console.error('Error deleting user:', err);
+        toast.error(err.response?.data?.error || 'An error occurred');
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    // Open role update modal
+    const openRoleModal = (user) => {
+      setUserToUpdateRole(user);
+      setSelectedRole(user.role);
+      setShowRoleModal(true);
+    };
+
+    // Close role update modal
+    const closeRoleModal = () => {
+      setUserToUpdateRole(null);
+      setSelectedRole('');
+      setShowRoleModal(false);
+    };
+
+    // Update user role
+    const handleUpdateRole = async () => {
+      if (!userToUpdateRole || !selectedRole) return;
+      
+      try {
+        setIsSubmitting(true);
+        const response = await adminUserService.updateUserRole(userToUpdateRole.id, selectedRole);
+        
+        if (response.success) {
+          // Update user in the list
+          setUsers(users.map(user => 
+            user.id === userToUpdateRole.id ? { ...user, role: selectedRole } : user
+          ));
+          toast.success(`User role updated to ${selectedRole}`);
+          closeRoleModal();
+        } else {
+          toast.error(response.error || 'Failed to update user role');
+        }
+      } catch (err) {
+        console.error('Error updating user role:', err);
+        toast.error(err.response?.data?.error || 'An error occurred');
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    // Get role badge color
+    const getRoleBadgeColor = (role) => {
+      switch (role) {
+        case 'admin':
+          return 'bg-red-100 text-red-800';
+        case 'teacher':
+          return 'bg-blue-100 text-blue-800';
+        default:
+          return 'bg-green-100 text-green-800';
+      }
+    };
+                                
+                                return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+          <h2 className="text-2xl font-semibold text-secondary-900 mb-4 md:mb-0">User Management</h2>
+          
+          <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+            {/* Search form */}
+            <form onSubmit={handleSearch} className="flex">
+                        <input
+                          type="text"
+                          placeholder="Search users..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                className="px-4 py-2 border border-secondary-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                          <button 
+                type="submit"
+                className="bg-primary-600 text-white px-4 py-2 rounded-r-md hover:bg-primary-700"
+                          >
+                <FaSearch />
+                          </button>
+            </form>
+            
+            {/* Role filter */}
+            <select
+              value={roleFilter}
+              onChange={handleRoleFilterChange}
+              className="px-4 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">All Roles</option>
+              <option value="student">Students</option>
+              <option value="teacher">Teachers</option>
+              <option value="admin">Admins</option>
+            </select>
+            
+            {/* Status filter */}
+            <select
+              value={statusFilter}
+              onChange={handleStatusFilterChange}
+              className="px-4 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+                      </div>
+                    </div>
+        
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                  </div>
+        ) : error ? (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        ) : (
+          <>
+                  <div className="overflow-x-auto">
+              <table className="min-w-full bg-white">
+                      <thead className="bg-secondary-50">
+                        <tr>
+                    <th className="py-3 px-4 text-left text-sm font-medium text-secondary-700">User</th>
+                    <th className="py-3 px-4 text-left text-sm font-medium text-secondary-700">Email</th>
+                    <th className="py-3 px-4 text-left text-sm font-medium text-secondary-700">Role</th>
+                    <th className="py-3 px-4 text-left text-sm font-medium text-secondary-700">Status</th>
+                    <th className="py-3 px-4 text-left text-sm font-medium text-secondary-700">Joined</th>
+                    <th className="py-3 px-4 text-left text-sm font-medium text-secondary-700">Last Login</th>
+                    <th className="py-3 px-4 text-left text-sm font-medium text-secondary-700">Actions</th>
+                        </tr>
+                      </thead>
+                <tbody className="divide-y divide-secondary-200">
+                  {users.map((user) => (
+                              <tr key={user.id} className="hover:bg-secondary-50">
+                      <td className="py-4 px-4">
+                                  <div className="flex items-center">
+                          <div className="h-10 w-10 flex-shrink-0">
+                            {user.avatar ? (
+                              <img
+                                className="h-10 w-10 rounded-full"
+                                src={user.avatar}
+                                alt={user.name}
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`;
+                                }}
+                              />
+                            ) : (
+                              <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold">
+                                {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                                    </div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-secondary-900">{user.name}</div>
+                            <div className="text-sm text-secondary-500">{user.institution}</div>
+                          </div>
+                                  </div>
+                            </td>
+                      <td className="py-4 px-4 text-sm text-secondary-700">{user.email}</td>
+                      <td className="py-4 px-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
+                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        </span>
+                            </td>
+                      <td className="py-4 px-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {user.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                      <td className="py-4 px-4 text-sm text-secondary-700" title={formatDate(user.joinedAt)}>
+                        {formatRelativeTime(user.joinedAt)}
+                            </td>
+                      <td className="py-4 px-4 text-sm text-secondary-700" title={user.lastLogin !== 'Never' ? formatDate(user.lastLogin) : 'Never'}>
+                        {user.lastLogin !== 'Never' ? formatRelativeTime(user.lastLogin) : 'Never'}
+                      </td>
+                      <td className="py-4 px-4 text-sm text-secondary-700">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => openRoleModal(user)}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Change Role"
+                            disabled={isSubmitting}
+                          >
+                            <FaCog />
+                          </button>
+                          <button
+                            onClick={() => toggleUserStatus(user.id, user.isActive)}
+                            className={`${user.isActive ? 'text-yellow-600 hover:text-yellow-800' : 'text-green-600 hover:text-green-800'}`}
+                            title={user.isActive ? 'Deactivate User' : 'Activate User'}
+                            disabled={isSubmitting}
+                          >
+                            {user.isActive ? <FaUserClock /> : <FaUserPlus />}
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal(user)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Delete User"
+                            disabled={isSubmitting}
+                          >
+                            <FaTrash />
+                          </button>
+                              </div>
+                            </td>
+                          </tr>
+                  ))}
+                      </tbody>
+                    </table>
+                  </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center mt-6">
+                <div className="text-sm text-secondary-700">
+                  Showing {users.length} of {totalUsers} users
+                    </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-1 rounded ${
+                      currentPage === 1
+                        ? 'bg-secondary-100 text-secondary-400 cursor-not-allowed'
+                        : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
+                    }`}
+                  >
+                        Previous
+                      </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`px-3 py-1 rounded ${
+                        currentPage === page
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-1 rounded ${
+                      currentPage === totalPages
+                        ? 'bg-secondary-100 text-secondary-400 cursor-not-allowed'
+                        : 'bg-secondary-200 text-secondary-700 hover:bg-secondary-300'
+                    }`}
+                  >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+            )}
+          </>
+        )}
+        
+        {/* Delete User Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h3 className="text-xl font-semibold text-secondary-900 mb-4">Delete User</h3>
+              <p className="text-secondary-700 mb-6">
+                Are you sure you want to delete the user <span className="font-semibold">{userToDelete?.name}</span>? This action cannot be undone.
+              </p>
+              <div className="flex justify-end space-x-4">
+                <button
+                  onClick={closeDeleteModal}
+                  className="px-4 py-2 border border-secondary-300 rounded-md text-secondary-700 hover:bg-secondary-50"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteUser}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Deleting...' : 'Delete'}
+                </button>
+                              </div>
+              </div>
+            </div>
+          )}
+          
+        {/* Update Role Modal */}
+        {showRoleModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h3 className="text-xl font-semibold text-secondary-900 mb-4">Change User Role</h3>
+              <p className="text-secondary-700 mb-4">
+                Update role for user <span className="font-semibold">{userToUpdateRole?.name}</span>:
+              </p>
+                  <div className="mb-6">
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="w-full px-4 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="student">Student</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="flex justify-end space-x-4">
+                        <button 
+                  onClick={closeRoleModal}
+                  className="px-4 py-2 border border-secondary-300 rounded-md text-secondary-700 hover:bg-secondary-50"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateRole}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Updating...' : 'Update Role'}
+                        </button>
+                      </div>
+                          </div>
+                          </div>
+        )}
+                        </div>
+    );
+  };
+
   return (
     <div>
       <div className="mb-8 flex justify-between items-center">
         <div>
-        <h1 className="text-2xl font-bold text-secondary-900">Admin Dashboard</h1>
-        <p className="text-secondary-600 mt-1">
-          Manage users, monitor platform activity, and review system performance.
-          </p>
-        </div>
-      </div>
+          <h1 className="text-3xl font-bold text-secondary-900">Admin Dashboard</h1>
+          <p className="text-secondary-600 mt-1">Manage your platform and monitor system performance</p>
+                          </div>
+        <div className="flex items-center space-x-4">
+          <div>
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value)}
+              className="px-4 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="7days">Last 7 Days</option>
+              <option value="30days">Last 30 Days</option>
+              <option value="90days">Last 90 Days</option>
+              <option value="year">Last Year</option>
+            </select>
+                      </div>
+                    </div>
+                  </div>
+                  
+      {/* Tabs */}
+      <div className="mb-6 border-b border-secondary-200">
+        <div className="flex overflow-x-auto">
+                            <button 
+            className={`px-4 py-2 font-medium text-sm focus:outline-none whitespace-nowrap ${
+              activeTab === 'overview'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-secondary-600 hover:text-secondary-900'
+            }`}
+            onClick={() => setActiveTab('overview')}
+          >
+            <FaChartLine className="inline mr-2" />
+            Overview
+                            </button>
+          <button
+            className={`px-4 py-2 font-medium text-sm focus:outline-none whitespace-nowrap ${
+              activeTab === 'users'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-secondary-600 hover:text-secondary-900'
+            }`}
+            onClick={() => setActiveTab('users')}
+          >
+            <FaUsers className="inline mr-2" />
+            Users
+                        </button>
+          <button
+            className={`px-4 py-2 font-medium text-sm focus:outline-none whitespace-nowrap ${
+              activeTab === 'storage'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-secondary-600 hover:text-secondary-900'
+            }`}
+            onClick={() => setActiveTab('storage')}
+          >
+            <FaDatabase className="inline mr-2" />
+            Storage
+          </button>
+          <button
+            className={`px-4 py-2 font-medium text-sm focus:outline-none whitespace-nowrap ${
+              activeTab === 'resources'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-secondary-600 hover:text-secondary-900'
+            }`}
+            onClick={() => setActiveTab('resources')}
+          >
+            <FaBook className="inline mr-2" />
+                              Resources
+          </button>
+          <button
+            className={`px-4 py-2 font-medium text-sm focus:outline-none whitespace-nowrap ${
+              activeTab === 'settings'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-secondary-600 hover:text-secondary-900'
+            }`}
+            onClick={() => setActiveTab('settings')}
+          >
+            <FaCog className="inline mr-2" />
+            Settings
+          </button>
+                                  </div>
+                                  </div>
       
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-          {error}
-        </div>
-      )}
-      
-      {debugMode && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded mb-6">
-          <h3 className="font-bold">Debug Information</h3>
-          <div className="mt-2 text-sm">
-            <p>Time Range: {timeRange}</p>
-            <p>User Registration Data: {userRegistrationData.length} days</p>
-            <p>Recent Users: {adminData.recentUsers?.length || 0} users</p>
-            <p>API Endpoint: /api/dashboard/admin</p>
-          </div>
-        </div>
-      )}
-      
+      {/* Tab content */}
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-        </div>
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                                </div>
+      ) : error ? (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+                                </div>
       ) : (
         <>
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
-                  <FaUsers />
-                </div>
-                <div>
-                  <p className="text-sm text-secondary-500">Total Users</p>
-                  <h3 className="text-2xl font-bold text-secondary-900">{stats.totalUsers}</h3>
-                  <p className="text-xs text-green-600">+{stats.newUsersToday} today</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
-                  <FaUserGraduate />
-                </div>
-                <div>
-                  <p className="text-sm text-secondary-500">Active Users</p>
-                  <h3 className="text-2xl font-bold text-secondary-900">{stats.activeUsers}</h3>
-                  <p className="text-xs text-secondary-500">{stats.activePercentage}% of total</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-3 rounded-full bg-green-100 text-green-600 mr-4">
-                  <FaDatabase />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-secondary-500">Storage Used</p>
-                  <h3 className="text-2xl font-bold text-secondary-900">{stats.storageUsed}</h3>
-                  <p className="text-xs text-secondary-500">of {stats.totalStorage} total</p>
-                  <div className="mt-2">
-                    {renderProgressBar(stats.storagePercentage)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Tabs */}
-          <div className="mb-6 border-b border-secondary-200">
-            <div className="flex space-x-8">
-              <button
-                className={`py-4 px-1 font-medium text-sm focus:outline-none ${
-                  activeTab === 'overview'
-                    ? 'text-primary-600 border-b-2 border-primary-600'
-                    : 'text-secondary-500 hover:text-secondary-700'
-                }`}
-                onClick={() => setActiveTab('overview')}
-              >
-                Overview
-              </button>
-              <button
-                className={`py-4 px-1 font-medium text-sm focus:outline-none ${
-                  activeTab === 'users'
-                    ? 'text-primary-600 border-b-2 border-primary-600'
-                    : 'text-secondary-500 hover:text-secondary-700'
-                }`}
-                onClick={() => setActiveTab('users')}
-              >
-                Users
-              </button>
-              <button
-                className={`py-4 px-1 font-medium text-sm focus:outline-none ${
-                  activeTab === 'storage'
-                    ? 'text-primary-600 border-b-2 border-primary-600'
-                    : 'text-secondary-500 hover:text-secondary-700'
-                }`}
-                onClick={() => setActiveTab('storage')}
-              >
-                Storage
-              </button>
-              <button
-                className={`py-4 px-1 font-medium text-sm focus:outline-none ${
-                  activeTab === 'resources'
-                    ? 'text-primary-600 border-b-2 border-primary-600'
-                    : 'text-secondary-500 hover:text-secondary-700'
-                }`}
-                onClick={() => setActiveTab('resources')}
-              >
-                Resources
-              </button>
-              <button
-                className={`py-4 px-1 font-medium text-sm focus:outline-none ${
-                  activeTab === 'system'
-                    ? 'text-primary-600 border-b-2 border-primary-600'
-                    : 'text-secondary-500 hover:text-secondary-700'
-                }`}
-                onClick={() => setActiveTab('system')}
-              >
-                System
-              </button>
-            </div>
-          </div>
-          
           {activeTab === 'overview' && (
             <div>
               <div className="flex justify-between items-center mb-6">
@@ -875,6 +1309,8 @@ const AdminDashboard = () => {
             </div>
           )}
           
+          {activeTab === 'users' && <UsersManagement />}
+          
           {/* Storage Tab */}
           {activeTab === 'storage' && (
             <div>
@@ -1123,12 +1559,11 @@ const AdminDashboard = () => {
           )}
           
           {/* Placeholder for other tabs */}
-          {(activeTab === 'users' || activeTab === 'resources' || activeTab === 'system') && (
+          {(activeTab === 'resources' || activeTab === 'settings') && (
             <div className="bg-white rounded-lg shadow p-8 text-center">
               <div className="mx-auto w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center mb-4">
-                {activeTab === 'users' && <FaUsers className="text-secondary-400 text-xl" />}
                 {activeTab === 'resources' && <FaBook className="text-secondary-400 text-xl" />}
-                {activeTab === 'system' && <FaCog className="text-secondary-400 text-xl" />}
+                {activeTab === 'settings' && <FaCog className="text-secondary-400 text-xl" />}
               </div>
               <h3 className="text-lg font-medium text-secondary-900 mb-1">
                 {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Management

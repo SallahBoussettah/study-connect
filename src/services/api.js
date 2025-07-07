@@ -679,4 +679,55 @@ export const directMessageService = {
   }
 };
 
+// Admin User Management
+export const adminUserService = {
+  getUsers: async (page = 1, limit = 10, search = '', role = '', status = '') => {
+    try {
+      const params = new URLSearchParams();
+      params.append('page', page);
+      params.append('limit', limit);
+      
+      if (search) params.append('search', search);
+      if (role) params.append('role', role);
+      if (status) params.append('status', status);
+      
+      const response = await api.get(`/dashboard/admin/users?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
+  },
+  
+  updateUserRole: async (userId, role) => {
+    try {
+      const response = await api.put(`/dashboard/admin/users/${userId}/role`, { role });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      throw error;
+    }
+  },
+  
+  updateUserStatus: async (userId, isActive) => {
+    try {
+      const response = await api.put(`/dashboard/admin/users/${userId}/status`, { isActive });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      throw error;
+    }
+  },
+  
+  deleteUser: async (userId) => {
+    try {
+      const response = await api.delete(`/dashboard/admin/users/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
+  }
+};
+
 export default api; 

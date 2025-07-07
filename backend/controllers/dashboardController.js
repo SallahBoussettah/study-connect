@@ -552,6 +552,252 @@ exports.getUserStorageDetails = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get all users for admin management
+ * @route   GET /api/dashboard/admin/users
+ * @access  Private (Admin only)
+ */
+exports.getAdminUsers = async (req, res, next) => {
+  try {
+    // Get pagination parameters
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const offset = (page - 1) * limit;
+    
+    // Get search and filter parameters
+    const search = req.query.search || '';
+    const role = req.query.role || '';
+    const status = req.query.status || '';
+    
+    // Build where clause
+    const whereClause = {};
+    
+    if (search) {
+      whereClause[Op.or] = [
+        { firstName: { [Op.iLike]: `%${search}%` } },
+        { lastName: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+    
+    if (role && ['student', 'teacher', 'admin'].includes(role)) {
+      whereClause.role = role;
+    }
+    
+    if (status === 'active') {
+      whereClause.isActive = true;
+    } else if (status === 'inactive') {
+      whereClause.isActive = false;
+    }
+    
+    // Get users with pagination
+    const { count, rows: users } = await User.findAndCountAll({
+      attributes: [
+        'id', 
+        'firstName', 
+        'lastName', 
+        'email', 
+        'role', 
+        'avatar', 
+        'institution',
+        'isActive', 
+        'emailVerified', 
+        'createdAt', 
+        'lastLogin'
+      ],
+      where: whereClause,
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']]
+    });
+    
+    // Format users for response
+    const formattedUsers = users.map(user => ({
+      id: user.id,
+      name: `${user.firstName} ${user.lastName}`,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar,
+      institution: user.institution || 'Not specified',
+      isActive: user.isActive,
+      emailVerified: user.emailVerified,
+      joinedAt: user.createdAt,
+      lastLogin: user.lastLogin || 'Never'
+    }));
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        users: formattedUsers,
+        pagination: {
+          page,
+          limit,
+          totalUsers: count,
+          totalPages: Math.ceil(count / limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error getting admin users:', error);
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update user role
+ * @route   PUT /api/dashboard/admin/users/:userId/role
+ * @access  Private (Admin only)
+ */
+exports.updateUserRole = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+    
+    // Validate role
+    if (!role || !['student', 'teacher', 'admin'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid role. Role must be one of: student, teacher, admin'
+      });
+    }
+    
+    // Find user
+    const user = await User.findByPk(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    // Prevent admin from changing their own role
+    if (userId === req.user.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot change your own role'
+      });
+    }
+    
+    // Update user role
+    user.role = role;
+    await user.save();
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        role: user.role
+      },
+      message: `User role updated to ${role}`
+    });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update user active status
+ * @route   PUT /api/dashboard/admin/users/:userId/status
+ * @access  Private (Admin only)
+ */
+exports.updateUserStatus = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { isActive } = req.body;
+    
+    // Validate isActive
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'isActive must be a boolean'
+      });
+    }
+    
+    // Find user
+    const user = await User.findByPk(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    // Prevent admin from deactivating themselves
+    if (userId === req.user.id && !isActive) {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot deactivate your own account'
+      });
+    }
+    
+    // Update user status
+    user.isActive = isActive;
+    await user.save();
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        isActive: user.isActive
+      },
+      message: isActive ? 'User activated' : 'User deactivated'
+    });
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete user
+ * @route   DELETE /api/dashboard/admin/users/:userId
+ * @access  Private (Admin only)
+ */
+exports.deleteUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    
+    // Find user
+    const user = await User.findByPk(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    // Prevent admin from deleting themselves
+    if (userId === req.user.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot delete your own account'
+      });
+    }
+    
+    // Delete user
+    await user.destroy();
+    
+    res.status(200).json({
+      success: true,
+      data: {},
+      message: 'User deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    next(error);
+  }
+};
+
 // Helper function to format file size
 function formatFileSize(sizeInBytes) {
   if (!sizeInBytes) return '0 B';
