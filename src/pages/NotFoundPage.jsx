@@ -7,7 +7,7 @@ const NotFoundPage = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <main className="flex-grow pt-24 pb-20 flex items-center">
+      <main className="flex-grow pb-20 flex items-center">
         <div className="container-custom">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-9xl font-bold text-primary-600">404</h1>
