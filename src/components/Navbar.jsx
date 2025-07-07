@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaBars, FaTimes, FaUser, FaSignOutAlt, FaCog, FaChartBar } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarUrl } from '../utils/avatarUtils.jsx';
@@ -10,6 +10,14 @@ const Navbar = () => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determine if the current page has a gradient background
+  const hasGradientBackground = () => {
+    // Pages with gradient backgrounds
+    const gradientPages = ['/', '/pricing', '/features', '/about', '/contact', '/login', '/register'];
+    return gradientPages.includes(location.pathname);
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -75,8 +83,19 @@ const Navbar = () => {
     );
   };
 
+  // Determine the navbar background class based on scroll position and current page
+  const getNavbarBackgroundClass = () => {
+    if (isScrolled) {
+      return 'bg-white shadow-md py-3';
+    } else if (hasGradientBackground()) {
+      return 'bg-primary-50 py-5';
+    } else {
+      return 'bg-white py-5';
+    }
+  };
+
   return (
-    <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-3' : 'bg-transparent py-5'}`}>
+    <nav className={`fixed w-full z-50 transition-all duration-300 ${getNavbarBackgroundClass()}`}>
       <div className="container-custom">
         <div className="flex justify-between items-center">
           <Link to="/" className="text-2xl font-bold text-primary-600">

@@ -58,20 +58,21 @@ const PricingPage = () => {
       buttonText: "Get Started",
       buttonLink: "/register",
       features: [
-        { text: "Join up to 5 study rooms", included: true },
+        { text: "Join up to 3 study rooms", included: true },
         { text: "500MB storage for resources", included: true },
         { text: "Text chat in rooms", included: true },
-        { text: "Basic flashcards & notes", included: true },
-        { text: "Study timer", included: true },
-        { text: "Up to 5 simultaneous collaborators", included: true },
-        { text: "Voice & video calls", included: false },
-        { text: "Advanced study analytics", included: false },
-        { text: "AI study recommendations", included: false },
+        { text: "Basic flashcards", included: true },
+        { text: "Study timer (Pomodoro)", included: true },
+        { text: "Up to 3 friends", included: true },
+        { text: "Voice calls (limited duration)", included: true },
+        { text: "Video calls (limited quality)", included: false },
+        { text: "Screen sharing", included: false },
+        { text: "Resource approval required", included: true },
       ]
     },
     {
       title: "Pro",
-      price: "$5.99",
+      price: "$4.99",
       period: "/month",
       description: "Enhanced features for serious students.",
       highlighted: true,
@@ -79,13 +80,14 @@ const PricingPage = () => {
       buttonLink: "/register?plan=pro",
       features: [
         { text: "Unlimited study rooms", included: true },
-        { text: "5GB storage for resources", included: true },
+        { text: "2GB storage for resources", included: true },
         { text: "Text, voice & video chat", included: true },
-        { text: "Advanced flashcards & rich notes", included: true },
+        { text: "Advanced flashcards with progress tracking", included: true },
         { text: "Customizable study timer", included: true },
-        { text: "Up to 20 simultaneous collaborators", included: true },
-        { text: "Personal study analytics", included: true },
-        { text: "AI study recommendations", included: true },
+        { text: "Unlimited friends", included: true },
+        { text: "HD video calls", included: true },
+        { text: "Screen sharing", included: true },
+        { text: "Auto-approved resources", included: true },
         { text: "Priority support", included: true },
       ]
     },
@@ -101,11 +103,11 @@ const PricingPage = () => {
         { text: "Custom branding", included: true },
         { text: "Unlimited storage", included: true },
         { text: "All communication features", included: true },
-        { text: "All study tools", included: true },
+        { text: "Teacher accounts with resource approval", included: true },
         { text: "Admin dashboard", included: true },
-        { text: "LMS integration", included: true },
-        { text: "Institution-wide analytics", included: true },
-        { text: "API access", included: true },
+        { text: "Bulk user management", included: true },
+        { text: "Institution-wide study rooms", included: true },
+        { text: "Subject-specific resource libraries", included: true },
         { text: "Dedicated account manager", included: true },
       ]
     }
@@ -114,7 +116,7 @@ const PricingPage = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <main className="flex-grow pt-24">
+      <main className="flex-grow">
         <section className="py-20 bg-gradient-to-b from-primary-50 to-white">
           <div className="container-custom">
             <div className="text-center max-w-3xl mx-auto mb-16">
@@ -141,7 +143,7 @@ const PricingPage = () => {
                 </div>
                 <div className="bg-white p-6 rounded-xl shadow-md">
                   <h4 className="font-semibold text-lg mb-2">Educators</h4>
-                  <p className="text-secondary-600">Free Pro accounts for verified teachers</p>
+                  <p className="text-secondary-600">Free Teacher accounts for verified educators</p>
                 </div>
                 <div className="bg-white p-6 rounded-xl shadow-md">
                   <h4 className="font-semibold text-lg mb-2">Nonprofits</h4>
@@ -170,12 +172,12 @@ const PricingPage = () => {
                   <p className="text-secondary-600">Yes, we offer a 14-day free trial of StudyConnect Pro so you can experience all the premium features before committing.</p>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-secondary-800 mb-2">What happens to my data if I downgrade?</h3>
-                  <p className="text-secondary-600">If you exceed the storage limit of your new plan, you won't be able to upload new files until you're under the limit, but you won't lose access to existing files.</p>
+                  <h3 className="text-xl font-semibold text-secondary-800 mb-2">What happens to my resources if I downgrade?</h3>
+                  <p className="text-secondary-600">If you exceed the storage limit of your new plan, you won't be able to upload new resources until you're under the limit, but you won't lose access to existing resources.</p>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-secondary-800 mb-2">Do you offer refunds?</h3>
-                  <p className="text-secondary-600">We offer a 30-day money-back guarantee if you're not satisfied with your Pro subscription.</p>
+                  <h3 className="text-xl font-semibold text-secondary-800 mb-2">How does resource approval work?</h3>
+                  <p className="text-secondary-600">On the Basic plan, resources you upload need to be approved by teachers or admins. Pro users can upload resources without approval.</p>
                 </div>
               </div>
             </div>

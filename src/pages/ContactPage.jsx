@@ -45,7 +45,7 @@ const ContactPage = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <main className="flex-grow pt-24">
+      <main className="flex-grow">
         {/* Hero Section */}
         <section className="py-20 bg-gradient-to-b from-primary-50 to-white">
           <div className="container-custom">
