@@ -3,6 +3,7 @@
 This directory contains simple explanations of the technologies and patterns used in the StudyConnect project.
 
 ## Backend Technologies
+- [Node.js & Express](./backend/nodejs-express.md) - Server-side JavaScript runtime and framework
 - [Sequelize ORM](./backend/sequelize.md) - Database interaction
 - [Express & Controllers](./backend/controllers.md) - API endpoints
 - [Middleware](./backend/middleware.md) - Request processing
